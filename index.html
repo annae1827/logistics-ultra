@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Logistics Ultra — Sistema Financiero</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --nav:#0f1623;--nav2:#161e2e;--bg:#f1f4f9;--s0:#fff;--s1:#f7f9fc;--s2:#eef1f7;
+  --acc:#2563eb;--acc2:#1d4ed8;--acc3:#dbeafe;
+  --grn:#059669;--grn2:#d1fae5;--red:#dc2626;--red2:#fee2e2;
+  --ylw:#d97706;--ylw2:#fef3c7;--pur:#7c3aed;--pur2:#ede9fe;
+  --t0:#0f172a;--t1:#1e293b;--t2:#475569;--t3:#94a3b8;
+  --br:#e2e8f0;--br2:#cbd5e1;
+  --r:10px;--r2:7px;--sh:0 1px 3px rgba(0,0,0,.07),0 2px 10px rgba(0,0,0,.04);
+  --font:'DM Sans',sans-serif;--mono:'DM Mono',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;font-family:var(--font);font-size:13px;background:var(--bg);color:var(--t1)}
+
+/* LOADING */
+#loading{position:fixed;inset:0;background:var(--nav);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;gap:16px}
+#loading .logo{width:52px;height:52px;background:var(--acc);border-radius:14px;display:flex;align-items:center;justify-content:center}
+#loading .logo svg{width:26px;height:26px;fill:#fff}
+#loading h1{color:#fff;font-size:20px;font-weight:700}
+#loading p{color:rgba(255,255,255,.4);font-size:13px}
+#loading .bar{width:240px;height:3px;background:rgba(255,255,255,.1);border-radius:99px;overflow:hidden;margin-top:8px}
+#loading .bar-fill{height:100%;background:var(--acc);border-radius:99px;animation:load 2s ease-in-out infinite}
+@keyframes load{0%{width:0%}60%{width:80%}100%{width:100%}}
+#err-box{display:none;background:rgba(220,38,38,.15);border:1px solid rgba(220,38,38,.3);color:#fca5a5;padding:12px 20px;border-radius:8px;font-size:12px;max-width:400px;text-align:center}
+
+/* APP */
+.app{display:flex;height:100vh;overflow:hidden}
+.sb{width:215px;background:var(--nav);display:flex;flex-direction:column;flex-shrink:0}
+.sb-brand{padding:18px 16px 14px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;gap:9px}
+.sb-i{width:30px;height:30px;background:var(--acc);border-radius:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.sb-i svg{width:15px;height:15px;fill:#fff}
+.sb-n{font-size:13px;font-weight:700;color:#fff}
+.sb-s{font-size:10px;color:rgba(255,255,255,.28);margin-top:1px}
+.sb-nav{flex:1;padding:10px 8px;overflow-y:auto}
+.sb-sec{font-size:9px;font-weight:700;color:rgba(255,255,255,.2);text-transform:uppercase;letter-spacing:.08em;padding:8px 8px 3px}
+.ni{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:7px;cursor:pointer;color:rgba(255,255,255,.38);font-size:12px;font-weight:500;margin-bottom:1px;transition:all .12s;user-select:none}
+.ni:hover{background:rgba(255,255,255,.05);color:rgba(255,255,255,.7)}
+.ni.on{background:var(--acc);color:#fff}
+.ni svg{width:14px;height:14px;fill:currentColor;flex-shrink:0}
+.sb-foot{padding:10px 12px;border-top:1px solid rgba(255,255,255,.06);font-size:10px;color:rgba(255,255,255,.22);line-height:1.7}
+.sb-foot b{color:rgba(255,255,255,.38);display:block}
+
+.cnt{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.top{background:var(--s0);border-bottom:1px solid var(--br);padding:0 22px;height:50px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.top-tit{font-size:14px;font-weight:600;color:var(--t0)}
+.top-r{display:flex;align-items:center;gap:8px}
+.t-sel{background:var(--s1);border:1px solid var(--br2);color:var(--t1);font-size:12px;padding:5px 9px;border-radius:var(--r2);font-family:var(--font);cursor:pointer}
+.cmp-lbl{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--t2);cursor:pointer;padding:5px 9px;border-radius:var(--r2);border:1px solid var(--br);background:var(--s1)}
+.cmp-lbl input{accent-color:var(--acc)}
+.sync-btn{background:var(--acc);border:none;color:#fff;font-size:12px;padding:6px 13px;border-radius:var(--r2);cursor:pointer;font-family:var(--font);font-weight:600;display:flex;align-items:center;gap:5px;transition:background .12s}
+.sync-btn:hover{background:var(--acc2)}
+.dot{width:6px;height:6px;border-radius:50%;background:#fff;flex-shrink:0}
+.dot.spin{animation:blink 1s infinite}
+.dot.err{background:#fca5a5}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+
+.main{flex:1;overflow-y:auto;padding:20px 22px;background:var(--bg)}
+
+/* KPI */
+.krow{display:grid;grid-template-columns:repeat(auto-fit,minmax(128px,1fr));gap:11px;margin-bottom:18px}
+.kc{background:var(--s0);border:1px solid var(--br);border-radius:var(--r);padding:13px 15px;box-shadow:var(--sh)}
+.kc-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px}
+.kl{font-size:10px;font-weight:500;color:var(--t3);text-transform:uppercase;letter-spacing:.05em}
+.ki{width:27px;height:27px;border-radius:7px;display:flex;align-items:center;justify-content:center}
+.ki svg{width:13px;height:13px;fill:currentColor}
+.ki.g{background:var(--grn2);color:var(--grn)}.ki.r{background:var(--red2);color:var(--red)}
+.ki.b{background:var(--acc3);color:var(--acc2)}.ki.y{background:var(--ylw2);color:var(--ylw)}.ki.p{background:var(--pur2);color:var(--pur)}
+.kv{font-size:21px;font-weight:700;color:var(--t0);line-height:1}
+.kv.g{color:var(--grn)}.kv.r{color:var(--red)}.kv.b{color:var(--acc2)}.kv.y{color:var(--ylw)}.kv.p{color:var(--pur)}
+.kd{font-size:10px;color:var(--t3);margin-top:4px;line-height:1.4}
+.up{color:var(--grn)}.dn{color:var(--red)}.vs{color:var(--t3);font-size:10px}
+
+/* CHART */
+.cc{background:var(--s0);border:1px solid var(--br);border-radius:var(--r);padding:15px;box-shadow:var(--sh);margin-bottom:15px}
+.cc-t{font-size:11px;font-weight:600;color:var(--t2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px}
+.lgnd{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:10px}
+.lgnd span{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--t2)}
+.lsq{width:9px;height:9px;border-radius:2px;flex-shrink:0}
+
+/* BARS */
+.brow{display:flex;align-items:center;gap:8px;margin-bottom:5px}
+.blbl{font-size:11px;color:var(--t2);min-width:145px;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.btrk{flex:1;height:13px;background:var(--s2);border-radius:3px;overflow:hidden}
+.bfil{height:100%;border-radius:3px}
+.bval{font-size:10px;min-width:80px;text-align:right;font-weight:600;font-family:var(--mono)}
+
+/* PILLS */
+.pills{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:11px}
+.pill{font-size:11px;padding:3px 10px;border-radius:99px;cursor:pointer;border:1px solid var(--br);background:var(--s1);color:var(--t2);font-family:var(--font);font-weight:500;transition:all .1s}
+.pill:hover{border-color:var(--acc);color:var(--acc)}
+.pill.on{background:var(--acc);color:#fff;border-color:var(--acc)}
+
+/* TABLE */
+.tw{overflow-x:auto;border-radius:var(--r);border:1px solid var(--br);box-shadow:var(--sh);margin-bottom:15px}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{background:var(--s1);padding:7px 11px;font-size:9px;font-weight:700;color:var(--t3);text-align:left;text-transform:uppercase;letter-spacing:.06em;white-space:nowrap;border-bottom:1px solid var(--br)}
+th.r{text-align:right}
+td{padding:7px 11px;border-bottom:1px solid var(--br);color:var(--t1);vertical-align:middle;white-space:nowrap}
+td.r{text-align:right;font-family:var(--mono);font-size:11px}
+td.g{color:var(--grn);font-weight:600}.td.r2{color:var(--red);font-weight:600}
+td.re{color:var(--red);font-weight:600}.td.mu{color:var(--t2)}
+td.mu{color:var(--t2)}.td.y{color:var(--ylw);font-weight:600}
+td.y{color:var(--ylw);font-weight:600}.td.p{color:var(--pur);font-weight:600}
+td.p{color:var(--pur);font-weight:600}.td.b{color:var(--acc2);font-weight:600}
+td.b{color:var(--acc2);font-weight:600}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#f5f8ff}
+tfoot td{padding:8px 11px;background:var(--s1);font-weight:700;border-top:1px solid var(--br2);font-family:var(--mono);font-size:11px}
+tfoot td.r{text-align:right}
+tfoot td.g{color:var(--grn)}.tfoot td.re{color:var(--red)}
+
+.bdg{display:inline-block;font-size:10px;padding:1px 7px;border-radius:99px;font-weight:600;white-space:nowrap}
+.bg{background:var(--s2);color:var(--t2);border:1px solid var(--br)}
+.bb{background:var(--acc3);color:var(--acc2)}.by{background:var(--ylw2);color:#92400e}.bgn{background:var(--grn2);color:var(--grn)}
+
+.slbl{font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin:14px 0 7px}
+.slbl:first-child{margin-top:0}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:15px}
+
+/* P&L TABLE */
+.pnl-tbl tr.phdr td{background:var(--nav);color:#fff;font-weight:700;font-size:11px}
+.pnl-tbl tr.phdr td.r{text-align:right;font-family:var(--mono)}
+.pnl-tbl tr.psub td{padding-left:22px;color:var(--t2)}
+.pnl-tbl tr.ptot td{background:var(--s2);font-weight:700;border-top:1px solid var(--br2)}
+.pnl-tbl tr.pgrand td{background:var(--nav2);color:#fff;font-weight:700;font-size:12px}
+.pnl-tbl tr.pgrand td.r{text-align:right;font-family:var(--mono)}
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div id="loading">
+  <div class="logo"><svg viewBox="0 0 24 24"><path d="M1 3h15v13H1zm15 5h4l3 3v5h-7V8zM6 19a2 2 0 100-4 2 2 0 000 4zm11 0a2 2 0 100-4 2 2 0 000 4z"/></svg></div>
+  <h1>Logistics Ultra</h1>
+  <p id="load-msg">Conectando con Google Sheets…</p>
+  <div class="bar"><div class="bar-fill"></div></div>
+  <div id="err-box"></div>
+</div>
+
+<!-- APP -->
+<div class="app" id="app" style="display:none">
+<aside class="sb">
+  <div class="sb-brand">
+    <div class="sb-i"><svg viewBox="0 0 24 24"><path d="M1 3h15v13H1zm15 5h4l3 3v5h-7V8zM6 19a2 2 0 100-4 2 2 0 000 4zm11 0a2 2 0 100-4 2 2 0 000 4z"/></svg></div>
+    <div><div class="sb-n">Logistics Ultra</div><div class="sb-s">Sistema Financiero</div></div>
+  </div>
+  <nav class="sb-nav">
+    <div class="sb-sec">Operación</div>
+    <div class="ni on" onclick="goTab('viajes',this)"><svg viewBox="0 0 24 24"><path d="M1 3h15v13H1zm15 5h4l3 3v5h-7V8zM6 19a2 2 0 100-4 2 2 0 000 4zm11 0a2 2 0 100-4 2 2 0 000 4z"/></svg>Viajes</div>
+    <div class="ni" onclick="goTab('ingresos',this)"><svg viewBox="0 0 24 24"><path d="M3.5 18.5l6-6 4 4 7-8"/></svg>Ingresos</div>
+    <div class="ni" onclick="goTab('gastos',this)"><svg viewBox="0 0 24 24"><path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/></svg>Gastos</div>
+    <div class="sb-sec">Financiero</div>
+    <div class="ni" onclick="goTab('pnl',this)"><svg viewBox="0 0 24 24"><path d="M3 13h2v8H3zm4-4h2v12H7zm4-4h2v16h-2zm4 8h2v8h-2zm4-4h2v12h-2z"/></svg>P&amp;L Resultados</div>
+    <div class="ni" onclick="goTab('costeo',this)"><svg viewBox="0 0 24 24"><path d="M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4z"/></svg>Costeo por Unidad</div>
+  </nav>
+  <div class="sb-foot">
+    <b id="sbDate">—</b>
+    <span id="sbRows">—</span>
+  </div>
+</aside>
+<div class="cnt">
+  <header class="top">
+    <div class="top-tit" id="topTit">Viajes</div>
+    <div class="top-r">
+      <select class="t-sel" id="yrSel" onchange="render()">
+        <option value="2023">2023</option><option value="2024">2024</option>
+        <option value="2025">2025</option><option value="2026" selected>2026</option>
+      </select>
+      <label class="cmp-lbl"><input type="checkbox" id="cmpChk" onchange="render()"> vs año ant.</label>
+      <button class="sync-btn" onclick="reloadData()"><span class="dot" id="dot"></span>Actualizar</button>
+    </div>
+  </header>
+  <main class="main" id="main"></main>
+</div>
+</div>
+
+<script>
+// ── URLs de Google Sheets ──────────────────────────────────────────────────
+const URL_V='https://docs.google.com/spreadsheets/d/e/2PACX-1vQUAaE4yC5wN6MxTnoCqzBZIkTDwjqpcmnu7Si4duNdjPCbkd6jaAEvZmJrLkaLIJ17mgAzpW5VwJsy/pub?gid=1075720101&single=true&output=csv';
+const URL_G='https://docs.google.com/spreadsheets/d/e/2PACX-1vQUAaE4yC5wN6MxTnoCqzBZIkTDwjqpcmnu7Si4duNdjPCbkd6jaAEvZmJrLkaLIJ17mgAzpW5VwJsy/pub?gid=269206902&single=true&output=csv';
+// ──────────────────────────────────────────────────────────────────────────
+
+const MES=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+const MIDX={enero:0,febrero:1,marzo:2,abril:3,mayo:4,junio:5,julio:6,agosto:7,septiembre:8,octubre:9,noviembre:10,diciembre:11};
+const GEXCL=['CAPEX','Importaciones y compra de Unidades','Importaciones y compra de unidades','Sin Clasificar'];
+const CLRS=['#2563eb','#059669','#d97706','#7c3aed','#dc2626','#0891b2','#ea580c','#16a34a','#9333ea','#be185d'];
+const TABS={viajes:'Viajes',ingresos:'Ingresos',gastos:'Gastos',pnl:'P&L — Estado de Resultados',costeo:'Costeo por Unidad'};
+
+let V=[],G=[],curTab='viajes',curMes=-1,curCat='Todos',curCli='Todos',curSvc='Todos',CH={};
+
+const $=id=>document.getElementById(id);
+const yr=()=>parseInt($('yrSel').value);
+const co=()=>$('cmpChk').checked;
+const fmt=n=>'$'+Math.round(n).toLocaleString('es-MX');
+const fmtK=n=>n>=1e6?'$'+(n/1e6).toFixed(2)+'M':n>=1e3?'$'+Math.round(n/1e3).toLocaleString('es-MX')+'k':fmt(n);
+const pM=s=>parseFloat((s||'').replace(/[$,\s"]/g,''))||0;
+const mOf=r=>MIDX[(r.Mes||'').toLowerCase().trim()]??-1;
+const yOf=r=>parseInt(r['AÑO']||r['Año']||r['año']||0);
+const pct=(a,b)=>b?((a-b)/b*100).toFixed(1):'—';
+const dlt=(a,b)=>{const p=pct(a,b);if(p==='—')return '';const u=+p>=0;return `<span class="${u?'up':'dn'}">${u?'▲':'▼'}${Math.abs(p)}%</span>`;};
+const vY=y=>V.filter(r=>yOf(r)===y);
+const gY=y=>G.filter(r=>yOf(r)===y&&!GEXCL.includes(r['Categoría']));
+
+function parseCSV(txt){
+  const lines=txt.trim().split('\n');
+  const hdr=lines[0].split(',').map(h=>h.trim().replace(/^"|"$/g,''));
+  return lines.slice(1).map(l=>{
+    const vals=[];let cur='',inQ=false;
+    for(const c of l){if(c==='"'){inQ=!inQ}else if(c===','&&!inQ){vals.push(cur.trim());cur=''}else cur+=c;}
+    vals.push(cur.trim());
+    const o={};hdr.forEach((h,i)=>{o[h]=(vals[i]||'').replace(/^"|"$/g,'');});return o;
+  });
+}
+
+async function loadData(){
+  try{
+    $('load-msg').textContent='Cargando viajes…';
+    const rv=await fetch(URL_V);
+    if(!rv.ok)throw new Error('HTTP '+rv.status);
+    const tv=await rv.text();
+    V=parseCSV(tv).filter(r=>r['Dia']&&r['Dia']!=='Dia');
+
+    $('load-msg').textContent='Cargando gastos…';
+    const rg=await fetch(URL_G);
+    if(!rg.ok)throw new Error('HTTP '+rg.status);
+    const tg=await rg.text();
+    G=parseCSV(tg).filter(r=>{const f=r['Fecha']||'';return f.match(/\d/)&&pM(r['Monto'])>0;});
+
+    const now=new Date();
+    $('sbDate').textContent=now.toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'})+' '+now.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'});
+    $('sbRows').textContent=V.length+' viajes · '+G.length+' gastos';
+    $('loading').style.display='none';
+    $('app').style.display='flex';
+    $('dot').className='dot';
+    render();
+  }catch(e){
+    $('load-msg').textContent='Error al cargar';
+    const eb=$('err-box');
+    eb.style.display='block';
+    eb.textContent='No se pudo conectar con Google Sheets. Asegúrate de abrir este archivo desde GitHub Pages (https://), no desde tu disco local (file://).';
+    $('dot').className='dot err';
+  }
+}
+
+async function reloadData(){
+  $('dot').className='dot spin';
+  await loadData();
+}
+
+function goTab(name,el){
+  curTab=name;curMes=-1;curCat='Todos';curCli='Todos';curSvc='Todos';
+  document.querySelectorAll('.ni').forEach(n=>n.classList.remove('on'));
+  el.classList.add('on');
+  $('topTit').textContent=TABS[name];
+  render();
+}
+
+function render(){
+  Object.values(CH).forEach(c=>{try{c.destroy()}catch(e){}});CH={};
+  if(curTab==='viajes')drawViajes();
+  else if(curTab==='ingresos')drawIngresos();
+  else if(curTab==='gastos')drawGastos();
+  else if(curTab==='pnl')drawPNL();
+  else if(curTab==='costeo')drawCosteo();
+}
+
+function mkBar(id,labels,datasets,xticks={}){
+  CH[id]=new Chart($(id),{type:'bar',data:{labels,datasets},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' '+fmt(c.raw)}}},scales:{x:{ticks:{color:'#94a3b8',font:{size:10},...xticks},grid:{color:'rgba(0,0,0,.04)'}},y:{ticks:{color:'#94a3b8',font:{size:10},callback:v=>fmtK(v)},grid:{color:'rgba(0,0,0,.04)'}}}}});
+}
+function mkBarH(id,labels,datasets){
+  CH[id]=new Chart($(id),{type:'bar',data:{labels,datasets},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' '+fmt(c.raw)}}},scales:{x:{ticks:{color:'#94a3b8',font:{size:10},callback:v=>fmtK(v)},grid:{color:'rgba(0,0,0,.04)'}},y:{ticks:{color:'#475569',font:{size:10}},grid:{display:false}}}}});
+}
+
+function mV(y){const s=MES.map(()=>({v:0,i:0}));vY(y).forEach(r=>{const m=mOf(r);if(m<0)return;const t=pM(r.Tarifa);if(t>0){s[m].v++;s[m].i+=t;}});return s;}
+function mG(y){const s=MES.map(()=>0);gY(y).forEach(r=>{const m=mOf(r);if(m>=0)s[m]+=pM(r.Monto);});return s;}
+
+// ── VIAJES ────────────────────────────────────────────────────────────────
+function drawViajes(){
+  const y=yr(),ya=y-1,c=co();
+  const d=vY(y),da=vY(ya);
+  const f=curMes<0?d:d.filter(r=>mOf(r)===curMes);
+  const fa=curMes<0?da:da.filter(r=>mOf(r)===curMes);
+  const fac=f.filter(r=>pM(r.Tarifa)>0),faca=fa.filter(r=>pM(r.Tarifa)>0);
+  const tI=fac.reduce((s,r)=>s+pM(r.Tarifa),0),tIa=faca.reduce((s,r)=>s+pM(r.Tarifa),0);
+  const tk=fac.length?Math.round(tI/fac.length):0,tka=faca.length?Math.round(tIa/faca.length):0;
+  const sv=mV(y),sva=mV(ya);
+  const byU={};f.forEach(r=>{const u=r.Unidad||'S/U';const t=pM(r.Tarifa);if(!byU[u])byU[u]={v:0,i:0};if(t>0){byU[u].v++;byU[u].i+=t;}});
+  const units=Object.keys(byU).sort((a,b)=>byU[b].i-byU[a].i).slice(0,12);
+  const mP=['Todos',...MES].map((m,i)=>`<button class="pill ${curMes===(i-1)?'on':''}" onclick="curMes=${i-1};render()">${m}</button>`).join('');
+  const rows=f.slice(0,400).map(r=>{const t=pM(r.Tarifa);const svc=r['Tipo de servicio Homologado']||r['Tipo de Servicio']||'';const cli=r.Cliente||r['Cliente 1']||'';
+    return `<tr><td class="mu">${r.Dia||''} ${r.Mes||''}</td><td style="font-weight:600">${r.Unidad||''}</td><td class="mu">${r.OPS||''}</td><td>${svc?`<span class="bdg bg">${svc}</span>`:''}</td><td>${cli}</td><td class="r ${t>0?'g':'mu'}">${t>0?fmt(t):'—'}</td></tr>`;}).join('');
+  $('main').innerHTML=`
+    <div class="krow">
+      <div class="kc"><div class="kc-hd"><div class="kl">Viajes ${y}</div><div class="ki p"><svg viewBox="0 0 24 24"><path d="M1 3h15v13H1zm15 5h4l3 3v5h-7z"/></svg></div></div><div class="kv p">${f.length}</div><div class="kd">${c?`${ya}: ${fa.length} ${dlt(f.length,fa.length)}`:''}&nbsp;</div></div>
+      <div class="kc"><div class="kc-hd"><div class="kl">Facturados</div><div class="ki g"><svg viewBox="0 0 24 24"><path d="M9 12l2 2 4-4"/></svg></div></div><div class="kv g">${fac.length}</div><div class="kd">${c?`${ya}: ${faca.length} ${dlt(fac.length,faca.length)}`:''}&nbsp;</div></div>
+      <div class="kc"><div class="kc-hd"><div class="kl">Ingresos</div><div class="ki g"><svg viewBox="0 0 24 24"><path d="M3.5 18.5l6-6 4 4 7-8"/></svg></div></div><div class="kv g">${fmtK(tI)}</div><div class="kd">${c?`${ya}: ${fmtK(tIa)} ${dlt(tI,tIa)}`:''}&nbsp;</div></div>
+      <div class="kc"><div class="kc-hd"><div class="kl">Ticket prom.</div><div class="ki b"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 110 20A10 10 0 0112 2z"/></svg></div></div><div class="kv b">${fmt(tk)}</div><div class="kd">${c?`${ya}: ${fmt(tka)} ${dlt(tk,tka)}`:''}&nbsp;</div></div>
+      <div class="kc"><div class="kc-hd"><div class="kl">Unidades</div><div class="ki y"><svg viewBox="0 0 24 24"><path d="M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4z"/></svg></div></div><div class="kv y">${units.length}</div><div class="kd">&nbsp;</div></div>
+    </div>
+    <div class="g2">
+      <div class="cc"><div class="cc-t">Viajes por mes</div><div class="lgnd"><span><span class="lsq" style="background:#7c3aed"></span>${y}</span>${c?`<span><span class="lsq" style="background:#7c3aed;opacity:.3"></span>${ya}</span>`:''}</div><div style="position:relative;height:170px"><canvas id="cVm"></canvas></div></div>
+      <div class="cc"><div class="cc-t">Ingresos por mes</div><div class="lgnd"><span><span class="lsq" style="background:#059669"></span>${y}</span>${c?`<span><span class="lsq" style="background:#059669;opacity:.3"></span>${ya}</span>`:''}</div><div style="position:relative;height:170px"><canvas id="cVi"></canvas></div></div>
+    </div>
+    <div class="cc"><div class="cc-t">Ingresos por unidad — top 12</div><div style="position:relative;height:${Math.max(160,units.length*30+50)}px"><canvas id="cVu"></canvas></div></div>
+    <div class="slbl">Filtrar por mes</div><div class="pills">${mP}</div>
+    <div class="tw"><table><thead><tr><th>Fecha</th><th>Unidad</th><th>Operador</th><th>Servicio</th><th>Cliente</th><th class="r">Tarifa</th></tr></thead><tbody>${rows}</tbody><tfoot><tr><td colspan="5">${fac.length} viajes facturados${f.length>400?' · top 400':''}</td><td class="r g">${fmt(tI)}</td></tr></tfoot></table></div>`;
+  const dV=[{label:'v',data:sv.map(s=>s.v),backgroundColor:'rgba(124,58,237,.7)',borderRadius:3}];
+  if(c)dV.push({label:'va',data:sva.map(s=>s.v),backgroundColor:'rgba(124,58,237,.2)',borderRadius:3});
+  mkBar('cVm',MES,dV,{autoSkip:false});
+  const dI=[{label:'i',data:sv.map(s=>s.i),backgroundColor:'rgba(5,150,105,.7)',borderRadius:3}];
+  if(c)dI.push({label:'ia',data:sva.map(s=>s.i),backgroundColor:'rgba(5,150,105,.2)',borderRadius:3});
+  mkBar('cVi',MES,dI,{autoSkip:false});
+  mkBarH('cVu',units,[{label:'ing',data:units.map(u=>byU[u].i),backgroundColor:CLRS.map(c=>`${c}cc`),borderRadius:3}]);
+}
+
+// ── INGRESOS ──────────────────────────────────────────────────────────────
+function drawIngresos(){
+  const y=yr(),ya=y-1,c=co();
+  const d=vY(y).filter(r=>pM(r.Tarifa)>0);
+  const da=vY(ya).filter(r=>pM(r.Tarifa)>0);
+  const f=d.filter(r=>(curMes<0||mOf(r)===curMes)&&(curCli==='Todos'||(r.Cliente||r['Cliente 1']||'')===curCli)&&(curSvc==='Todos'||(r['Tipo de servicio Homologado']||r['Tipo de Servicio']||'')===curSvc));
+  const dI=d.reduce((s,r)=>s+pM(r.Tarifa),0),daI=da.reduce((s,r)=>s+pM(r.Tarifa),0);
+  const byCli={},bySvc={};
+  d.forEach(r=>{const cli=r.Cliente||r['Cliente 1']||'S/C';const svc=r['Tipo de servicio Homologado']||r['Tipo de Servicio']||'Otro';
+    if(!byCli[cli])byCli[cli]={v:0,i:0};byCli[cli].v++;byCli[cli].i+=pM(r.Tarifa);
+    if(!bySvc[svc])bySvc[svc]={v:0,i:0};bySvc[svc].v++;bySvc[svc].i+=pM(r.Tarifa);});
+  const cliSort=Object.keys(byCli).sort((a,b)=>byCli[b].i-byCli[a].i);
+  const svcSort=Object.keys(bySvc).sort((a,b)=>bySvc[b].i-bySvc[a].i);
+  const sv=mV(y),sva=mV(ya);
+  const mP=['Todos',...MES].map((m,i)=>`<button class="pill ${curMes===(i-1)?'on':''}" onclick="curMes=${i-1};render()">${m}</button>`).join('');
+  const cP=['Todos',...cliSort.slice(0,20)].map(c2=>`<button class="pill ${curCli===c2?'on':''}" onclick="curCli=${JSON.stringify(c2)};render()">${c2}</button>`).join('');
+  const sP=['Todos',...svcSort].map(s2=>`<button class="pill ${curSvc===s2?'on':''}" onclick="curSvc=${JSON.stringify(s2)};render()">${s2}</button>`).join('');
+  const cliRows=cliSort.slice(0,20).map(cli=>{const r=byCli[cli];return `<tr><td style="font-weight:600">${cli}</td><td class="r">${r.v}</td><td class="r g">${fmt(r.i)}</td><td class="r mu">${fmt(Math.round(r.i/r.v))}</td><td class="r y">${dI?(r.i/dI*100).toFixed(1):'—'}%</td></tr>`;}).join('');
+  const svcRows=svcSort.map(svc=>{const r=bySvc[svc];return `<tr><td style="font-weight:600">${svc}</td><td class="r">${r.v}</td><td class="r g">${fmt(r.i)}</td><td class="r mu">${fmt(Math.round(r.i/r.v))}</td><td class="r y">${dI?(r.i/dI*100).toFixed(1):'—'}%</td></tr>`;}).join('');
+  $('main').innerHTML=`
+    <div class="krow">
+      <div class="kc"><div class="kc-hd"><div class="kl">Ingresos ${y}</div><div class="ki g"><svg viewBox="0 0 24 24"><path d="M3.5 18.5l6-6 4 4 7-8"/></svg></div></div><div class="kv g">${fmtK(dI)}</div><div class="kd">${c?`${ya}: ${fmtK(daI)} ${dlt(dI,daI)}`:''}&nbsp;</div></div>
+      <div class="kc"><div class="kc-hd"><div class="kl">Viajes</div><div class="ki b"><svg viewBox="0 0 24 24"><path d="M9 12l2 2 4-4"/></svg></div></div><div class="kv b">${d.length}</div><div class="kd">${c?`${ya}: ${da.length} ${dlt(d.length,da.length)}`:''}&nbsp;</div></div>
+      <div class="kc"><div class="kc-hd"><div class="kl">Ticket prom.</div><div class="ki y"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 110 20A10 10 0 0112 2z"/></svg></div></div><div class="kv y">${fmt(d.length?Math.round(dI/d.length):0)}</div><div class="kd">&nbsp;</div></div>
+      <div class="kc"><div class="kc-hd"><div class="kl">Clientes</div><div class="ki p"><svg viewBox="0 0 24 24"><path d="M12 2a5 5 0 110 10A5 5 0 0112 2zm0 12c5.33 0 8 2.67 8 4v2H4v-2c0-1.33 2.67-4 8-4z"/></svg></div></div><div class="kv p">${cliSort.length}</div><div class="kd">&nbsp;</div></div>
+    </div>
+    <div class="cc"><div class="cc-t">Ingresos mensuales ${y}${c?` vs ${ya}`:''}</div><div class="lgnd"><span><span class="lsq" style="background:#2563eb"></span>${y}</span>${c?`<span><span class="lsq" style="background:#2563eb;opacity:.3"></span>${ya}</span>`:''}</div><div style="position:relative;height:180px"><canvas id="cIm"></canvas></div></div>
+    <div class="slbl">Filtros</div>
+    <div class="slbl" style="font-weight:400;color:var(--t2)">Mes</div><div class="pills">${mP}</div>
+    <div class="slbl" style="font-weight:400;color:var(--t2)">Cliente</div><div class="pills">${cP}</div>
+    <div class="slbl" style="font-weight:400;color:var(--t2)">Tipo de servicio</div><div class="pills">${sP}</div>
+    <div class="g2">
+      <div><div class="slbl">Por cliente — top 20</div><div class="tw"><table><thead><tr><th>Cliente</th><th class="r">Viajes</th><th class="r">Ingresos</th><th class="r">Ticket</th><th class="r">%</th></tr></thead><tbody>${cliRows}</tbody><tfoot><tr><td>Total</td><td class="r">${d.length}</td><td class="r g">${fmt(dI)}</td><td></td><td></td></tr></tfoot></table></div></div>
+      <div><div class="slbl">Por tipo de servicio</div><div class="tw"><table><thead><tr><th>Servicio</th><th class="r">Viajes</th><th class="r">Ingresos</th><th class="r">Ticket</th><th class="r">%</th></tr></thead><tbody>${svcRows}</tbody></table></div></div>
+    </div>
+    <div class="cc"><div class="cc-t">Ingresos por cliente — top 12</div><div style="position:relative;height:${Math.max(180,Math.min(cliSort.length,12)*34+50)}px"><canvas id="cIc"></canvas></div></div>`;
+  const dsi=[{label:'i',data:sv.map(s=>s.i),backgroundColor:'rgba(37,99,235,.7)',borderRadius:3}];
+  if(c)dsi.push({label:'ia',data:sva.map(s=>s.i),backgroundColor:'rgba(37,99,235,.2)',borderRadius:3});
+  mkBar('cIm',MES,dsi,{autoSkip:false});
+  mkBarH('cIc',cliSort.slice(0,12),[{label:'i',data:cliSort.slice(0,12).map(cli=>byCli[cli].i),backgroundColor:CLRS.map(c=>`${c}cc`),borderRadius:3}]);
+}
+
+// ── GASTOS ────────────────────────────────────────────────────────────────
+function drawGastos(){
+  const y=yr(),ya=y-1,c=co();
+  const d=gY(y),da=gY(ya);
+  const allC=['Todos',...[...new Set(d.map(r=>r['Categoría']).filter(Boolean))].sort()];
+  const f=(curMes<0?d:d.filter(r=>mOf(r)===curMes)).filter(r=>curCat==='Todos'||r['Categoría']===curCat);
+  const fa=(curMes<0?da:da.filter(r=>mOf(r)===curMes)).filter(r=>curCat==='Todos'||r['Categoría']===curCat);
+  const tG=f.reduce((s,r)=>s+pM(r.Monto),0),tGa=fa.reduce((s,r)=>s+pM(r.Monto),0);
+  const dG=d.reduce((s,r)=>s+pM(r.Monto),0);
+  const fij=f.filter(r=>r.Tipo==='Fijos').reduce((s,r)=>s+pM(r.Monto),0);
+  const vr=f.filter(r=>r.Tipo==='Variables').reduce((s,r)=>s+pM(r.Monto),0);
+  const byCat={};f.forEach(r=>{const cat=r['Categoría']||'Otro';byCat[cat]=(byCat[cat]||0)+pM(r.Monto);});
+  const catSort=Object.entries(byCat).sort((a,b)=>b[1]-a[1]);
+  const mx=catSort[0]?catSort[0][1]:1;
+  const bars=catSort.slice(0,18).map(([cat,v])=>`<div class="brow"><div class="blbl">${cat}</div><div class="btrk"><div class="bfil" style="width:${(v/mx*100).toFixed(1)}%;background:#dc2626;opacity:.65"></div></div><div class="bval re">${fmt(v)}</div></div>`).join('');
+  const sg=mG(y),sga=mG(ya);
+  const top8=catSort.slice(0,8).map(([c2])=>c2);
+  const byCM={};top8.forEach(c2=>byCM[c2]=MES.map(()=>0));
+  d.forEach(r=>{const cat=r['Categoría']||'Otro';const m=mOf(r);if(top8.includes(cat)&&m>=0)byCM[cat][m]+=pM(r.Monto);});
+  const mP=['Todos',...MES].map((m,i)=>`<button class="pill ${curMes===(i-1)?'on':''}" onclick="curMes=${i-1};render()">${m}</button>`).join('');
+  const cP=allC.map(c2=>`<button class="pill ${curCat===c2?'on':''}" onclick="curCat=${JSON.stringify(c2)};render()">${c2}</button>`).join('');
+  const mRows=MES.map((m,i)=>{const gm=sg[i];if(!gm)return '';return `<tr><td style="font-weight:600">${m}</td>${top8.map(c2=>`<td class="r mu">${byCM[c2][i]?fmt(byCM[c2][i]):'—'}</td>`).join('')}<td class="r re">${fmt(gm)}</td></tr>`;}).join('');
+  const rows=f.slice(0,300).map(r=>`<tr><td class="mu">${r.Fecha||''}</td><td>${r['Descripción']||''}</td><td>${r['Categoría']?`<span class="bdg bg">${r['Categoría']}</span>`:''}</td><td class="mu">${r.Unidad||''}</td><td>${r.Tipo==='Fijos'?'<span class="bdg by">Fijo</span>':r.Tipo==='Variables'?'<span class="bdg bb">Variable</span>':''}</td><td class="r re">${fmt(pM(r.Monto))}</td></tr>`).join('');
+  $('main').innerHTML=`
+    <div class="krow">
+      <div class="kc"><div class="kc-hd"><div class="kl">Gastos ${y}</div><div class="ki r"><svg viewBox="0 0 24 24"><path d="M19 13H5v-2h14v2z"/></svg></div></div><div class="kv r">${fmtK(dG)}</div><div class="kd">${c?`${ya}: ${fmtK(da.reduce((s,r)=>s+pM(r.Monto),0))} ${dlt(dG,da.reduce((s,r)=>s+pM(r.Monto),0))}`:''}&nbsp;</div></div>
+      <div class="kc"><div class="kc-hd"><div class="kl">Fijos</div><div class="ki y"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 110 20A10 10 0 0112 2z"/></svg></div></div><div class="kv y">${fmtK(fij)}</div><div class="kd">${tG?(fij/tG*100).toFixed(1)+'%':''}&nbsp;</div></div>
+      <div class="kc"><div class="kc-hd"><div class="kl">Variables</div><div class="ki b"><svg viewBox="0 0 24 24"><path d="M3.5 18.5l6-6 4 4 7-8"/></svg></div></div><div class="kv b">${fmtK(vr)}</div><div class="kd">${tG?(vr/tG*100).toFixed(1)+'%':''}&nbsp;</div></div>
+      <div class="kc"><div class="kc-hd"><div class="kl">Registros</div><div class="ki p"><svg viewBox="0 0 24 24"><path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/></svg></div></div><div class="kv p">${f.length}</div><div class="kd">&nbsp;</div></div>
+    </div>
+    <div class="g2">
+      <div class="cc"><div class="cc-t">Gastos mensuales ${y}${c?` vs ${ya}`:''}</div><div class="lgnd"><span><span class="lsq" style="background:#dc2626"></span>${y}</span>${c?`<span><span class="lsq" style="background:#dc2626;opacity:.25"></span>${ya}</span>`:''}</div><div style="position:relative;height:170px"><canvas id="cGm"></canvas></div></div>
+      <div class="cc"><div class="cc-t">Por categoría</div>${bars}</div>
+    </div>
+    <div class="slbl">Mes</div><div class="pills">${mP}</div>
+    <div class="slbl">Categoría</div><div class="pills">${cP}</div>
+    <div class="slbl">Desglose mensual — top 8 categorías</div>
+    <div class="tw"><table><thead><tr><th>Mes</th>${top8.map(c2=>`<th class="r">${c2.substring(0,12)}</th>`).join('')}<th class="r">Total</th></tr></thead><tbody>${mRows}</tbody><tfoot><tr><td>Total ${y}</td>${top8.map(c2=>`<td class="r re">${fmt(byCM[c2].reduce((s,v)=>s+v,0))}</td>`).join('')}<td class="r re">${fmt(dG)}</td></tr></tfoot></table></div>
+    <div class="slbl">Detalle</div>
+    <div class="tw"><table><thead><tr><th>Fecha</th><th>Descripción</th><th>Categoría</th><th>Unidad</th><th>Tipo</th><th class="r">Monto</th></tr></thead><tbody>${rows}</tbody><tfoot><tr><td colspan="5">Total${curCat!=='Todos'?' — '+curCat:''}</td><td class="r re">${fmt(tG)}</td></tr></tfoot></table></div>`;
+  const dsG=[{label:'g',data:sg,backgroundColor:'rgba(220,38,38,.7)',borderRadius:3}];
+  if(c)dsG.push({label:'ga',data:sga,backgroundColor:'rgba(220,38,38,.2)',borderRadius:3});
+  mkBar('cGm',MES,dsG,{autoSkip:false});
+}
+
+// ── P&L ───────────────────────────────────────────────────────────────────
+function drawPNL(){
+  const y=yr(),ya=y-1,c=co();
+  const sv=mV(y),sva=mV(ya),sg=mG(y),sga=mG(ya);
+  const tI=sv.reduce((s,r)=>s+r.i,0),tIa=sva.reduce((s,r)=>s+r.i,0);
+  const tG=sg.reduce((s,a)=>s+a,0),tGa=sga.reduce((s,a)=>s+a,0);
+  const tU=tI-tG,tUa=tIa-tGa;
+  const mg=tI?((tU/tI)*100).toFixed(1):0,mga=tIa?((tUa/tIa)*100).toFixed(1):0;
+  const byCY={};gY(y).forEach(r=>{const cat=r['Categoría']||'Otro';byCY[cat]=(byCY[cat]||0)+pM(r.Monto);});
+  const catRows=Object.entries(byCY).sort((a,b)=>b[1]-a[1]).map(([cat,v])=>{
+    return `<tr class="psub"><td class="psub">${cat}</td>${MES.map((_,m)=>{let gm=0;gY(y).filter(r=>r['Categoría']===cat&&mOf(r)===m).forEach(r=>gm+=pM(r.Monto));return `<td class="r mu">${gm?fmt(gm):'—'}</td>`;}).join('')}<td class="r re">${fmt(v)}</td>${c?`<td></td><td></td>`:''}</tr>`;}).join('');
+  const ingR=MES.map((_,m)=>`<td class="r g">${sv[m].i?fmt(sv[m].i):'—'}</td>`).join('');
+  const gasR=MES.map((_,m)=>`<td class="r re">${sg[m]?fmt(sg[m]):'—'}</td>`).join('');
+  const utR=MES.map((_,m)=>{const u=sv[m].i-sg[m];return `<td class="r ${u>=0?'g':'re'}">${(sv[m].i||sg[m])?fmt(u):'—'}</td>`;}).join('');
+  const mgR=MES.map((_,m)=>{const u=sv[m].i-sg[m];const mg2=sv[m].i?(u/sv[m].i*100).toFixed(0):'—';return `<td class="r ${parseFloat(mg2)>=30?'g':parseFloat(mg2)>=0?'y':'re'}">${mg2}%</td>`;}).join('');
+  $('main').innerHTML=`
+    <div class="krow">
+      <div class="kc"><div class="kc-hd"><div class="kl">Ingresos ${y}</div><div class="ki g"><svg viewBox="0 0 24 24"><path d="M3.5 18.5l6-6 4 4 7-8"/></svg></div></div><div class="kv g">${fmtK(tI)}</div><div class="kd">${c?`${ya}: ${fmtK(tIa)} ${dlt(tI,tIa)}`:''}&nbsp;</div></div>
+      <div class="kc"><div class="kc-hd"><div class="kl">Gastos op.</div><div class="ki r"><svg viewBox="0 0 24 24"><path d="M19 13H5v-2h14v2z"/></svg></div></div><div class="kv r">${fmtK(tG)}</div><div class="kd">${c?`${ya}: ${fmtK(tGa)}`:''}&nbsp;</div></div>
+      <div class="kc"><div class="kc-hd"><div class="kl">Utilidad</div><div class="ki ${tU>=0?'g':'r'}"><svg viewBox="0 0 24 24"><path d="M12 2v20M2 12h20"/></svg></div></div><div class="kv ${tU>=0?'g':'r'}">${fmtK(tU)}</div><div class="kd">${c?`${ya}: ${fmtK(tUa)} ${dlt(tU,tUa)}`:''}&nbsp;</div></div>
+      <div class="kc"><div class="kc-hd"><div class="kl">Margen</div><div class="ki b"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 110 20A10 10 0 0112 2z"/></svg></div></div><div class="kv b">${mg}%</div><div class="kd">${c?`${ya}: ${mga}%`:''}&nbsp;</div></div>
+      <div class="kc"><div class="kc-hd"><div class="kl">Viajes</div><div class="ki p"><svg viewBox="0 0 24 24"><path d="M1 3h15v13H1zm15 5h4l3 3v5h-7z"/></svg></div></div><div class="kv p">${sv.reduce((s,r)=>s+r.v,0)}</div><div class="kd">&nbsp;</div></div>
+    </div>
+    <div class="cc"><div class="cc-t">Ingresos vs Gastos — ${y}${c?` vs ${ya}`:''}</div><div class="lgnd"><span><span class="lsq" style="background:rgba(5,150,105,.7)"></span>Ingresos ${y}</span>${c?`<span><span class="lsq" style="background:rgba(5,150,105,.2)"></span>Ingresos ${ya}</span>`:''}<span><span class="lsq" style="background:rgba(220,38,38,.7)"></span>Gastos ${y}</span>${c?`<span><span class="lsq" style="background:rgba(220,38,38,.2)"></span>Gastos ${ya}</span>`:''}</div><div style="position:relative;height:200px"><canvas id="cPNL"></canvas></div></div>
+    <div class="slbl">Estado de Resultados — ${y}${c?` vs ${ya}`:''}</div>
+    <div class="tw"><table class="pnl-tbl">
+      <thead><tr><th>Concepto</th>${MES.map(m=>`<th class="r">${m}</th>`).join('')}<th class="r">Total ${y}</th>${c?`<th class="r">Total ${ya}</th><th class="r">Var.</th>`:''}</tr></thead>
+      <tbody>
+        <tr class="phdr"><td>INGRESOS</td>${MES.map(()=>'<td></td>').join('')}<td class="r">${fmt(tI)}</td>${c?`<td class="r">${fmt(tIa)}</td><td class="r">${dlt(tI,tIa)}</td>`:''}</tr>
+        <tr><td class="psub">Ingresos por viajes</td>${ingR}<td class="r g">${fmt(tI)}</td>${c?`<td class="r g">${fmt(tIa)}</td><td class="r">${dlt(tI,tIa)}</td>`:''}</tr>
+        <tr class="phdr"><td>GASTOS OPERATIVOS</td>${MES.map(()=>'<td></td>').join('')}<td class="r">${fmt(tG)}</td>${c?`<td class="r">${fmt(tGa)}</td><td></td>`:''}</tr>
+        ${catRows}
+        <tr class="ptot"><td>Total Gastos</td>${gasR}<td class="r re">${fmt(tG)}</td>${c?`<td class="r re">${fmt(tGa)}</td><td></td>`:''}</tr>
+        <tr class="pgrand"><td>UTILIDAD OPERATIVA</td>${utR}<td class="r">${fmt(tU)}</td>${c?`<td class="r">${fmt(tUa)}</td><td class="r">${dlt(tU,tUa)}</td>`:''}</tr>
+        <tr class="ptot"><td>Margen %</td>${mgR}<td class="r y">${mg}%</td>${c?`<td class="r y">${mga}%</td><td></td>`:''}</tr>
+      </tbody>
+    </table></div>`;
+  const ds=[{label:'I',data:sv.map(s=>s.i),backgroundColor:'rgba(5,150,105,.7)',borderRadius:3},{label:'G',data:sg,backgroundColor:'rgba(220,38,38,.7)',borderRadius:3}];
+  if(c){ds.push({label:'Ia',data:sva.map(s=>s.i),backgroundColor:'rgba(5,150,105,.2)',borderRadius:3});ds.push({label:'Ga',data:sga,backgroundColor:'rgba(220,38,38,.2)',borderRadius:3});}
+  mkBar('cPNL',MES,ds,{autoSkip:false});
+}
+
+// ── COSTEO ────────────────────────────────────────────────────────────────
+function drawCosteo(){
+  const y=yr();
+  const d=vY(y).filter(r=>pM(r.Tarifa)>0);
+  const gd=gY(y);
+  const byU={};
+  d.forEach(r=>{const u=r.Unidad||'S/U';if(!byU[u])byU[u]={v:0,i:0,diesel:0,nomina:0,casetas:0,mant:0,otros:0};byU[u].v++;byU[u].i+=pM(r.Tarifa);});
+  gd.forEach(r=>{const u=r.Unidad||'';const m=pM(r.Monto);const cat=(r['Categoría']||'').toLowerCase();if(!u||!byU[u])return;
+    if(cat.includes('diesel')||cat.includes('combustible'))byU[u].diesel+=m;
+    else if(cat.includes('nómina')||cat.includes('nomina'))byU[u].nomina+=m;
+    else if(cat.includes('caseta'))byU[u].casetas+=m;
+    else if(cat.includes('mantenimiento'))byU[u].mant+=m;
+    else byU[u].otros+=m;});
+  const units=Object.keys(byU).filter(u=>byU[u].v>0).sort((a,b)=>byU[b].i-byU[a].i);
+  const tI=units.reduce((s,u)=>s+byU[u].i,0),tV=units.reduce((s,u)=>s+byU[u].v,0);
+  const tC=units.reduce((s,u)=>s+byU[u].diesel+byU[u].nomina+byU[u].casetas+byU[u].mant+byU[u].otros,0);
+  const tU=tI-tC,tMg=tI?(tU/tI*100).toFixed(1):0;
+  const rows=units.map(u=>{const r=byU[u];const ct=r.diesel+r.nomina+r.casetas+r.mant+r.otros;const ut=r.i-ct;const mg=r.i?(ut/r.i*100).toFixed(1):'—';const mc=parseFloat(mg)>=30?'g':parseFloat(mg)>=0?'y':'re';
+    return `<tr><td style="font-weight:700">${u}</td><td class="r b">${r.v}</td><td class="r g">${fmt(r.i)}</td><td class="r mu">${r.v?fmt(Math.round(r.i/r.v)):'—'}</td><td class="r re">${r.diesel?fmt(r.diesel):'—'}</td><td class="r re">${r.nomina?fmt(r.nomina):'—'}</td><td class="r re">${r.casetas?fmt(r.casetas):'—'}</td><td class="r re">${r.mant?fmt(r.mant):'—'}</td><td class="r re">${r.otros?fmt(r.otros):'—'}</td><td class="r re">${ct?fmt(ct):'—'}</td><td class="r ${ut>=0?'g':'re'}">${fmt(ut)}</td><td class="r ${mc}">${mg}%</td><td class="r y">${tI?(r.i/tI*100).toFixed(1):0}%</td></tr>`;}).join('');
+  const mgData=units.map(u=>{const r=byU[u];const ct=r.diesel+r.nomina+r.casetas+r.mant+r.otros;return r.i?((r.i-ct)/r.i*100).toFixed(1):0;});
+  const mgColors=mgData.map(v=>+v>=30?'rgba(5,150,105,.75)':+v>=0?'rgba(217,119,6,.75)':'rgba(220,38,38,.75)');
+  $('main').innerHTML=`
+    <div class="krow">
+      <div class="kc"><div class="kc-hd"><div class="kl">Unidades activas</div><div class="ki y"><svg viewBox="0 0 24 24"><path d="M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4z"/></svg></div></div><div class="kv y">${units.length}</div><div class="kd">&nbsp;</div></div>
+      <div class="kc"><div class="kc-hd"><div class="kl">Viajes totales</div><div class="ki p"><svg viewBox="0 0 24 24"><path d="M9 12l2 2 4-4"/></svg></div></div><div class="kv p">${tV}</div><div class="kd">&nbsp;</div></div>
+      <div class="kc"><div class="kc-hd"><div class="kl">Ingresos</div><div class="ki g"><svg viewBox="0 0 24 24"><path d="M3.5 18.5l6-6 4 4 7-8"/></svg></div></div><div class="kv g">${fmtK(tI)}</div><div class="kd">&nbsp;</div></div>
+      <div class="kc"><div class="kc-hd"><div class="kl">Utilidad</div><div class="ki ${tU>=0?'g':'r'}"><svg viewBox="0 0 24 24"><path d="M12 2v20M2 12h20"/></svg></div></div><div class="kv ${tU>=0?'g':'r'}">${fmtK(tU)}</div><div class="kd">&nbsp;</div></div>
+      <div class="kc"><div class="kc-hd"><div class="kl">Margen prom.</div><div class="ki b"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 110 20A10 10 0 0112 2z"/></svg></div></div><div class="kv b">${tMg}%</div><div class="kd">&nbsp;</div></div>
+    </div>
+    <div class="cc"><div class="cc-t">Margen directo por unidad — ${y} (verde ≥30% · amarillo ≥0% · rojo negativo)</div><div style="position:relative;height:${Math.max(180,units.length*28+50)}px"><canvas id="cCost"></canvas></div></div>
+    <div class="slbl">Costeo detallado por unidad — ${y}</div>
+    <div class="tw"><table><thead><tr><th>Unidad</th><th class="r">Viajes</th><th class="r">Ingresos</th><th class="r">$/Viaje</th><th class="r">Diésel</th><th class="r">Nómina</th><th class="r">Casetas</th><th class="r">Mant.</th><th class="r">Otros</th><th class="r">Costo Total</th><th class="r">Utilidad</th><th class="r">Margen</th><th class="r">% Ing</th></tr></thead><tbody>${rows}</tbody><tfoot><tr><td>TOTAL</td><td class="r">${tV}</td><td class="r g">${fmt(tI)}</td><td class="r">${tV?fmt(Math.round(tI/tV)):'—'}</td><td class="r re">${fmt(units.reduce((s,u)=>s+byU[u].diesel,0))}</td><td class="r re">${fmt(units.reduce((s,u)=>s+byU[u].nomina,0))}</td><td class="r re">${fmt(units.reduce((s,u)=>s+byU[u].casetas,0))}</td><td class="r re">${fmt(units.reduce((s,u)=>s+byU[u].mant,0))}</td><td class="r re">${fmt(units.reduce((s,u)=>s+byU[u].otros,0))}</td><td class="r re">${fmt(tC)}</td><td class="r ${tU>=0?'g':'re'}">${fmt(tU)}</td><td class="r y">${tMg}%</td><td class="r">100%</td></tr></tfoot></table></div>
+    <p style="font-size:11px;color:var(--t3);margin-top:8px;line-height:1.6">⚠ El desglose de costos aplica solo a registros de gastos que tienen la misma unidad asignada en la hoja de Gastos.</p>`;
+  CH['cCost']=new Chart($('cCost'),{type:'bar',data:{labels:units,datasets:[{label:'Margen %',data:mgData,backgroundColor:mgColors,borderRadius:3}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${c.raw}%`}}},scales:{x:{ticks:{color:'#94a3b8',font:{size:10},callback:v=>v+'%'},grid:{color:'rgba(0,0,0,.04)'}},y:{ticks:{color:'#475569',font:{size:10}},grid:{display:false}}}}});
+}
+
+loadData();
+</script>
+</body>
+</html>
