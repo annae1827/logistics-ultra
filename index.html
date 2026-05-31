@@ -5,16 +5,17 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Logistics Ultra — Dashboard UAL</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-/* -- TOKENS ----------------------------------- */
-:root {
-  --ul-red:#00897B; --ul-dark:#2D3748; --ul-mid:#1a2535;
-  --ul-blue:#1a3a4a; --ul-gold:#4DB6AC; --ul-light:#F5F7FA;
-  --grn:#059669; --grn2:#d1fae5; --red:#dc2626; --red2:#fee2e2;
-  --ylw:#d97706; --ylw2:#fef3c7; --pur:#7c3aed; --pur2:#ede9fe;
-  --acc:#00897B; --acc2:#00796B; --acc3:#e0f2f1;
-  --bg:var(--ul-light); --s0:#fff; --s1:#f7f9fc; --s2:#eef1f7;
+:root{
+  --teal:#00897B; --teal2:#00796B; --teal3:#e0f2f1; --teal4:#b2dfdb;
+  --nav:#1e2d3d; --nav2:#253649;
+  --bg:#f0f4f8; --s0:#fff; --s1:#f7fafc; --s2:#edf2f7;
+  --grn:#059669; --grn2:#d1fae5;
+  --red:#dc2626; --red2:#fee2e2;
+  --ylw:#d97706; --ylw2:#fef3c7;
+  --blu:#2563eb; --blu2:#dbeafe;
+  --pur:#7c3aed; --pur2:#ede9fe;
   --t0:#0f172a; --t1:#1e293b; --t2:#475569; --t3:#94a3b8;
   --br:#e2e8f0; --br2:#cbd5e1;
   --r:10px; --r2:7px;
@@ -22,208 +23,184 @@
   --font:'DM Sans',sans-serif; --mono:'DM Mono',monospace;
 }
 *{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%;font-family:var(--font);font-size:13px;background:var(--bg);color:var(--t1)}
+html,body{height:100%;font-family:var(--font);font-size:14px;background:var(--bg);color:var(--t1)}
 
-/* -- LOADING */
-#loading{position:fixed;inset:0;background:#0f1623;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;gap:18px}
-.load-icon{width:90px;height:90px;background:#2563eb;border-radius:22px;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 32px rgba(37,99,235,.35)}
-.load-icon svg{width:48px;height:48px;fill:#fff}
-.load-title{color:#fff;font-size:24px;font-weight:700;letter-spacing:-.3px;margin-top:4px}
-#load-msg{color:rgba(255,255,255,.4);font-size:13px;font-family:var(--font);margin-top:-8px}
-.load-bar{width:200px;height:3px;background:rgba(255,255,255,.08);border-radius:99px;overflow:hidden;margin-top:4px}
-.load-bar-fill{height:100%;background:#2563eb;border-radius:99px;animation:lbar 2.5s ease-in-out infinite}
+/* LOADING */
+#loading{position:fixed;inset:0;background:var(--nav);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;gap:16px}
+.ld-icon{width:88px;height:88px;background:var(--teal);border-radius:22px;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 32px rgba(0,137,123,.4)}
+.ld-icon svg{width:46px;height:46px;fill:#fff}
+.ld-title{color:#fff;font-size:24px;font-weight:700;letter-spacing:-.3px;margin-top:4px}
+#ld-msg{color:rgba(255,255,255,.45);font-size:13px;margin-top:-6px}
+.ld-bar{width:200px;height:3px;background:rgba(255,255,255,.1);border-radius:99px;overflow:hidden;margin-top:4px}
+.ld-fill{height:100%;background:var(--teal);border-radius:99px;animation:lbar 2.5s ease-in-out infinite}
 @keyframes lbar{0%{width:0%}70%{width:85%}100%{width:100%}}
-#load-err{display:none;background:rgba(220,38,38,.12);border:1px solid rgba(220,38,38,.3);color:#fca5a5;padding:10px 18px;border-radius:8px;font-size:12px;max-width:380px;text-align:center;line-height:1.5}
+#ld-err{display:none;background:rgba(220,38,38,.12);border:1px solid rgba(220,38,38,.3);color:#fca5a5;padding:10px 18px;border-radius:8px;font-size:12px;max-width:400px;text-align:center;line-height:1.5;margin-top:8px}
 
-/* -- APP SHELL -------------------------------- */
+/* LAYOUT */
 .app{display:flex;height:100vh;overflow:hidden}
-
-/* SIDEBAR */
-.sb{width:220px;background:#2D3748;display:flex;flex-direction:column;flex-shrink:0}
-.sb-brand{padding:16px 14px 12px;border-bottom:1px solid rgba(255,255,255,.07)}
-.sb-logo-wrap{display:flex;align-items:center;gap:10px}
-.sb-logo-icon{width:34px;height:34px;background:#00897B;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.sb-logo-icon svg{width:18px;height:18px;fill:#fff}
-.sb-name{font-size:14px;font-weight:700;color:#fff;letter-spacing:-.2px}
-.sb-name span{color:#00897B}
-.sb-sub{font-size:9px;color:rgba(255,255,255,.25);letter-spacing:.08em;text-transform:uppercase;margin-top:1px}
+.sb{width:220px;background:var(--nav);display:flex;flex-direction:column;flex-shrink:0}
+.sb-brand{padding:16px 14px 12px;border-bottom:1px solid rgba(255,255,255,.07);display:flex;align-items:center;gap:10px}
+.sb-ico{width:32px;height:32px;background:var(--teal);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.sb-ico svg{width:16px;height:16px;fill:#fff}
+.sb-n{font-size:14px;font-weight:700;color:#fff}
+.sb-s{font-size:10px;color:rgba(255,255,255,.3);margin-top:1px}
 .sb-nav{flex:1;padding:10px 8px;overflow-y:auto}
-.sb-sec{font-size:9px;font-weight:700;color:rgba(255,255,255,.18);text-transform:uppercase;letter-spacing:.09em;padding:8px 8px 3px}
-.ni{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:7px;cursor:pointer;color:rgba(255,255,255,.35);font-size:12px;font-weight:500;margin-bottom:1px;transition:all .12s;user-select:none}
-.ni:hover{background:rgba(255,255,255,.06);color:rgba(255,255,255,.75)}
-.ni.on{background:#00897B;color:#fff}
-.ni svg{width:14px;height:14px;fill:currentColor;flex-shrink:0}
-.sb-foot{padding:10px 12px;border-top:1px solid rgba(255,255,255,.06)}
-.sb-info{font-size:10px;color:rgba(255,255,255,.2);line-height:1.7}
-.sb-info b{color:rgba(255,255,255,.38);display:block}
+.sb-sec{font-size:9px;font-weight:700;color:rgba(255,255,255,.2);text-transform:uppercase;letter-spacing:.09em;padding:8px 8px 3px}
+.ni{display:flex;align-items:center;gap:8px;padding:9px 10px;border-radius:7px;cursor:pointer;color:rgba(255,255,255,.4);font-size:13px;font-weight:500;margin-bottom:2px;transition:all .12s;user-select:none}
+.ni:hover{background:rgba(255,255,255,.06);color:rgba(255,255,255,.8)}
+.ni.on{background:var(--teal);color:#fff}
+.ni svg{width:15px;height:15px;fill:currentColor;flex-shrink:0}
+.sb-foot{padding:10px 12px;border-top:1px solid rgba(255,255,255,.06);font-size:11px;color:rgba(255,255,255,.22);line-height:1.7}
+.sb-foot b{color:rgba(255,255,255,.4);display:block}
 
-/* TOPBAR */
 .cnt{flex:1;display:flex;flex-direction:column;overflow:hidden}
-.top{background:var(--s0);border-bottom:1px solid var(--br);padding:0 20px;height:50px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
-.top-tit{font-size:14px;font-weight:600;color:var(--t0)}
-.top-r{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.t-sel{background:var(--s1);border:1px solid var(--br2);color:var(--t1);font-size:11px;padding:4px 8px;border-radius:var(--r2);font-family:var(--font);cursor:pointer}
-.cmp-lbl{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--t2);cursor:pointer;padding:4px 8px;border-radius:var(--r2);border:1px solid var(--br);background:var(--s1)}
-.cmp-lbl input{accent-color:#00897B}
-.sync-btn{background:#00897B;border:none;color:#fff;font-size:11px;padding:5px 12px;border-radius:var(--r2);cursor:pointer;font-family:var(--font);font-weight:600;display:flex;align-items:center;gap:5px;transition:opacity .12s}
+.top{background:var(--s0);border-bottom:1px solid var(--br);padding:0 22px;height:52px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.top-tit{font-size:15px;font-weight:600;color:var(--t0)}
+.top-r{display:flex;align-items:center;gap:8px}
+.t-sel{background:var(--s1);border:1px solid var(--br2);color:var(--t1);font-size:13px;padding:6px 10px;border-radius:var(--r2);font-family:var(--font);cursor:pointer}
+.cmp-lbl{display:flex;align-items:center;gap:5px;font-size:13px;color:var(--t2);cursor:pointer;padding:6px 10px;border-radius:var(--r2);border:1px solid var(--br);background:var(--s1)}
+.cmp-lbl input{accent-color:var(--teal)}
+.sync-btn{background:var(--teal);border:none;color:#fff;font-size:13px;padding:6px 14px;border-radius:var(--r2);cursor:pointer;font-family:var(--font);font-weight:600;display:flex;align-items:center;gap:5px;transition:opacity .12s}
 .sync-btn:hover{opacity:.85}
 .dot{width:6px;height:6px;border-radius:50%;background:#fff;flex-shrink:0}
-.dot.spin{animation:blink 1s infinite}.dot.err{background:#fca5a5}
-@keyframes blink{0%,100%{opacity:1}50%{opacity:.15}}
+.dot.spin{animation:bl 1s infinite}.dot.err{background:#fca5a5}
+@keyframes bl{0%,100%{opacity:1}50%{opacity:.15}}
 
-/* MAIN */
-.main{flex:1;overflow-y:auto;padding:18px 20px;background:var(--bg)}
+.main{flex:1;overflow-y:auto;padding:20px 22px;background:var(--bg)}
+
+/* FILTER BOX */
+.fbox{background:var(--s0);border:1px solid var(--br);border-radius:var(--r);padding:14px 16px;box-shadow:var(--sh);margin-bottom:18px}
+.fbox-hd{font-size:11px;font-weight:700;color:var(--teal);text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px;display:flex;align-items:center;gap:6px}
+.fbox-hd::before{content:'';width:3px;height:13px;background:var(--teal);border-radius:2px}
+.fbox-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px}
+.fg{display:flex;flex-direction:column;gap:4px}
+.fg label{font-size:11px;font-weight:600;color:var(--t2);text-transform:uppercase;letter-spacing:.04em}
+.f-sel{width:100%;background:var(--s1);border:1px solid var(--br2);color:var(--t1);font-size:13px;padding:6px 10px;border-radius:var(--r2);font-family:var(--font);cursor:pointer}
+.f-sel:focus{outline:none;border-color:var(--teal);box-shadow:0 0 0 2px rgba(0,137,123,.15)}
 
 /* KPI */
-.krow{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:16px}
-.kc{background:var(--s0);border:1px solid var(--br);border-radius:var(--r);padding:12px 14px;box-shadow:var(--sh)}
-.kc-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
-.kl{font-size:9px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.06em}
-.ki{width:26px;height:26px;border-radius:7px;display:flex;align-items:center;justify-content:center}
-.ki svg{width:13px;height:13px;fill:currentColor}
+.krow{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-bottom:18px}
+.kc{background:var(--s0);border:1px solid var(--br);border-radius:var(--r);padding:14px 16px;box-shadow:var(--sh)}
+.kc-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.kl{font-size:11px;font-weight:500;color:var(--t3);text-transform:uppercase;letter-spacing:.05em}
+.ki{width:28px;height:28px;border-radius:7px;display:flex;align-items:center;justify-content:center}
+.ki svg{width:14px;height:14px;fill:currentColor}
 .ki.g{background:var(--grn2);color:var(--grn)}.ki.r{background:var(--red2);color:var(--red)}
-.ki.b{background:#dbeafe;color:#1d4ed8}.ki.y{background:var(--ylw2);color:var(--ylw)}
-.ki.p{background:var(--pur2);color:var(--pur)}.ki.rl{background:#fee2e2;color:#00897B}
-.kv{font-size:20px;font-weight:700;color:var(--t0);line-height:1}
-.kv.g{color:var(--grn)}.kv.r{color:var(--red)}.kv.b{color:#1d4ed8}
-.kv.y{color:var(--ylw)}.kv.p{color:var(--pur)}.kv.rl{color:#00897B}
-.kd{font-size:10px;color:var(--t3);margin-top:3px;line-height:1.4}
-.up{color:var(--grn)}.dn{color:var(--red)}.vs{color:var(--t3);font-size:10px}
+.ki.b{background:var(--blu2);color:var(--blu)}.ki.y{background:var(--ylw2);color:var(--ylw)}
+.ki.p{background:var(--pur2);color:var(--pur)}.ki.t{background:var(--teal3);color:var(--teal)}
+.kv{font-size:22px;font-weight:700;color:var(--t0);line-height:1}
+.kv.g{color:var(--grn)}.kv.r{color:var(--red)}.kv.b{color:var(--blu)}.kv.y{color:var(--ylw)}.kv.p{color:var(--pur)}.kv.t{color:var(--teal)}
+.kd{font-size:11px;color:var(--t3);margin-top:4px;line-height:1.4}
+.up{color:var(--grn)}.dn{color:var(--red)}.vs{color:var(--t3);font-size:11px}
 
-/* CHART CARD */
-.cc{background:var(--s0);border:1px solid var(--br);border-radius:var(--r);padding:14px;box-shadow:var(--sh);margin-bottom:14px}
-.cc-t{font-size:10px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px}
-.lgnd{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:8px}
-.lgnd span{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--t2)}
-.lsq{width:9px;height:9px;border-radius:2px;flex-shrink:0}
+/* CHART */
+.cc{background:var(--s0);border:1px solid var(--br);border-radius:var(--r);padding:16px;box-shadow:var(--sh);margin-bottom:16px}
+.cc-t{font-size:12px;font-weight:600;color:var(--t2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px}
+.lgnd{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:10px}
+.lgnd span{display:flex;align-items:center;gap:4px;font-size:12px;color:var(--t2)}
+.lsq{width:10px;height:10px;border-radius:3px;flex-shrink:0}
 
-/* BARS */
-.brow{display:flex;align-items:center;gap:8px;margin-bottom:5px}
-.blbl{font-size:10px;color:var(--t2);min-width:130px;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.btrk{flex:1;height:13px;background:var(--s2);border-radius:3px;overflow:hidden}
-.bfil{height:100%;border-radius:3px;transition:width .4s ease}
-.bval{font-size:10px;min-width:72px;text-align:right;font-weight:600;font-family:var(--mono)}
-
-/* PILLS */
-.f-row{margin-bottom:8px}
-.fbox{background:var(--s0);border:1px solid var(--br);border-radius:var(--r);padding:14px 16px;box-shadow:var(--sh);margin-bottom:14px}
-.fbox-title{font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;display:flex;align-items:center;gap:5px}
-.fbox-title::before{content:'';width:3px;height:12px;background:#00897B;border-radius:2px;display:inline-block}
-.fbox-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px}
-.fg{display:flex;flex-direction:column;gap:4px}
-.fg label{font-size:10px;font-weight:600;color:var(--t2);text-transform:uppercase;letter-spacing:.04em}
-.f-sel{width:100%;background:var(--s1);border:1px solid var(--br2);color:var(--t1);font-size:12px;padding:6px 10px;border-radius:var(--r2);font-family:var(--font);cursor:pointer;appearance:auto}
-.f-sel:focus{outline:none;border-color:#00897B;box-shadow:0 0 0 2px rgba(0,137,123,.15)}
+/* GRID */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+@media(max-width:700px){.g2{grid-template-columns:1fr}}
 
 /* TABLE */
-.tw{overflow-x:auto;border-radius:var(--r);border:1px solid var(--br);box-shadow:var(--sh);margin-bottom:14px}
-table{width:100%;border-collapse:collapse;font-size:11px}
-th{background:#2D3748;color:rgba(255,255,255,.6);padding:7px 10px;font-size:9px;font-weight:600;text-align:left;text-transform:uppercase;letter-spacing:.06em;white-space:nowrap;border-bottom:2px solid #00897B}
+.tw{overflow-x:auto;border-radius:var(--r);border:1px solid var(--br);box-shadow:var(--sh);margin-bottom:16px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{background:var(--nav);color:rgba(255,255,255,.65);padding:8px 12px;font-size:10px;font-weight:600;text-align:left;text-transform:uppercase;letter-spacing:.06em;white-space:nowrap;border-bottom:2px solid var(--teal)}
 th.r{text-align:right}
-td{padding:6px 10px;border-bottom:1px solid var(--br);color:var(--t1);vertical-align:middle;white-space:nowrap}
-td.r{text-align:right;font-family:var(--mono);font-size:10px}
+td{padding:8px 12px;border-bottom:1px solid var(--br);color:var(--t1);vertical-align:middle;white-space:nowrap}
+td.r{text-align:right;font-family:var(--mono);font-size:12px}
 td.g{color:var(--grn);font-weight:600}.td.re{color:var(--red);font-weight:600}
-td.re{color:var(--red);font-weight:600}.td.mu{color:var(--t2)}
-td.mu{color:var(--t2)}.td.y{color:var(--ylw);font-weight:600}
+td.re{color:var(--red);font-weight:600}
+td.mu{color:var(--t2)}
 td.y{color:var(--ylw);font-weight:600}
-td.b{color:#1d4ed8;font-weight:600}.td.rl{color:#00897B;font-weight:600}
-td.rl{color:#00897B;font-weight:600}
-tr:hover td{background:#fff8f8}
+td.t{color:var(--teal);font-weight:600}
+td.b{color:var(--blu);font-weight:600}
+tr:hover td{background:#f0fdfb}
 tr:last-child td{border-bottom:none}
-tfoot td{padding:7px 10px;background:#2D3748;color:rgba(255,255,255,.7);font-weight:700;border-top:2px solid #00897B;font-family:var(--mono);font-size:10px}
+tfoot td{padding:8px 12px;background:var(--nav);color:rgba(255,255,255,.7);font-weight:700;border-top:2px solid var(--teal);font-family:var(--mono);font-size:12px}
 tfoot td.r{text-align:right}.tfoot td.g{color:#6ee7b7}
 
-.bdg{display:inline-block;font-size:9px;padding:2px 7px;border-radius:99px;font-weight:600;white-space:nowrap}
+/* P&L TABLE */
+.pnl-wrap{overflow-x:auto;border-radius:var(--r);border:1px solid var(--br);box-shadow:var(--sh);margin-bottom:16px}
+.pnl-tbl{width:100%;border-collapse:collapse;font-size:12px;min-width:900px}
+.pnl-tbl th{background:var(--nav);color:rgba(255,255,255,.65);padding:8px 10px;font-size:10px;font-weight:600;text-align:right;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;border-bottom:2px solid var(--teal);position:sticky;top:0;z-index:2}
+.pnl-tbl th:first-child{text-align:left;position:sticky;left:0;background:var(--nav);z-index:3}
+.pnl-tbl td{padding:6px 10px;border-bottom:1px solid var(--br);color:var(--t1);white-space:nowrap;text-align:right;font-family:var(--mono);font-size:11px}
+.pnl-tbl td:first-child{text-align:left;font-family:var(--font);font-size:12px;position:sticky;left:0;background:var(--s0);z-index:1;min-width:200px}
+.pnl-tbl tr:hover td{background:#f0fdfb}
+.pnl-tbl tr:hover td:first-child{background:#f0fdfb}
+/* P&L row types */
+.pnl-tbl tr.r-ing td{background:#e0f2f1;font-weight:700;font-size:12px;border-top:2px solid var(--teal)}
+.pnl-tbl tr.r-ing td:first-child{background:#e0f2f1;color:var(--teal2)}
+.pnl-tbl tr.r-sub td:first-child{padding-left:22px;color:var(--t2);font-size:11px}
+.pnl-tbl tr.r-section td{background:var(--nav2);color:rgba(255,255,255,.75);font-weight:700;font-size:11px;border-top:1px solid rgba(255,255,255,.1)}
+.pnl-tbl tr.r-section td:first-child{background:var(--nav2);color:rgba(255,255,255,.9)}
+.pnl-tbl tr.r-tot td{background:var(--s2);font-weight:700;border-top:2px solid var(--br2);font-size:12px}
+.pnl-tbl tr.r-tot td:first-child{background:var(--s2);color:var(--t0)}
+.pnl-tbl tr.r-ebitda td{background:#1e2d3d;color:#fff;font-weight:700;font-size:13px;border-top:3px solid var(--teal)}
+.pnl-tbl tr.r-ebitda td:first-child{background:#1e2d3d;color:#4DB6AC}
+.pnl-tbl tr.r-net td{background:var(--teal2);color:#fff;font-weight:700;font-size:13px;border-top:3px solid var(--teal3)}
+.pnl-tbl tr.r-net td:first-child{background:var(--teal2);color:#fff}
+.pnl-tbl tr.r-pct td{background:var(--s1);color:var(--t2);font-size:11px;font-style:italic}
+.pnl-tbl tr.r-pct td:first-child{background:var(--s1);padding-left:22px}
+.pnl-neg{color:var(--red)!important}
+.pnl-pos{color:var(--grn)!important}
+
+.bdg{display:inline-block;font-size:10px;padding:2px 7px;border-radius:99px;font-weight:600;white-space:nowrap}
 .bg{background:var(--s2);color:var(--t2);border:1px solid var(--br)}
-.bb{background:#dbeafe;color:#1e40af}.by{background:var(--ylw2);color:#92400e}
-.bgn{background:var(--grn2);color:var(--grn)}.brl{background:#fee2e2;color:#00897B}
+.bt{background:var(--teal3);color:var(--teal2)}
+.by{background:var(--ylw2);color:#92400e}
+.bb{background:var(--blu2);color:#1e40af}
 
-.slbl{font-size:9px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin:12px 0 6px}
-.slbl:first-child{margin-top:0}
-.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
-.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:14px}
-
-/* PNL */
-.pnl-tbl tr.phdr td{background:#2D3748;color:rgba(255,255,255,.8);font-weight:700;font-size:10px}
-.pnl-tbl tr.phdr td.r{text-align:right;font-family:var(--mono)}
-.pnl-tbl tr.psub td{padding-left:20px;color:var(--t2)}
-.pnl-tbl tr.ptot td{background:var(--s2);font-weight:700;border-top:1px solid var(--br2)}
-.pnl-tbl tr.pgrand td{background:#00897B;color:#fff;font-weight:700}
-.pnl-tbl tr.pgrand td.r{text-align:right;font-family:var(--mono)}
-
-@media(max-width:700px){.g2,.g3{grid-template-columns:1fr}.sb{display:none}}
+.slbl{font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin:14px 0 8px}
 </style>
 </head>
 <body>
 
-<!-- LOADING SCREEN -->
+<!-- LOADING -->
 <div id="loading">
-  <div class="load-icon">
+  <div class="ld-icon">
     <svg viewBox="0 0 24 24"><path d="M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4zM6 18.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm13.5-9l1.96 2.5H17V9.5h2.5zm-1.5 9c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>
   </div>
-  <div class="load-title">Logistics Ultra</div>
-  <div id="load-msg">Iniciando sistema...</div>
-  <div class="load-bar"><div class="load-bar-fill"></div></div>
-  <div id="load-err"></div>
-</div>
-  <div id="load-err"></div>
+  <div class="ld-title">Logistics Ultra</div>
+  <div id="ld-msg">Iniciando sistema...</div>
+  <div class="ld-bar"><div class="ld-fill"></div></div>
+  <div id="ld-err"></div>
 </div>
 
 <!-- APP -->
 <div class="app" id="app" style="display:none">
-
-<!-- SIDEBAR -->
 <aside class="sb">
   <div class="sb-brand">
-    <div class="sb-logo-wrap">
-      <div class="sb-logo-icon">
-        <svg viewBox="0 0 24 24"><path d="M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4zM6 18.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm13.5-9l1.96 2.5H17V9.5h2.5zm-1.5 9c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>
-      </div>
-      <div>
-        <div class="sb-name">LOGISTICS <span style="color:#4DB6AC">ULTRA</span></div>
-        <div class="sb-sub">Dashboard UAL</div>
-      </div>
-    </div>
+    <div class="sb-ico"><svg viewBox="0 0 24 24"><path d="M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4z"/></svg></div>
+    <div><div class="sb-n">Logistics Ultra</div><div class="sb-s">Dashboard UAL</div></div>
   </div>
   <nav class="sb-nav">
-    <div class="sb-sec">Operación</div>
-    <div class="ni on" onclick="goTab('viajes',this)">
-      <svg viewBox="0 0 24 24"><path d="M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4z"/></svg>Viajes
-    </div>
-    <div class="ni" onclick="goTab('ingresos',this)">
-      <svg viewBox="0 0 24 24"><path d="M3.5 18.5l6-6 4 4 7-8"/></svg>Ingresos
-    </div>
-    <div class="ni" onclick="goTab('gastos',this)">
-      <svg viewBox="0 0 24 24"><path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/></svg>Gastos
-    </div>
-    <div class="ni" onclick="goTab('diesel',this)">
-      <svg viewBox="0 0 24 24"><path d="M19.77 7.23l.01-.01-3.72-3.72L15 4.56l2.11 2.11c-.94.36-1.61 1.26-1.61 2.33 0 1.38 1.12 2.5 2.5 2.5.36 0 .69-.08 1-.21v7.21c0 .55-.45 1-1 1s-1-.45-1-1V14c0-1.1-.9-2-2-2h-1V5c0-1.1-.9-2-2-2H6c-1.1 0-2 .9-2 2v16h10v-7.5h1.5v5c0 1.38 1.12 2.5 2.5 2.5s2.5-1.12 2.5-2.5V9c0-.69-.28-1.32-.73-1.77zM18 10c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zM8 18v-4.5H6L10 6v5h2l-4 7z"/></svg>Diesel
-    </div>
+    <div class="sb-sec">Operacion</div>
+    <div class="ni on" onclick="goTab('viajes',this)"><svg viewBox="0 0 24 24"><path d="M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4z"/></svg>Viajes</div>
+    <div class="ni" onclick="goTab('ingresos',this)"><svg viewBox="0 0 24 24"><path d="M3.5 18.5l6-6 4 4 7-8"/></svg>Ingresos</div>
+    <div class="ni" onclick="goTab('gastos',this)"><svg viewBox="0 0 24 24"><path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/></svg>Gastos</div>
+    <div class="ni" onclick="goTab('diesel',this)"><svg viewBox="0 0 24 24"><path d="M19.77 7.23l.01-.01-3.72-3.72L15 4.56l2.11 2.11c-.94.36-1.61 1.26-1.61 2.33 0 1.38 1.12 2.5 2.5 2.5.36 0 .69-.08 1-.21v7.21c0 .55-.45 1-1 1s-1-.45-1-1V14c0-1.1-.9-2-2-2h-1V5c0-1.1-.9-2-2-2H6c-1.1 0-2 .9-2 2v16h10v-7.5h1.5v5c0 1.38 1.12 2.5 2.5 2.5s2.5-1.12 2.5-2.5V9c0-.69-.28-1.32-.73-1.77z"/></svg>Diesel</div>
     <div class="sb-sec">Financiero</div>
-    <div class="ni" onclick="goTab('rentabilidad',this)">
-      <svg viewBox="0 0 24 24"><path d="M9 11H7v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2zm2-7h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11z"/></svg>Rentabilidad Unidad
-    </div>
-    <div class="ni" onclick="goTab('pnl',this)">
-      <svg viewBox="0 0 24 24"><path d="M3 13h2v8H3zm4-4h2v12H7zm4-4h2v16h-2zm4 8h2v8h-2zm4-4h2v12h-2z"/></svg>P&amp;L Estado de Resultados
-    </div>
+    <div class="ni" onclick="goTab('rentabilidad',this)"><svg viewBox="0 0 24 24"><path d="M9 11H7v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2zm2-7h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2z"/></svg>Rentabilidad Unidad</div>
+    <div class="ni" onclick="goTab('pnl',this)"><svg viewBox="0 0 24 24"><path d="M3 13h2v8H3zm4-4h2v12H7zm4-4h2v16h-2zm4 8h2v8h-2zm4-4h2v12h-2z"/></svg>P&amp;L Estado de Resultados</div>
   </nav>
-  <div class="sb-foot">
-    <div class="sb-info"><b id="sbDate">—</b><span id="sbRows">—</span></div>
-  </div>
+  <div class="sb-foot"><b id="sbDate">-</b><span id="sbRows">-</span></div>
 </aside>
 
-<!-- CONTENT -->
 <div class="cnt">
   <header class="top">
     <div class="top-tit" id="topTit">Viajes</div>
     <div class="top-r">
       <select class="t-sel" id="yrSel" onchange="render()">
-        <option value="all">Todos los años</option>
+        <option value="all">Todos los anos</option>
         <option value="2024">2024</option>
         <option value="2025">2025</option>
         <option value="2026" selected>2026</option>
       </select>
-      <label class="cmp-lbl"><input type="checkbox" id="cmpChk" onchange="render()"> vs año ant.</label>
+      <label class="cmp-lbl"><input type="checkbox" id="cmpChk" onchange="render()"> vs AA</label>
       <button class="sync-btn" onclick="reloadAll()"><span class="dot" id="dot"></span>Actualizar</button>
     </div>
   </header>
@@ -232,732 +209,656 @@ tfoot td.r{text-align:right}.tfoot td.g{color:#6ee7b7}
 </div>
 
 <script>
-// -- URLs ------------------------------------------------------------------
+// === URLs ===
 const URL_V='https://docs.google.com/spreadsheets/d/e/2PACX-1vQUAaE4yC5wN6MxTnoCqzBZIkTDwjqpcmnu7Si4duNdjPCbkd6jaAEvZmJrLkaLIJ17mgAzpW5VwJsy/pub?gid=1075720101&single=true&output=csv';
 const URL_G='https://docs.google.com/spreadsheets/d/e/2PACX-1vQUAaE4yC5wN6MxTnoCqzBZIkTDwjqpcmnu7Si4duNdjPCbkd6jaAEvZmJrLkaLIJ17mgAzpW5VwJsy/pub?gid=269206902&single=true&output=csv';
 const URL_D='https://docs.google.com/spreadsheets/d/e/2PACX-1vQUAaE4yC5wN6MxTnoCqzBZIkTDwjqpcmnu7Si4duNdjPCbkd6jaAEvZmJrLkaLIJ17mgAzpW5VwJsy/pub?gid=1008342168&single=true&output=csv';
 const URL_K='https://docs.google.com/spreadsheets/d/e/2PACX-1vQUAaE4yC5wN6MxTnoCqzBZIkTDwjqpcmnu7Si4duNdjPCbkd6jaAEvZmJrLkaLIJ17mgAzpW5VwJsy/pub?gid=1502021142&single=true&output=csv';
 
-// -- CONSTANTS -------------------------------------------------------------
+// === CONSTANTS ===
 const MES=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 const MIDX={enero:0,febrero:1,marzo:2,abril:3,mayo:4,junio:5,julio:6,agosto:7,septiembre:8,octubre:9,noviembre:10,diciembre:11};
 const CLRS=['#00897B','#0F3460','#E8B84B','#059669','#7c3aed','#0891b2','#ea580c','#16a34a','#9333ea','#be185d','#d97706','#065f46'];
-const GEXCL_CAT=['CAPEX','Créditos'];
-const DIESEL_EXCL=['Diesel Crédito','Diesel Interno','Diesel Prisciliano'];
-const TABS={viajes:'Viajes',ingresos:'Ingresos',gastos:'Gastos',diesel:'Diesel',rentabilidad:'Rentabilidad por Unidad',pnl:'P&L — Estado de Resultados'};
+const GEXCL=['CAPEX','Creditos'];
 
-// -- STATE -----------------------------------------------------------------
+// === STATE ===
 let V=[],G=[],D=[],K=[];
-let curTab='viajes',curMes=-1,curSemana=-1,curCliente='Todos',curUnidad='Todos',curOp='Todos',curSvc='Todos',curCat='Todos';
+let curTab='viajes',curMes=-1,curSem=-1,curCli='Todos',curUni='Todos',curOp='Todos',curSvc='Todos',curCat='Todos';
 let CH={};
 
-// -- UTILS -----------------------------------------------------------------
+// === UTILS ===
 const $=id=>document.getElementById(id);
 const yr=()=>$('yrSel').value;
 const co=()=>$('cmpChk').checked;
 const fmt=n=>'$'+Math.round(n).toLocaleString('es-MX');
 const fmtK=n=>n>=1e6?'$'+(n/1e6).toFixed(2)+'M':n>=1e3?'$'+Math.round(n/1e3).toLocaleString('es-MX')+'k':fmt(n);
 const fmtN=n=>Math.round(n).toLocaleString('es-MX');
+const fmtP=n=>n?((n*100).toFixed(1)+'%'):'0.0%';
 const pM=s=>{if(!s||s==='N/A')return 0;return parseFloat(String(s).replace(/[$,\s"]/g,''))||0;};
 const mOf=r=>MIDX[(r.Mes||'').toLowerCase().trim()]??-1;
-const yOf=r=>String(r['AÑO']||r['Año']||r['año']||'');
+const yOf=r=>String(r['ANO']||r['ANo']||r['ano']||r['AÑO']||r['Año']||'');
 const semOf=r=>parseInt(r['Num Semana']||0);
 const pct=(a,b)=>b?((a-b)/b*100).toFixed(1):'N/A';
-const dlt=(a,b)=>{const p=pct(a,b);if(p==='N/A')return '';const u=+p>=0;return `<span class="${u?'up':'dn'}">${u?'▲':'▼'}${Math.abs(p)}%</span>`;};
-const uniq=(arr,key)=>[...new Set(arr.map(r=>r[key]).filter(v=>v&&v!==''))].sort();
+const dlt=(a,b)=>{const p=pct(a,b);if(p==='N/A')return '';const u=+p>=0;return `<span class="${u?'up':'dn'}">${u?'+':''}${p}%</span>`;};
+const uniq=(arr,k)=>[...new Set(arr.map(r=>r[k]).filter(v=>v&&v!=''))].sort();
 
-function filterYr(arr){
-  const y=yr();
-  if(y==='all')return arr;
-  return arr.filter(r=>yOf(r)===y);
-}
-function filterYrMinus1(arr){
-  const y=yr();
-  if(y==='all')return arr;
-  const ya=String(parseInt(y)-1);
-  return arr.filter(r=>yOf(r)===ya);
-}
+function fYr(arr){const y=yr();if(y==='all')return arr;return arr.filter(r=>yOf(r)===y);}
+function fYrA(arr){const y=yr();if(y==='all')return arr;const ya=String(parseInt(y)-1);return arr.filter(r=>yOf(r)===ya);}
 
-// -- CSV PARSER -------------------------------------------------------------
-function parseCSV(txt,headerRow=0){
+// === CSV ===
+function parseCSV(txt,hdrRow=0){
   const lines=txt.trim().split('\n');
-  const hdr=lines[headerRow].split(',').map(h=>h.trim().replace(/^"|"$/g,''));
-  return lines.slice(headerRow+1).map(l=>{
-    const vals=[];let cur='',inQ=false;
-    for(const c of l){if(c==='"'){inQ=!inQ}else if(c===','&&!inQ){vals.push(cur.trim());cur=''}else cur+=c;}
-    vals.push(cur.trim());
-    const o={};hdr.forEach((h,i)=>{o[h]=(vals[i]||'').replace(/^"|"$/g,'');});return o;
+  const hdr=lines[hdrRow].split(',').map(h=>h.trim().replace(/^"|"$/g,''));
+  return lines.slice(hdrRow+1).map(l=>{
+    const v=[];let c='',q=false;
+    for(const ch of l){if(ch==='"'){q=!q}else if(ch===','&&!q){v.push(c.trim());c=''}else c+=ch;}
+    v.push(c.trim());
+    const o={};hdr.forEach((h,i)=>{o[h]=(v[i]||'').replace(/^"|"$/g,'');});return o;
   });
 }
 
-// -- FETCH ------------------------------------------------------------------
 async function fetchCSV(url){
   const r=await fetch(url);
   if(!r.ok)throw new Error('HTTP '+r.status);
   return await r.text();
 }
 
-// -- LOAD DATA -------------------------------------------------------------
+// === LOAD ===
 async function loadAll(){
   try{
-    $('load-msg').textContent='Cargando viajes...';
+    $('ld-msg').textContent='Cargando viajes...';
     const tv=await fetchCSV(URL_V);
-    V=parseCSV(tv).filter(r=>r['Dia']&&r['Dia']!=='Dia'&&r['Dia']!=='');
+    V=parseCSV(tv).filter(r=>r['Dia']&&r['Dia']!='Dia'&&r['Dia']!='');
 
-    $('load-msg').textContent='Cargando gastos...';
+    $('ld-msg').textContent='Cargando gastos...';
     const tg=await fetchCSV(URL_G);
-    const gRaw=parseCSV(tg,6); // header on row 7 (index 6)
-    G=gRaw.filter(r=>r['Fecha']&&r['Monto']&&pM(r['Monto'])>0&&!GEXCL_CAT.includes(r['Categoría']));
+    const gRaw=parseCSV(tg,6);
+    G=gRaw.filter(r=>r['Fecha']&&pM(r['Monto'])>0&&!GEXCL.includes(r['Categoria']||r['Categoría']));
 
-    $('load-msg').textContent='Cargando diesel...';
+    $('ld-msg').textContent='Cargando diesel...';
     const td=await fetchCSV(URL_D);
-    const dRaw=parseCSV(td,7); // header on row 8
+    const dRaw=parseCSV(td,7);
     D=dRaw.filter(r=>r['Fecha']&&pM(r['Monto'])>0);
 
-    $('load-msg').textContent='Cargando kilómetros...';
+    $('ld-msg').textContent='Cargando kilometros...';
     const tk=await fetchCSV(URL_K);
     K=parseCSV(tk).filter(r=>r['Trip Distance (km)']&&!isNaN(parseFloat(r['Trip Distance (km)'])));
 
     const now=new Date();
     $('sbDate').textContent=now.toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'})+' '+now.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'});
-    $('sbRows').textContent=`${V.length} viajes · ${G.length} gastos · ${D.length} diesel`;
+    $('sbRows').textContent=V.length+' viajes, '+G.length+' gastos, '+D.length+' diesel';
     $('loading').style.display='none';
     $('app').style.display='flex';
     $('dot').className='dot';
     render();
   }catch(e){
     $('dot').className='dot err';
-    $('load-msg').textContent='Error al cargar';
-    const eb=$('load-err');
+    $('ld-msg').textContent='Error al cargar';
+    const eb=$('ld-err');
     eb.style.display='block';
-    eb.innerHTML='No se pudo conectar con Google Sheets.<br>Asegúrate de abrir este archivo desde <b>GitHub Pages (https://)</b>, no desde tu disco local (file://).';
+    eb.textContent='No se pudo conectar con Google Sheets. Abre este archivo desde GitHub Pages (https://), no desde tu disco (file://).';
   }
 }
 
-async function reloadAll(){
-  $('dot').className='dot spin';
-  $('loading').style.display='flex';
-  await loadAll();
-}
+async function reloadAll(){$('dot').className='dot spin';$('loading').style.display='flex';await loadAll();}
 
-// -- ROUTING ---------------------------------------------------------------
+// === ROUTING ===
+const TABS={viajes:'Viajes',ingresos:'Ingresos',gastos:'Gastos',diesel:'Diesel',rentabilidad:'Rentabilidad por Unidad',pnl:'P&L - Estado de Resultados'};
 function goTab(name,el){
-  curTab=name;curMes=-1;curSemana=-1;curCliente='Todos';curUnidad='Todos';curOp='Todos';curSvc='Todos';curCat='Todos';
+  curTab=name;curMes=-1;curSem=-1;curCli='Todos';curUni='Todos';curOp='Todos';curSvc='Todos';curCat='Todos';
   document.querySelectorAll('.ni').forEach(n=>n.classList.remove('on'));
   el.classList.add('on');
   $('topTit').textContent=TABS[name];
   render();
 }
-
 function render(){
   Object.values(CH).forEach(c=>{try{c.destroy()}catch(e){}});CH={};
-  if(curTab==='viajes')drawViajes();
-  else if(curTab==='ingresos')drawIngresos();
-  else if(curTab==='gastos')drawGastos();
-  else if(curTab==='diesel')drawDiesel();
-  else if(curTab==='rentabilidad')drawRentabilidad();
-  else if(curTab==='pnl')drawPNL();
+  if(curTab==='viajes')dViajes();
+  else if(curTab==='ingresos')dIngresos();
+  else if(curTab==='gastos')dGastos();
+  else if(curTab==='diesel')dDiesel();
+  else if(curTab==='rentabilidad')dRent();
+  else if(curTab==='pnl')dPNL();
 }
 
-// -- CHART FACTORIES --------------------------------------------------------
-function mkBar(id,labels,datasets,opts={}){
-  const el=$(id);if(!el)return;
-  CH[id]=new Chart(el,{type:'bar',data:{labels,datasets},options:{
-    responsive:true,maintainAspectRatio:false,
-    plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>opts.pct?` ${c.raw}%`:' '+fmt(c.raw)}}},
-    scales:{
-      x:{ticks:{color:'#94a3b8',font:{size:9},autoSkip:opts.skipx||false},grid:{color:'rgba(0,0,0,.04)'}},
-      y:{ticks:{color:'#94a3b8',font:{size:9},callback:v=>opts.pct?v+'%':fmtK(v)},grid:{color:'rgba(0,0,0,.04)'}}
-    }
-  }});
+// === CHART HELPERS ===
+function mkBarOpts(pctMode,skipX){
+  return{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},
+      datalabels:{display:true,anchor:'end',align:'top',color:'#475569',font:{size:10,family:"'DM Sans',sans-serif"},
+        formatter:v=>pctMode?v+'%':(v>=1e6?'$'+(v/1e6).toFixed(1)+'M':v>=1e3?'$'+Math.round(v/1e3)+'k':v>0?fmtN(v):'')},
+      tooltip:{callbacks:{label:c=>pctMode?' '+c.raw+'%':' '+fmt(c.raw)}}},
+    scales:{x:{ticks:{color:'#94a3b8',font:{size:11},autoSkip:skipX||false},grid:{color:'rgba(0,0,0,.04)'}},
+            y:{ticks:{color:'#94a3b8',font:{size:11},callback:v=>pctMode?v+'%':fmtK(v)},grid:{color:'rgba(0,0,0,.04)'}}}};
 }
-function mkBarN(id,labels,datasets){
-  const el=$(id);if(!el)return;
-  CH[id]=new Chart(el,{type:'bar',data:{labels,datasets},options:{
-    responsive:true,maintainAspectRatio:false,
-    plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${fmtN(c.raw)}`}}},
-    scales:{
-      x:{ticks:{color:'#94a3b8',font:{size:9},autoSkip:false},grid:{color:'rgba(0,0,0,.04)'}},
-      y:{ticks:{color:'#94a3b8',font:{size:9},callback:v=>fmtN(v)},grid:{color:'rgba(0,0,0,.04)'}}
-    }
-  }});
+function mkBarHOpts(cnt){
+  return{indexAxis:'y',responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},
+      datalabels:{display:true,anchor:'end',align:'right',color:'#475569',font:{size:10},
+        formatter:v=>cnt?fmtN(v):fmtK(v)},
+      tooltip:{callbacks:{label:c=>cnt?' '+fmtN(c.raw):' '+fmt(c.raw)}}},
+    scales:{x:{ticks:{color:'#94a3b8',font:{size:11},callback:v=>cnt?fmtN(v):fmtK(v)},grid:{color:'rgba(0,0,0,.04)'}},
+            y:{ticks:{color:'#475569',font:{size:11}},grid:{display:false}}}};
 }
-function mkBarH(id,labels,datasets,opts={}){
-  const el=$(id);if(!el)return;
-  CH[id]=new Chart(el,{type:'bar',data:{labels,datasets},options:{
-    indexAxis:'y',responsive:true,maintainAspectRatio:false,
-    plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>opts.cnt?` ${fmtN(c.raw)}`:' '+fmt(c.raw)}}},
-    scales:{
-      x:{ticks:{color:'#94a3b8',font:{size:9},callback:v=>opts.cnt?fmtN(v):fmtK(v)},grid:{color:'rgba(0,0,0,.04)'}},
-      y:{ticks:{color:'#475569',font:{size:9}},grid:{display:false}}
-    }
-  }});
+function mkBarN_Opts(){
+  return{responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},
+      datalabels:{display:true,anchor:'end',align:'top',color:'#475569',font:{size:10},
+        formatter:v=>v>0?fmtN(v):''},
+      tooltip:{callbacks:{label:c=>' '+fmtN(c.raw)}}},
+    scales:{x:{ticks:{color:'#94a3b8',font:{size:11},autoSkip:false},grid:{color:'rgba(0,0,0,.04)'}},
+            y:{ticks:{color:'#94a3b8',font:{size:11},callback:v=>fmtN(v)},grid:{color:'rgba(0,0,0,.04)'}}}};
 }
 
-// -- AGGREGATE HELPERS ------------------------------------------------------
-function byField(arr,field,valFn){
-  const out={};
-  arr.forEach(r=>{
-    const k=r[field]||'S/D';
-    if(!out[k])out[k]={v:0,i:0};
-    out[k].v++;
-    out[k].i+=valFn?valFn(r):0;
-  });
-  return out;
+// Load Chart.js datalabels plugin
+const script=document.createElement('script');
+script.src='https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-datalabels/2.2.0/chartjs-plugin-datalabels.min.js';
+script.onload=()=>Chart.register(ChartDataLabels);
+document.head.appendChild(script);
+
+function mkChart(id,type,labels,datasets,opts){
+  const el=$(id);if(!el)return;
+  CH[id]=new Chart(el,{type,data:{labels,datasets},options:opts});
 }
+
+// === AGG HELPERS ===
 function mStats(arr,valFn){
   const s=MES.map(()=>({v:0,i:0}));
   arr.forEach(r=>{const m=mOf(r);if(m<0)return;s[m].v++;if(valFn)s[m].i+=valFn(r);});
   return s;
 }
+function byField(arr,field,valFn){
+  const out={};
+  arr.forEach(r=>{const k=r[field]||'S/D';if(!out[k])out[k]={v:0,i:0};out[k].v++;if(valFn)out[k].i+=valFn(r);});
+  return out;
+}
+function gCat(arr,catField){
+  const catF=r=>r[catField]||r['Categoria']||r['Categoría']||'Otro';
+  const out={};arr.forEach(r=>{const c=catF(r);out[c]=(out[c]||0)+pM(r['Monto']);});
+  return out;
+}
+function gMes(arr,y){
+  return MES.map((_,m)=>fYr(arr).filter(r=>mOf(r)===m).reduce((s,r)=>s+pM(r['Monto']),0));
+}
 
-// -- TAB: VIAJES -------------------------------------------------------------
-function drawViajes(){
-  const y=yr(),c=co();
-  let d=filterYr(V).filter(r=>r['Tipo de servicio Homologado']&&r['Tipo de servicio Homologado']!=='#N/A');
-  let da=filterYrMinus1(V).filter(r=>r['Tipo de servicio Homologado']&&r['Tipo de servicio Homologado']!=='#N/A');
+// === FILTER BOX HTML ===
+function filterBox(fields){
+  return `<div class="fbox"><div class="fbox-hd">Filtros</div><div class="fbox-grid">${fields.map(f=>`<div class="fg"><label>${f.label}</label>${f.html}</div>`).join('')}</div></div>`;
+}
+function selMes(){return `<select class="f-sel" onchange="curMes=parseInt(this.value);render()"><option value="-1">Todos los meses</option>${MES.map((m,i)=>`<option value="${i}" ${curMes===i?'selected':''}>${m}</option>`).join('')}</select>`;}
+function selYear(arr,field){const ys=[...new Set(arr.map(r=>yOf(r)).filter(Boolean))].sort().reverse();return `<select class="f-sel" id="yrSel" onchange="render()">${['all',...ys].map(y=>`<option value="${y}" ${yr()===y?'selected':''}>${y==='all'?'Todos':y}</option>`).join('')}</select>`;}
+function selField(arr,field,cur,varName,label){const opts=uniq(arr,field);return `<select class="f-sel" onchange="${varName}=this.value;render()"><option value="Todos">${label}</option>${opts.map(o=>`<option value="${JSON.stringify(o).slice(1,-1)}" ${cur===o?'selected':''}>${o}</option>`).join('')}</select>`;}
 
-  // apply filters
+// === TAB: VIAJES ===
+function dViajes(){
+  const c=co();
+  let d=fYr(V),da=fYrA(V);
   if(curMes>=0){d=d.filter(r=>mOf(r)===curMes);da=da.filter(r=>mOf(r)===curMes);}
-  if(curCliente!=='Todos'){d=d.filter(r=>r['Cliente']===curCliente);da=da.filter(r=>r['Cliente']===curCliente);}
-  if(curUnidad!=='Todos'){d=d.filter(r=>String(r['Unidad'])===curUnidad);da=da.filter(r=>String(r['Unidad'])===curUnidad);}
-  if(curOp!=='Todos'){d=d.filter(r=>r['Operador']===curOp);da=da.filter(r=>r['Operador']===curOp);}
-  if(curSvc!=='Todos'){d=d.filter(r=>r['Tipo de servicio Homologado']===curSvc);da=da.filter(r=>r['Tipo de servicio Homologado']===curSvc);}
+  if(curCli!='Todos'){d=d.filter(r=>r['Cliente']===curCli);da=da.filter(r=>r['Cliente']===curCli);}
+  if(curUni!='Todos'){d=d.filter(r=>String(r['Unidad'])===curUni);da=da.filter(r=>String(r['Unidad'])===curUni);}
+  if(curOp!='Todos'){d=d.filter(r=>r['Operador']===curOp);da=da.filter(r=>r['Operador']===curOp);}
+  if(curSvc!='Todos'){d=d.filter(r=>r['Tipo de servicio Homologado']===curSvc);da=da.filter(r=>r['Tipo de servicio Homologado']===curSvc);}
 
-  const base=filterYr(V);
+  const base=fYr(V);
+  const sv=mStats(d),sva=mStats(da);
+  const byCli=byField(d,'Cliente');
+  const byUni=byField(d,'Unidad');
+  const byOp=byField(d,'Operador');
+  const bySvc=byField(d,'Tipo de servicio Homologado');
+  const cliS=Object.keys(byCli).sort((a,b)=>byCli[b].v-byCli[a].v).slice(0,12);
+  const uniS=Object.keys(byUni).filter(u=>u&&u!='N/A').sort((a,b)=>byUni[b].v-byUni[a].v).slice(0,12);
+  const opS=Object.keys(byOp).sort((a,b)=>byOp[b].v-byOp[a].v).slice(0,10);
+  const svcS=Object.keys(bySvc).filter(s=>s&&s!='#N/A').sort((a,b)=>bySvc[b].v-bySvc[a].v).slice(0,10);
+
   const allCli=uniq(base,'Cliente');
   const allUni=[...new Set(base.map(r=>String(r['Unidad'])).filter(Boolean))].sort();
   const allOp=uniq(base,'Operador');
-  const allSvc=uniq(base,'Tipo de servicio Homologado').filter(s=>s&&s!=='#N/A');
+  const allSvc=uniq(base,'Tipo de servicio Homologado').filter(s=>s&&s!='#N/A');
 
-  const sv=mStats(d),sva=mStats(da);
-  const byC=byField(d,'Cliente');
-  const byU=byField(d,'Unidad');
-  const byOp=byField(d,'Operador');
-  const bySvc=byField(d,'Tipo de servicio Homologado');
-
-  // semanas
-  const bySem={};d.forEach(r=>{const s=semOf(r);if(s>0){if(!bySem[s])bySem[s]=0;bySem[s]++;}});
-  const semSort=Object.entries(bySem).sort((a,b)=>b[1]-a[1]).slice(0,5);
-
-  const cliSort=Object.keys(byC).sort((a,b)=>byC[b].v-byC[a].v).slice(0,12);
-  const uniSort=Object.keys(byU).filter(u=>u&&u!=='N/A').sort((a,b)=>byU[b].v-byU[a].v).slice(0,12);
-  const opSort=Object.keys(byOp).sort((a,b)=>byOp[b].v-byOp[a].v).slice(0,10);
-  const svcSort=Object.keys(bySvc).filter(s=>s&&s!=='#N/A').sort((a,b)=>bySvc[b].v-bySvc[a].v).slice(0,10);
-
-  const mP='<select class="f-sel" onchange="curMes=parseInt(this.value);render()"><option value="-1">Todos los meses</option>'+MES.map((m,i)=>`<option value="${i}" ${curMes===i?'selected':''}>${m}</option>`).join('')+'</select>';
-  const cliP='<select class="f-sel" onchange="curCliente=this.value;render()"><option value="Todos">Todos los clientes</option>'+allCli.map(c2=>`<option value="${c2}" ${curCliente===c2?'selected':''}>${c2}</option>`).join('')+'</select>';
-  const uniP='<select class="f-sel" onchange="curUnidad=this.value;render()"><option value="Todos">Todas las unidades</option>'+allUni.map(u=>`<option value="${u}" ${curUnidad===u?'selected':''}>${u}</option>`).join('')+'</select>';
-  const opP='<select class="f-sel" onchange="curOp=this.value;render()"><option value="Todos">Todos los operadores</option>'+allOp.map(o=>`<option value="${o}" ${curOp===o?'selected':''}>${o}</option>`).join('')+'</select>';
-  const svcP='<select class="f-sel" onchange="curSvc=this.value;render()"><option value="Todos">Todos los servicios</option>'+allSvc.map(s=>`<option value="${s}" ${curSvc===s?'selected':''}>${s}</option>`).join('')+'</select>';
-
-  const rows=d.slice(0,300).map(r=>`<tr>
+  const rows=d.slice(0,300).map(r=>{const t=pM(r['Tarifa']);return`<tr>
     <td class="mu">${r['Dia']||''} ${r['Mes']||''} ${r['AÑO']||''}</td>
-    <td class="mu">${r['Num Semana']?'S'+r['Num Semana']:''}</td>
+    <td class="mu">S${r['Num Semana']||''}</td>
     <td style="font-weight:600">${r['Unidad']||''}</td>
     <td>${r['Operador']||''}</td>
     <td>${r['Cliente']||''}</td>
     <td>${r['Ruta']||''}</td>
     <td><span class="bdg bg">${r['Tipo de servicio Homologado']||''}</span></td>
-    <td class="r ${pM(r['Tarifa'])>0?'g':'mu'}">${pM(r['Tarifa'])>0?fmt(pM(r['Tarifa'])):'N/A'}</td>
-  </tr>`).join('');
+    <td class="r ${t>0?'g':'mu'}">${t>0?fmt(t):'—'}</td>
+  </tr>`;}).join('');
 
-  $('main').innerHTML=`
-    <div class="krow">
-      <div class="kc"><div class="kc-hd"><div class="kl">Total viajes</div><div class="ki rl"><svg viewBox="0 0 24 24"><path d="M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4z"/></svg></div></div><div class="kv rl">${fmtN(d.length)}</div><div class="kd">${c?`AA: ${fmtN(da.length)} ${dlt(d.length,da.length)}`:''}&nbsp;</div></div>
+  $('main').innerHTML=
+    filterBox([
+      {label:'Mes',html:selMes()},
+      {label:'Cliente',html:`<select class="f-sel" onchange="curCli=this.value;render()"><option value="Todos">Todos los clientes</option>${allCli.map(o=>`<option value="${o}" ${curCli===o?'selected':''}>${o}</option>`).join('')}</select>`},
+      {label:'Unidad',html:`<select class="f-sel" onchange="curUni=this.value;render()"><option value="Todos">Todas las unidades</option>${allUni.map(o=>`<option value="${o}" ${curUni===o?'selected':''}>${o}</option>`).join('')}</select>`},
+      {label:'Operador',html:`<select class="f-sel" onchange="curOp=this.value;render()"><option value="Todos">Todos los operadores</option>${allOp.map(o=>`<option value="${o}" ${curOp===o?'selected':''}>${o}</option>`).join('')}</select>`},
+      {label:'Tipo servicio',html:`<select class="f-sel" onchange="curSvc=this.value;render()"><option value="Todos">Todos</option>${allSvc.map(o=>`<option value="${o}" ${curSvc===o?'selected':''}>${o}</option>`).join('')}</select>`},
+    ])+
+    `<div class="krow">
+      <div class="kc"><div class="kc-hd"><div class="kl">Total viajes</div><div class="ki t"><svg viewBox="0 0 24 24"><path d="M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4z"/></svg></div></div><div class="kv t">${fmtN(d.length)}</div><div class="kd">${c?`AA: ${fmtN(da.length)} ${dlt(d.length,da.length)}`:''}&nbsp;</div></div>
       <div class="kc"><div class="kc-hd"><div class="kl">Mejor mes</div><div class="ki g"><svg viewBox="0 0 24 24"><path d="M12 2l3 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/></svg></div></div><div class="kv g">${MES[sv.reduce((b,s,i)=>s.v>sv[b].v?i:b,0)]}</div><div class="kd">${sv[sv.reduce((b,s,i)=>s.v>sv[b].v?i:b,0)].v} viajes</div></div>
-      <div class="kc"><div class="kc-hd"><div class="kl">Clientes</div><div class="ki b"><svg viewBox="0 0 24 24"><path d="M12 2a5 5 0 110 10A5 5 0 0112 2zm0 12c5.33 0 8 2.67 8 4v2H4v-2c0-1.33 2.67-4 8-4z"/></svg></div></div><div class="kv b">${Object.keys(byC).length}</div><div class="kd">&nbsp;</div></div>
-      <div class="kc"><div class="kc-hd"><div class="kl">Unidades usadas</div><div class="ki y"><svg viewBox="0 0 24 24"><path d="M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4z"/></svg></div></div><div class="kv y">${Object.keys(byU).filter(u=>u&&u!=='N/A').length}</div><div class="kd">&nbsp;</div></div>
+      <div class="kc"><div class="kc-hd"><div class="kl">Clientes</div><div class="ki b"><svg viewBox="0 0 24 24"><path d="M12 2a5 5 0 110 10A5 5 0 0112 2zm0 12c5.33 0 8 2.67 8 4v2H4v-2c0-1.33 2.67-4 8-4z"/></svg></div></div><div class="kv b">${Object.keys(byCli).length}</div><div class="kd">&nbsp;</div></div>
+      <div class="kc"><div class="kc-hd"><div class="kl">Unidades</div><div class="ki y"><svg viewBox="0 0 24 24"><path d="M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4z"/></svg></div></div><div class="kv y">${Object.keys(byUni).filter(u=>u&&u!='N/A').length}</div><div class="kd">&nbsp;</div></div>
       <div class="kc"><div class="kc-hd"><div class="kl">Operadores</div><div class="ki p"><svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg></div></div><div class="kv p">${Object.keys(byOp).length}</div><div class="kd">&nbsp;</div></div>
     </div>
-
     <div class="g2">
-      <div class="cc"><div class="cc-t">Viajes por mes${c?` vs AA`:''}</div>
-        <div class="lgnd"><span><span class="lsq" style="background:#00897B"></span>${y==='all'?'Todos':y}</span>${c?`<span><span class="lsq" style="background:#00897B;opacity:.3"></span>AA</span>`:''}</div>
-        <div style="position:relative;height:160px"><canvas id="cVmes"></canvas></div>
-      </div>
-      <div class="cc"><div class="cc-t">Top clientes — viajes</div>
-        <div style="position:relative;height:${Math.max(160,cliSort.length*26+40)}px"><canvas id="cVcli"></canvas></div>
-      </div>
+      <div class="cc"><div class="cc-t">Viajes por mes${c?' vs AA':''}</div><div class="lgnd"><span><span class="lsq" style="background:rgba(0,137,123,.75)"></span>${yr()==='all'?'Todos':yr()}</span>${c?`<span><span class="lsq" style="background:rgba(0,137,123,.25)"></span>AA</span>`:''}</div><div style="position:relative;height:200px"><canvas id="cVm"></canvas></div></div>
+      <div class="cc"><div class="cc-t">Top clientes - viajes</div><div style="position:relative;height:${Math.max(200,cliS.length*30+60)}px"><canvas id="cVc"></canvas></div></div>
     </div>
-
     <div class="g2">
-      <div class="cc"><div class="cc-t">Viajes por unidad</div>
-        <div style="position:relative;height:${Math.max(160,uniSort.length*26+40)}px"><canvas id="cVuni"></canvas></div>
-      </div>
-      <div class="cc"><div class="cc-t">Viajes por operador — top 10</div>
-        <div style="position:relative;height:${Math.max(160,opSort.length*26+40)}px"><canvas id="cVop"></canvas></div>
-      </div>
+      <div class="cc"><div class="cc-t">Por unidad</div><div style="position:relative;height:${Math.max(200,uniS.length*28+60)}px"><canvas id="cVu"></canvas></div></div>
+      <div class="cc"><div class="cc-t">Por operador - top 10</div><div style="position:relative;height:${Math.max(200,opS.length*28+60)}px"><canvas id="cVo"></canvas></div></div>
     </div>
+    <div class="cc"><div class="cc-t">Por tipo de servicio</div><div style="position:relative;height:${Math.max(160,svcS.length*26+60)}px"><canvas id="cVs"></canvas></div></div>
+    <div class="slbl">Registro${d.length>300?' (mostrando 300)':''}</div>
+    <div class="tw"><table><thead><tr><th>Fecha</th><th>Semana</th><th>Unidad</th><th>Operador</th><th>Cliente</th><th>Ruta</th><th>Servicio</th><th class="r">Tarifa</th></tr></thead><tbody>${rows}</tbody><tfoot><tr><td colspan="7">Total: ${fmtN(d.length)} viajes</td><td class="r">${fmt(d.reduce((s,r)=>s+pM(r['Tarifa']),0))}</td></tr></tfoot></table></div>`;
 
-    <div class="cc"><div class="cc-t">Por tipo de servicio</div>
-      <div style="position:relative;height:${Math.max(140,svcSort.length*24+40)}px"><canvas id="cVsvc"></canvas></div>
-    </div>
-
-    <div class="fbox">
-      <div class="fbox-title">Filtros</div>
-      <div class="fbox-grid">
-        <div class="fg"><label>Mes</label>${mP}</div>
-        <div class="fg"><label>Cliente</label>${cliP}</div>
-        <div class="fg"><label>Unidad</label>${uniP}</div>
-        <div class="fg"><label>Operador</label>${opP}</div>
-        <div class="fg"><label>Tipo de servicio</label>${svcP}</div>
-      </div>
-    </div>
-
-    <div class="slbl">Registro de viajes${d.length>300?' (mostrando 300)':''}</div>
-    <div class="tw"><table>
-      <thead><tr><th>Fecha</th><th>Semana</th><th>Unidad</th><th>Operador</th><th>Cliente</th><th>Ruta</th><th>Servicio</th><th class="r">Tarifa</th></tr></thead>
-      <tbody>${rows}</tbody>
-      <tfoot><tr><td colspan="7">Total viajes: ${fmtN(d.length)}</td><td class="r">${fmt(d.reduce((s,r)=>s+pM(r['Tarifa']),0))}</td></tr></tfoot>
-    </table></div>`;
-
-  const dsV=[{label:'v',data:sv.map(s=>s.v),backgroundColor:'rgba(0,137,123,.75)',borderRadius:3}];
-  if(c)dsV.push({label:'va',data:sva.map(s=>s.v),backgroundColor:'rgba(0,137,123,.2)',borderRadius:3});
-  mkBarN('cVmes',MES,dsV);
-  mkBarH('cVcli',cliSort,[ {label:'v',data:cliSort.map(k=>byC[k].v),backgroundColor:CLRS.map(c=>`${c}cc`),borderRadius:3} ],{cnt:true});
-  mkBarH('cVuni',uniSort,[ {label:'v',data:uniSort.map(k=>byU[k]?.v||0),backgroundColor:'rgba(15,52,96,.7)',borderRadius:3} ],{cnt:true});
-  mkBarH('cVop',opSort,[ {label:'v',data:opSort.map(k=>byOp[k].v),backgroundColor:'rgba(124,58,237,.7)',borderRadius:3} ],{cnt:true});
-  mkBarH('cVsvc',svcSort,[ {label:'v',data:svcSort.map(k=>bySvc[k].v),backgroundColor:CLRS.map(c=>`${c}cc`),borderRadius:3} ],{cnt:true});
+  const dV=[{label:'v',data:sv.map(s=>s.v),backgroundColor:'rgba(0,137,123,.75)',borderRadius:4}];
+  if(c)dV.push({label:'va',data:sva.map(s=>s.v),backgroundColor:'rgba(0,137,123,.25)',borderRadius:4});
+  mkChart('cVm','bar',MES,dV,mkBarN_Opts());
+  mkChart('cVc','bar',cliS,[{label:'v',data:cliS.map(k=>byCli[k].v),backgroundColor:CLRS.map(c=>`${c}cc`),borderRadius:4}],mkBarHOpts(true));
+  mkChart('cVu','bar',uniS,[{label:'v',data:uniS.map(k=>byUni[k]?.v||0),backgroundColor:'rgba(15,52,96,.7)',borderRadius:4}],mkBarHOpts(true));
+  mkChart('cVo','bar',opS,[{label:'v',data:opS.map(k=>byOp[k].v),backgroundColor:'rgba(124,58,237,.7)',borderRadius:4}],mkBarHOpts(true));
+  mkChart('cVs','bar',svcS,[{label:'v',data:svcS.map(k=>bySvc[k].v),backgroundColor:CLRS.map(c=>`${c}cc`),borderRadius:4}],mkBarHOpts(true));
 }
 
-// -- TAB: INGRESOS -----------------------------------------------------------
-function drawIngresos(){
-  const y=yr(),c=co();
-  let d=filterYr(V).filter(r=>pM(r['Tarifa'])>0);
-  let da=filterYrMinus1(V).filter(r=>pM(r['Tarifa'])>0);
-
+// === TAB: INGRESOS ===
+function dIngresos(){
+  const c=co();
+  let d=fYr(V).filter(r=>pM(r['Tarifa'])>0);
+  let da=fYrA(V).filter(r=>pM(r['Tarifa'])>0);
   if(curMes>=0){d=d.filter(r=>mOf(r)===curMes);da=da.filter(r=>mOf(r)===curMes);}
-  if(curCliente!=='Todos'){d=d.filter(r=>r['Cliente']===curCliente);da=da.filter(r=>r['Cliente']===curCliente);}
-  if(curUnidad!=='Todos'){d=d.filter(r=>String(r['Unidad'])===curUnidad);da=da.filter(r=>String(r['Unidad'])===curUnidad);}
-  if(curOp!=='Todos'){d=d.filter(r=>r['Operador']===curOp);da=da.filter(r=>r['Operador']===curOp);}
-  if(curSvc!=='Todos'){d=d.filter(r=>r['Tipo de servicio Homologado']===curSvc);da=da.filter(r=>r['Tipo de servicio Homologado']===curSvc);}
+  if(curCli!='Todos'){d=d.filter(r=>r['Cliente']===curCli);da=da.filter(r=>r['Cliente']===curCli);}
+  if(curUni!='Todos'){d=d.filter(r=>String(r['Unidad'])===curUni);da=da.filter(r=>String(r['Unidad'])===curUni);}
+  if(curOp!='Todos'){d=d.filter(r=>r['Operador']===curOp);da=da.filter(r=>r['Operador']===curOp);}
+  if(curSvc!='Todos'){d=d.filter(r=>r['Tipo de servicio Homologado']===curSvc);da=da.filter(r=>r['Tipo de servicio Homologado']===curSvc);}
 
-  const base=filterYr(V).filter(r=>pM(r['Tarifa'])>0);
-  const allCli=uniq(base,'Cliente');
-  const allUni=[...new Set(base.map(r=>String(r['Unidad'])).filter(Boolean))].sort();
-  const allOp=uniq(base,'Operador');
-  const allSvc=uniq(base,'Tipo de servicio Homologado').filter(s=>s&&s!=='#N/A');
+  const base=fYr(V).filter(r=>pM(r['Tarifa'])>0);
+  const allCli=uniq(base,'Cliente'),allUni=[...new Set(base.map(r=>String(r['Unidad'])).filter(Boolean))].sort(),allOp=uniq(base,'Operador'),allSvc=uniq(base,'Tipo de servicio Homologado').filter(s=>s&&s!='#N/A');
 
-  const tI=d.reduce((s,r)=>s+pM(r['Tarifa']),0);
-  const tIa=da.reduce((s,r)=>s+pM(r['Tarifa']),0);
-  const sv=mStats(d,r=>pM(r['Tarifa']));
-  const sva=mStats(da,r=>pM(r['Tarifa']));
+  const tI=d.reduce((s,r)=>s+pM(r['Tarifa']),0),tIa=da.reduce((s,r)=>s+pM(r['Tarifa']),0);
+  const sv=mStats(d,r=>pM(r['Tarifa'])),sva=mStats(da,r=>pM(r['Tarifa']));
   const byCli=byField(d,'Cliente',r=>pM(r['Tarifa']));
   const byUni=byField(d,'Unidad',r=>pM(r['Tarifa']));
   const byOp=byField(d,'Operador',r=>pM(r['Tarifa']));
   const bySvc=byField(d,'Tipo de servicio Homologado',r=>pM(r['Tarifa']));
+  const cliS=Object.keys(byCli).sort((a,b)=>byCli[b].i-byCli[a].i).slice(0,12);
+  const uniS=Object.keys(byUni).filter(u=>u&&u!='N/A').sort((a,b)=>byUni[b].i-byUni[a].i).slice(0,12);
+  const svcS=Object.keys(bySvc).filter(s=>s&&s!='#N/A').sort((a,b)=>bySvc[b].i-bySvc[a].i);
 
-  const cliSort=Object.keys(byCli).sort((a,b)=>byCli[b].i-byCli[a].i).slice(0,12);
-  const uniSort=Object.keys(byUni).filter(u=>u&&u!=='N/A').sort((a,b)=>byUni[b].i-byUni[a].i).slice(0,12);
-  const opSort=Object.keys(byOp).sort((a,b)=>byOp[b].i-byOp[a].i).slice(0,10);
-  const svcSort=Object.keys(bySvc).filter(s=>s&&s!=='#N/A').sort((a,b)=>bySvc[b].i-bySvc[a].i).slice(0,10);
+  const cliRows=cliS.map(k=>{const r=byCli[k];return`<tr><td style="font-weight:600">${k}</td><td class="r">${r.v}</td><td class="r g">${fmt(r.i)}</td><td class="r mu">${r.v?fmt(Math.round(r.i/r.v)):'—'}</td><td class="r y">${tI?(r.i/tI*100).toFixed(1):0}%</td></tr>`;}).join('');
+  const svcRows=svcS.map(k=>{const r=bySvc[k];return`<tr><td style="font-weight:600">${k}</td><td class="r">${r.v}</td><td class="r g">${fmt(r.i)}</td><td class="r mu">${r.v?fmt(Math.round(r.i/r.v)):'—'}</td><td class="r y">${tI?(r.i/tI*100).toFixed(1):0}%</td></tr>`;}).join('');
 
-  const mP='<select class="f-sel" onchange="curMes=parseInt(this.value);render()"><option value="-1">Todos los meses</option>'+MES.map((m,i)=>`<option value="${i}" ${curMes===i?'selected':''}>${m}</option>`).join('')+'</select>';
-  const cliP='<select class="f-sel" onchange="curCliente=this.value;render()"><option value="Todos">Todos los clientes</option>'+allCli.map(c2=>`<option value="${c2}" ${curCliente===c2?'selected':''}>${c2}</option>`).join('')+'</select>';
-  const uniP='<select class="f-sel" onchange="curUnidad=this.value;render()"><option value="Todos">Todas las unidades</option>'+allUni.map(u=>`<option value="${u}" ${curUnidad===u?'selected':''}>${u}</option>`).join('')+'</select>';
-  const opP='<select class="f-sel" onchange="curOp=this.value;render()"><option value="Todos">Todos los operadores</option>'+allOp.map(o=>`<option value="${o}" ${curOp===o?'selected':''}>${o}</option>`).join('')+'</select>';
-  const svcP='<select class="f-sel" onchange="curSvc=this.value;render()"><option value="Todos">Todos los servicios</option>'+allSvc.map(s=>`<option value="${s}" ${curSvc===s?'selected':''}>${s}</option>`).join('')+'</select>';
-
-  const cliRows=cliSort.map(k=>{const r=byCli[k];return `<tr><td style="font-weight:600">${k}</td><td class="r">${r.v}</td><td class="r g">${fmt(r.i)}</td><td class="r mu">${r.v?fmt(Math.round(r.i/r.v)):'N/A'}</td><td class="r y">${tI?(r.i/tI*100).toFixed(1):0}%</td></tr>`;}).join('');
-  const svcRows=svcSort.map(k=>{const r=bySvc[k];return `<tr><td style="font-weight:600">${k}</td><td class="r">${r.v}</td><td class="r g">${fmt(r.i)}</td><td class="r mu">${r.v?fmt(Math.round(r.i/r.v)):'N/A'}</td><td class="r y">${tI?(r.i/tI*100).toFixed(1):0}%</td></tr>`;}).join('');
-
-  $('main').innerHTML=`
-    <div class="krow">
+  $('main').innerHTML=
+    filterBox([
+      {label:'Mes',html:selMes()},
+      {label:'Cliente',html:`<select class="f-sel" onchange="curCli=this.value;render()"><option value="Todos">Todos</option>${allCli.map(o=>`<option value="${o}" ${curCli===o?'selected':''}>${o}</option>`).join('')}</select>`},
+      {label:'Unidad',html:`<select class="f-sel" onchange="curUni=this.value;render()"><option value="Todos">Todas</option>${allUni.map(o=>`<option value="${o}" ${curUni===o?'selected':''}>${o}</option>`).join('')}</select>`},
+      {label:'Operador',html:`<select class="f-sel" onchange="curOp=this.value;render()"><option value="Todos">Todos</option>${allOp.map(o=>`<option value="${o}" ${curOp===o?'selected':''}>${o}</option>`).join('')}</select>`},
+      {label:'Tipo servicio',html:`<select class="f-sel" onchange="curSvc=this.value;render()"><option value="Todos">Todos</option>${allSvc.map(o=>`<option value="${o}" ${curSvc===o?'selected':''}>${o}</option>`).join('')}</select>`},
+    ])+
+    `<div class="krow">
       <div class="kc"><div class="kc-hd"><div class="kl">Ingresos</div><div class="ki g"><svg viewBox="0 0 24 24"><path d="M3.5 18.5l6-6 4 4 7-8"/></svg></div></div><div class="kv g">${fmtK(tI)}</div><div class="kd">${c?`AA: ${fmtK(tIa)} ${dlt(tI,tIa)}`:''}&nbsp;</div></div>
-      <div class="kc"><div class="kc-hd"><div class="kl">Viajes facturados</div><div class="ki b"><svg viewBox="0 0 24 24"><path d="M9 12l2 2 4-4"/></svg></div></div><div class="kv b">${fmtN(d.length)}</div><div class="kd">${c?`AA: ${fmtN(da.length)} ${dlt(d.length,da.length)}`:''}&nbsp;</div></div>
-      <div class="kc"><div class="kc-hd"><div class="kl">Ticket promedio</div><div class="ki y"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 110 20A10 10 0 0112 2z"/></svg></div></div><div class="kv y">${fmt(d.length?Math.round(tI/d.length):0)}</div><div class="kd">${c?`AA: ${fmt(da.length?Math.round(tIa/da.length):0)} ${dlt(d.length?Math.round(tI/d.length):0,da.length?Math.round(tIa/da.length):0)}`:''}&nbsp;</div></div>
+      <div class="kc"><div class="kc-hd"><div class="kl">Viajes</div><div class="ki b"><svg viewBox="0 0 24 24"><path d="M9 12l2 2 4-4"/></svg></div></div><div class="kv b">${fmtN(d.length)}</div><div class="kd">${c?`AA: ${fmtN(da.length)} ${dlt(d.length,da.length)}`:''}&nbsp;</div></div>
+      <div class="kc"><div class="kc-hd"><div class="kl">Ticket promedio</div><div class="ki y"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 110 20A10 10 0 0112 2z"/></svg></div></div><div class="kv y">${fmt(d.length?Math.round(tI/d.length):0)}</div><div class="kd">${c?`AA: ${fmt(da.length?Math.round(tIa/da.length):0)} ${dlt(d.length?tI/d.length:0,da.length?tIa/da.length:0)}`:''}&nbsp;</div></div>
       <div class="kc"><div class="kc-hd"><div class="kl">Clientes activos</div><div class="ki p"><svg viewBox="0 0 24 24"><path d="M12 2a5 5 0 110 10A5 5 0 0112 2zm0 12c5.33 0 8 2.67 8 4v2H4v-2c0-1.33 2.67-4 8-4z"/></svg></div></div><div class="kv p">${Object.keys(byCli).length}</div><div class="kd">&nbsp;</div></div>
-      <div class="kc"><div class="kc-hd"><div class="kl">Top cliente</div><div class="ki rl"><svg viewBox="0 0 24 24"><path d="M12 2l3 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/></svg></div></div><div class="kv rl" style="font-size:14px">${cliSort[0]||'—'}</div><div class="kd">${cliSort[0]?fmtK(byCli[cliSort[0]].i):''}</div></div>
+      <div class="kc"><div class="kc-hd"><div class="kl">Top cliente</div><div class="ki t"><svg viewBox="0 0 24 24"><path d="M12 2l3 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/></svg></div></div><div class="kv t" style="font-size:15px">${cliS[0]||'—'}</div><div class="kd">${cliS[0]?fmtK(byCli[cliS[0]].i):''}</div></div>
     </div>
-
-    <div class="cc"><div class="cc-t">Ingresos mensuales${c?' vs AA':''}</div>
-      <div class="lgnd"><span><span class="lsq" style="background:#059669"></span>Ingresos ${y==='all'?'todos':y}</span>${c?`<span><span class="lsq" style="background:#059669;opacity:.3"></span>AA</span>`:''}</div>
-      <div style="position:relative;height:180px"><canvas id="cImes"></canvas></div>
-    </div>
-
+    <div class="cc"><div class="cc-t">Ingresos mensuales${c?' vs AA':''}</div><div class="lgnd"><span><span class="lsq" style="background:rgba(5,150,105,.75)"></span>${yr()==='all'?'Todos':yr()}</span>${c?`<span><span class="lsq" style="background:rgba(5,150,105,.25)"></span>AA</span>`:''}</div><div style="position:relative;height:210px"><canvas id="cIm"></canvas></div></div>
     <div class="g2">
-      <div>
-        <div class="slbl">Por cliente</div>
-        <div class="tw"><table><thead><tr><th>Cliente</th><th class="r">Viajes</th><th class="r">Ingresos</th><th class="r">Ticket prom.</th><th class="r">%</th></tr></thead><tbody>${cliRows}</tbody><tfoot><tr><td>Total</td><td class="r">${fmtN(d.length)}</td><td class="r g">${fmt(tI)}</td><td></td><td></td></tr></tfoot></table></div>
-      </div>
-      <div>
-        <div class="slbl">Por tipo de servicio</div>
-        <div class="tw"><table><thead><tr><th>Servicio</th><th class="r">Viajes</th><th class="r">Ingresos</th><th class="r">Ticket prom.</th><th class="r">%</th></tr></thead><tbody>${svcRows}</tbody></table></div>
-      </div>
+      <div><div class="slbl">Por cliente</div><div class="tw"><table><thead><tr><th>Cliente</th><th class="r">Viajes</th><th class="r">Ingresos</th><th class="r">Ticket prom.</th><th class="r">% del total</th></tr></thead><tbody>${cliRows}</tbody><tfoot><tr><td>Total</td><td class="r">${fmtN(d.length)}</td><td class="r">${fmt(tI)}</td><td></td><td></td></tr></tfoot></table></div></div>
+      <div><div class="slbl">Por tipo de servicio</div><div class="tw"><table><thead><tr><th>Servicio</th><th class="r">Viajes</th><th class="r">Ingresos</th><th class="r">Ticket prom.</th><th class="r">% del total</th></tr></thead><tbody>${svcRows}</tbody></table></div></div>
     </div>
-
     <div class="g2">
-      <div class="cc"><div class="cc-t">Ingresos por cliente — top 12</div><div style="position:relative;height:${Math.max(160,cliSort.length*26+40)}px"><canvas id="cIcli"></canvas></div></div>
-      <div class="cc"><div class="cc-t">Ingresos por unidad — top 12</div><div style="position:relative;height:${Math.max(160,uniSort.length*26+40)}px"><canvas id="cIuni"></canvas></div></div>
-    </div>
-
-    <div class="fbox">
-      <div class="fbox-title">Filtros</div>
-      <div class="fbox-grid">
-        <div class="fg"><label>Mes</label>${mP}</div>
-        <div class="fg"><label>Cliente</label>${cliP}</div>
-        <div class="fg"><label>Unidad</label>${uniP}</div>
-        <div class="fg"><label>Operador</label>${opP}</div>
-        <div class="fg"><label>Tipo de servicio</label>${svcP}</div>
-      </div>
+      <div class="cc"><div class="cc-t">Ingresos por cliente - top 12</div><div style="position:relative;height:${Math.max(200,cliS.length*30+60)}px"><canvas id="cIc"></canvas></div></div>
+      <div class="cc"><div class="cc-t">Ingresos por unidad - top 12</div><div style="position:relative;height:${Math.max(200,uniS.length*28+60)}px"><canvas id="cIu"></canvas></div></div>
     </div>`;
 
-  const dsI=[{label:'i',data:sv.map(s=>s.i),backgroundColor:'rgba(5,150,105,.75)',borderRadius:3}];
-  if(c)dsI.push({label:'ia',data:sva.map(s=>s.i),backgroundColor:'rgba(5,150,105,.2)',borderRadius:3});
-  mkBar('cImes',MES,dsI);
-  mkBarH('cIcli',cliSort,[{label:'i',data:cliSort.map(k=>byCli[k].i),backgroundColor:CLRS.map(c=>`${c}cc`),borderRadius:3}]);
-  mkBarH('cIuni',uniSort,[{label:'i',data:uniSort.map(k=>byUni[k]?.i||0),backgroundColor:'rgba(15,52,96,.7)',borderRadius:3}]);
+  const dsI=[{label:'i',data:sv.map(s=>s.i),backgroundColor:'rgba(5,150,105,.75)',borderRadius:4}];
+  if(c)dsI.push({label:'ia',data:sva.map(s=>s.i),backgroundColor:'rgba(5,150,105,.25)',borderRadius:4});
+  mkChart('cIm','bar',MES,dsI,mkBarOpts(false,false));
+  mkChart('cIc','bar',cliS,[{label:'i',data:cliS.map(k=>byCli[k].i),backgroundColor:CLRS.map(c=>`${c}cc`),borderRadius:4}],mkBarHOpts(false));
+  mkChart('cIu','bar',uniS,[{label:'i',data:uniS.map(k=>byUni[k]?.i||0),backgroundColor:'rgba(15,52,96,.7)',borderRadius:4}],mkBarHOpts(false));
 }
 
-// -- TAB: GASTOS ----------------------------------------------------------
-function drawGastos(){
-  const y=yr(),c=co();
-  let d=filterYr(G);
-  let da=filterYrMinus1(G);
-
+// === TAB: GASTOS ===
+function dGastos(){
+  const c=co();
+  const catField=r=>r['Categoría']||r['Categoria']||'Otro';
+  let d=fYr(G),da=fYrA(G);
   if(curMes>=0){d=d.filter(r=>mOf(r)===curMes);da=da.filter(r=>mOf(r)===curMes);}
-  if(curCat!=='Todos'){d=d.filter(r=>r['Categoría']===curCat);da=da.filter(r=>r['Categoría']===curCat);}
+  if(curCat!='Todos'){d=d.filter(r=>catField(r)===curCat);da=da.filter(r=>catField(r)===curCat);}
 
-  const base=filterYr(G);
-  const allCat=['Todos',...uniq(base,'Categoría')];
-
-  const tG=d.reduce((s,r)=>s+pM(r['Monto']),0);
-  const tGa=da.reduce((s,r)=>s+pM(r['Monto']),0);
-  const dGY=filterYr(G).reduce((s,r)=>s+pM(r['Monto']),0);
+  const base=fYr(G);
+  const allCat=['Todos',...[...new Set(base.map(catField).filter(Boolean))].sort()];
+  const tG=d.reduce((s,r)=>s+pM(r['Monto']),0),tGa=da.reduce((s,r)=>s+pM(r['Monto']),0);
+  const tGY=fYr(G).reduce((s,r)=>s+pM(r['Monto']),0);
   const fij=d.filter(r=>r['Tipo']==='Fijos').reduce((s,r)=>s+pM(r['Monto']),0);
   const vr=d.filter(r=>r['Tipo']==='Variables').reduce((s,r)=>s+pM(r['Monto']),0);
 
-  const byCat={};d.forEach(r=>{const cat=r['Categoría']||'Otro';byCat[cat]=(byCat[cat]||0)+pM(r['Monto']);});
-  const byClas={};d.forEach(r=>{const cl=r['Clasificación']||'Otro';byClas[cl]=(byClas[cl]||0)+pM(r['Monto']);});
-  const catSort=Object.entries(byCat).sort((a,b)=>b[1]-a[1]);
-  const clasSort=Object.entries(byClas).sort((a,b)=>b[1]-a[1]).slice(0,15);
-  const mx=catSort[0]?catSort[0][1]:1;
-  const bars=catSort.map(([cat,v])=>`<div class="brow"><div class="blbl">${cat}</div><div class="btrk"><div class="bfil" style="width:${(v/mx*100).toFixed(1)}%;background:#00897B;opacity:.7"></div></div><div class="bval re">${fmt(v)}</div></div>`).join('');
+  const byCat={};d.forEach(r=>{const cat=catField(r);byCat[cat]=(byCat[cat]||0)+pM(r['Monto']);});
+  const catS=Object.entries(byCat).sort((a,b)=>b[1]-a[1]);
+  const mx=catS[0]?catS[0][1]:1;
 
-  // mensual por categoría top 6
-  const top6cats=catSort.slice(0,6).map(([c2])=>c2);
-  const byCatM={};top6cats.forEach(c2=>byCatM[c2]=MES.map(()=>0));
-  filterYr(G).forEach(r=>{const cat=r['Categoría']||'Otro';const m=mOf(r);if(top6cats.includes(cat)&&m>=0)byCatM[cat][m]+=pM(r['Monto']);});
-  const sg=MES.map((_,m)=>filterYr(G).filter(r=>mOf(r)===m).reduce((s,r)=>s+pM(r['Monto']),0));
-  const sga=MES.map((_,m)=>filterYrMinus1(G).filter(r=>mOf(r)===m).reduce((s,r)=>s+pM(r['Monto']),0));
+  const byClas={};d.forEach(r=>{const cl=r['Clasificacion']||r['Clasificación']||'Otro';byClas[cl]=(byClas[cl]||0)+pM(r['Monto']);});
+  const clasS=Object.entries(byClas).sort((a,b)=>b[1]-a[1]).slice(0,15);
 
-  const mRows=MES.map((m,i)=>{const gm=sg[i];if(!gm)return '';return `<tr><td style="font-weight:600">${m}</td>${top6cats.map(c2=>`<td class="r mu">${byCatM[c2][i]?fmt(byCatM[c2][i]):'N/A'}</td>`).join('')}<td class="r re">${fmt(gm)}</td></tr>`;}).join('');
+  const sg=gMes(G,yr()),sga=gMes({filter:r=>fYrA(G).includes(r)},yr());
+  const sgReal=MES.map((_,m)=>fYr(G).filter(r=>mOf(r)===m).reduce((s,r)=>s+pM(r['Monto']),0));
+  const sgaReal=MES.map((_,m)=>fYrA(G).filter(r=>mOf(r)===m).reduce((s,r)=>s+pM(r['Monto']),0));
 
-  const mP='<select class="f-sel" onchange="curMes=parseInt(this.value);render()"><option value="-1">Todos los meses</option>'+MES.map((m,i)=>`<option value="${i}" ${curMes===i?'selected':''}>${m}</option>`).join('')+'</select>';
-  const catP='<select class="f-sel" onchange="curCat=this.value;render()"><option value="Todos">Todas las categorias</option>'+allCat.filter(c2=>c2!=='Todos').map(c2=>`<option value="${c2}" ${curCat===c2?'selected':''}>${c2}</option>`).join('')+'</select>';
+  // top 5 cats monthly
+  const top5=catS.slice(0,5).map(([c])=>c);
+  const byCatM={};top5.forEach(c=>byCatM[c]=MES.map(()=>0));
+  fYr(G).forEach(r=>{const cat=catField(r);const m=mOf(r);if(top5.includes(cat)&&m>=0)byCatM[cat][m]+=pM(r['Monto']);});
+
+  const mRows=MES.map((m,i)=>{const gm=sgReal[i];if(!gm)return '';return `<tr><td style="font-weight:600">${m}</td>${top5.map(c=>`<td class="r mu">${byCatM[c][i]?fmt(byCatM[c][i]):'—'}</td>`).join('')}<td class="r re">${fmt(gm)}</td></tr>`;}).join('');
 
   const rows=d.slice(0,200).map(r=>`<tr>
     <td class="mu">${r['Fecha']||''}</td>
-    <td>${r['Descripción']||''}</td>
-    <td><span class="bdg bg">${r['Categoría']||''}</span></td>
-    <td class="mu">${r['Clasificación']||''}</td>
+    <td>${r['Descripcion']||r['Descripción']||''}</td>
+    <td><span class="bdg bg">${catField(r)}</span></td>
+    <td class="mu">${r['Clasificacion']||r['Clasificación']||''}</td>
     <td class="mu">${r['Unidad']||''}</td>
     <td>${r['Tipo']==='Fijos'?'<span class="bdg by">Fijo</span>':r['Tipo']==='Variables'?'<span class="bdg bb">Variable</span>':''}</td>
     <td class="r re">${fmt(pM(r['Monto']))}</td>
   </tr>`).join('');
 
-  $('main').innerHTML=`
-    <div class="krow">
-      <div class="kc"><div class="kc-hd"><div class="kl">Gastos totales ${y==='all'?'':y}</div><div class="ki r"><svg viewBox="0 0 24 24"><path d="M19 13H5v-2h14v2z"/></svg></div></div><div class="kv r">${fmtK(dGY)}</div><div class="kd">${c?`AA: ${fmtK(filterYrMinus1(G).reduce((s,r)=>s+pM(r['Monto']),0))} ${dlt(dGY,filterYrMinus1(G).reduce((s,r)=>s+pM(r['Monto']),0))}`:''}&nbsp;</div></div>
+  $('main').innerHTML=
+    filterBox([
+      {label:'Mes',html:selMes()},
+      {label:'Categoria',html:`<select class="f-sel" onchange="curCat=this.value;render()"><option value="Todos">Todas</option>${allCat.slice(1).map(o=>`<option value="${o}" ${curCat===o?'selected':''}>${o}</option>`).join('')}</select>`},
+    ])+
+    `<div class="krow">
+      <div class="kc"><div class="kc-hd"><div class="kl">Gastos ${yr()}</div><div class="ki r"><svg viewBox="0 0 24 24"><path d="M19 13H5v-2h14v2z"/></svg></div></div><div class="kv r">${fmtK(tGY)}</div><div class="kd">${c?`AA: ${fmtK(fYrA(G).reduce((s,r)=>s+pM(r['Monto']),0))} ${dlt(tGY,fYrA(G).reduce((s,r)=>s+pM(r['Monto']),0))}`:''}&nbsp;</div></div>
       <div class="kc"><div class="kc-hd"><div class="kl">Fijos</div><div class="ki y"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 110 20A10 10 0 0112 2z"/></svg></div></div><div class="kv y">${fmtK(fij)}</div><div class="kd">${tG?(fij/tG*100).toFixed(1)+'%':''}&nbsp;</div></div>
       <div class="kc"><div class="kc-hd"><div class="kl">Variables</div><div class="ki b"><svg viewBox="0 0 24 24"><path d="M3.5 18.5l6-6 4 4 7-8"/></svg></div></div><div class="kv b">${fmtK(vr)}</div><div class="kd">${tG?(vr/tG*100).toFixed(1)+'%':''}&nbsp;</div></div>
       <div class="kc"><div class="kc-hd"><div class="kl">Registros</div><div class="ki p"><svg viewBox="0 0 24 24"><path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/></svg></div></div><div class="kv p">${fmtN(d.length)}</div><div class="kd">&nbsp;</div></div>
     </div>
-
     <div class="g2">
-      <div class="cc"><div class="cc-t">Gastos mensuales${c?' vs AA':''}</div>
-        <div class="lgnd"><span><span class="lsq" style="background:#dc2626"></span>${y==='all'?'Todos':y}</span>${c?`<span><span class="lsq" style="background:#dc2626;opacity:.25"></span>AA</span>`:''}</div>
-        <div style="position:relative;height:160px"><canvas id="cGmes"></canvas></div>
-      </div>
-      <div class="cc"><div class="cc-t">Por categoría</div>${bars}</div>
+      <div class="cc"><div class="cc-t">Gastos mensuales${c?' vs AA':''}</div><div class="lgnd"><span><span class="lsq" style="background:rgba(220,38,38,.75)"></span>${yr()==='all'?'Todos':yr()}</span>${c?`<span><span class="lsq" style="background:rgba(220,38,38,.25)"></span>AA</span>`:''}</div><div style="position:relative;height:200px"><canvas id="cGm"></canvas></div></div>
+      <div class="cc"><div class="cc-t">Por categoria</div>${catS.slice(0,15).map(([cat,v])=>`<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><div style="font-size:12px;color:var(--t2);min-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${cat}</div><div style="flex:1;height:14px;background:var(--s2);border-radius:3px;overflow:hidden"><div style="width:${(v/mx*100).toFixed(1)}%;height:100%;background:#dc2626;opacity:.7;border-radius:3px"></div></div><div style="font-size:11px;min-width:80px;text-align:right;font-family:var(--mono);color:var(--red);font-weight:600">${fmt(v)}</div></div>`).join('')}</div>
     </div>
+    <div class="slbl">Desglose mensual - top 5 categorias</div>
+    <div class="tw"><table><thead><tr><th>Mes</th>${top5.map(c=>`<th class="r">${c.substring(0,14)}</th>`).join('')}<th class="r">Total</th></tr></thead><tbody>${mRows}</tbody><tfoot><tr><td>Total ${yr()}</td>${top5.map(c=>`<td class="r">${fmt(byCatM[c].reduce((s,v)=>s+v,0))}</td>`).join('')}<td class="r">${fmt(tGY)}</td></tr></tfoot></table></div>
+    <div class="slbl">Detalle${d.length>200?' (200)':''}</div>
+    <div class="tw"><table><thead><tr><th>Fecha</th><th>Descripcion</th><th>Categoria</th><th>Clasificacion</th><th>Unidad</th><th>Tipo</th><th class="r">Monto</th></tr></thead><tbody>${rows}</tbody><tfoot><tr><td colspan="6">Total${curCat!='Todos'?' - '+curCat:''}</td><td class="r">${fmt(tG)}</td></tr></tfoot></table></div>`;
 
-    <div class="fbox">
-      <div class="fbox-title">Filtros</div>
-      <div class="fbox-grid">
-        <div class="fg"><label>Mes</label>${mP}</div>
-        <div class="fg"><label>Categoría</label>${catP}</div>
-      </div>
-    </div>
-
-    <div class="slbl">Desglose mensual — top 6 categorías</div>
-    <div class="tw"><table>
-      <thead><tr><th>Mes</th>${top6cats.map(c2=>`<th class="r">${c2.substring(0,12)}</th>`).join('')}<th class="r">Total</th></tr></thead>
-      <tbody>${mRows}</tbody>
-      <tfoot><tr><td>Total ${y==='all'?'':y}</td>${top6cats.map(c2=>`<td class="r re">${fmt(byCatM[c2].reduce((s,v)=>s+v,0))}</td>`).join('')}<td class="r re">${fmt(dGY)}</td></tr></tfoot>
-    </table></div>
-
-    <div class="slbl">Detalle${d.length>200?' (mostrando 200)':''}</div>
-    <div class="tw"><table>
-      <thead><tr><th>Fecha</th><th>Descripción</th><th>Categoría</th><th>Clasificación</th><th>Unidad</th><th>Tipo</th><th class="r">Monto</th></tr></thead>
-      <tbody>${rows}</tbody>
-      <tfoot><tr><td colspan="6">Total${curCat!=='Todos'?' — '+curCat:''}</td><td class="r re">${fmt(tG)}</td></tr></tfoot>
-    </table></div>`;
-
-  const dsG=[{label:'g',data:sg,backgroundColor:'rgba(220,38,38,.75)',borderRadius:3}];
-  if(c)dsG.push({label:'ga',data:sga,backgroundColor:'rgba(220,38,38,.2)',borderRadius:3});
-  mkBar('cGmes',MES,dsG);
+  const dsG=[{label:'g',data:sgReal,backgroundColor:'rgba(220,38,38,.75)',borderRadius:4}];
+  if(c)dsG.push({label:'ga',data:sgaReal,backgroundColor:'rgba(220,38,38,.25)',borderRadius:4});
+  mkChart('cGm','bar',MES,dsG,mkBarOpts(false,false));
 }
 
-// -- TAB: DIESEL ----------------------------------------------------------
-function drawDiesel(){
-  const y=yr(),c=co();
-  // Diesel sheet (exclude tanque 500L bulk entries from Gastos — those are in Diesel already)
-  // DIESEL_EXCL from Gastos so we don't double-count
-  let d=filterYr(D);
-  let da=filterYrMinus1(D);
-
+// === TAB: DIESEL ===
+function dDiesel(){
+  let d=fYr(D),da=fYrA(D);
   if(curMes>=0){d=d.filter(r=>mOf(r)===curMes);da=da.filter(r=>mOf(r)===curMes);}
-  if(curUnidad!=='Todos'){d=d.filter(r=>String(r['Unidad'])===curUnidad);da=da.filter(r=>String(r['Unidad'])===curUnidad);}
+  if(curUni!='Todos'){d=d.filter(r=>String(r['Unidad'])===curUni);da=da.filter(r=>String(r['Unidad'])===curUni);}
 
-  const base=filterYr(D);
+  const base=fYr(D);
   const allUni=[...new Set(base.map(r=>String(r['Unidad'])).filter(Boolean))].sort();
 
-  const tLts=d.reduce((s,r)=>s+pM(r['Litros']),0);
-  const tMnt=d.reduce((s,r)=>s+pM(r['Monto']),0);
+  const tLts=d.reduce((s,r)=>s+pM(r['Litros']),0),tMnt=d.reduce((s,r)=>s+pM(r['Monto']),0);
   const tLtsa=da.reduce((s,r)=>s+pM(r['Litros']),0);
 
-  // KM per unit
-  const kmByUni={};
-  filterYr(K).forEach(r=>{const u=r['Unidad']||'';const km=parseFloat(r['Trip Distance (km)'])||0;if(u&&km>0){if(!kmByUni[u])kmByUni[u]=0;kmByUni[u]+=km;}});
+  const kmByU={};
+  fYr(K).forEach(r=>{const u=r['Unidad']||'';const km=parseFloat(r['Trip Distance (km)'])||0;if(u&&km>0){if(!kmByU[u])kmByU[u]=0;kmByU[u]+=km;}});
 
-  // by unit: litros, monto, km, rendimiento
-  const byUni={};
-  d.forEach(r=>{const u=String(r['Unidad'])||'S/U';if(!byUni[u])byUni[u]={lts:0,mnt:0};byUni[u].lts+=pM(r['Litros']);byUni[u].mnt+=pM(r['Monto']);});
+  const byU={};
+  d.forEach(r=>{const u=String(r['Unidad'])||'S/U';if(!byU[u])byU[u]={lts:0,mnt:0};byU[u].lts+=pM(r['Litros']);byU[u].mnt+=pM(r['Monto']);});
+  const uniS=Object.keys(byU).filter(u=>u).sort((a,b)=>byU[b].lts-byU[a].lts).slice(0,15);
+  const sgL=MES.map((_,m)=>fYr(D).filter(r=>mOf(r)===m).reduce((s,r)=>s+pM(r['Litros']),0));
 
-  const uniSort=Object.keys(byUni).filter(u=>u&&u!=='').sort((a,b)=>byUni[b].lts-byUni[a].lts).slice(0,15);
+  const tipoRows=Object.entries(d.reduce((acc,r)=>{const t=r['Tipo']||'Otro';acc[t]=(acc[t]||0)+pM(r['Litros']);return acc;},{})).sort((a,b)=>b[1]-a[1]).map(([t,lts])=>`<tr><td style="font-weight:600">${t}</td><td class="r">${lts.toFixed(0)} L</td><td class="r y">${tLts>0?(lts/tLts*100).toFixed(1):0}%</td></tr>`).join('');
 
-  // mes stats
-  const sg=MES.map((_,m)=>d.filter(r=>mOf(r)===m).reduce((s,r)=>s+pM(r['Litros']),0));
-  const sgM=MES.map((_,m)=>d.filter(r=>mOf(r)===m).reduce((s,r)=>s+pM(r['Monto']),0));
-
-  const mP='<select class="f-sel" onchange="curMes=parseInt(this.value);render()"><option value="-1">Todos los meses</option>'+MES.map((m,i)=>`<option value="${i}" ${curMes===i?'selected':''}>${m}</option>`).join('')+'</select>';
-  const uniP='<select class="f-sel" onchange="curUnidad=this.value;render()"><option value="Todos">Todas las unidades</option>'+allUni.map(u=>`<option value="${u}" ${curUnidad===u?'selected':''}>${u}</option>`).join('')+'</select>';
-
-  const rows=uniSort.map(u=>{
-    const r=byUni[u];
-    const km=kmByUni[u]||0;
+  const rows=uniS.map(u=>{
+    const r=byU[u],km=kmByU[u]||0;
     const rend=r.lts>0&&km>0?(km/r.lts).toFixed(2):'N/A';
-    const rendNum=parseFloat(rend);
-    const rendCls=!isNaN(rendNum)?(rendNum>=3?'g':rendNum>=2?'y':'re'):'mu';
-    return `<tr>
-      <td style="font-weight:700">${u}</td>
-      <td class="r b">${r.lts.toFixed(0)} L</td>
-      <td class="r re">${fmt(r.mnt)}</td>
-      <td class="r mu">${r.lts>0?fmt(Math.round(r.mnt/r.lts))+'/L':'N/A'}</td>
-      <td class="r mu">${km>0?fmtN(km)+' km':'N/A'}</td>
-      <td class="r ${rendCls}">${rend}${!isNaN(rendNum)?' km/L':''}</td>
-    </tr>`;}).join('');
+    const rendN=parseFloat(rend);
+    const rendCls=!isNaN(rendN)?(rendN>=3?'g':rendN>=2?'y':'re'):'mu';
+    return `<tr><td style="font-weight:700">${u}</td><td class="r b">${r.lts.toFixed(0)} L</td><td class="r re">${fmt(r.mnt)}</td><td class="r mu">${r.lts>0?'$'+(r.mnt/r.lts).toFixed(2)+'/L':'N/A'}</td><td class="r mu">${km>0?fmtN(km)+' km':'N/A'}</td><td class="r ${rendCls}">${rend}${!isNaN(rendN)?' km/L':''}</td></tr>`;
+  }).join('');
 
-  const tiposRows=Object.entries(
-    d.reduce((acc,r)=>{const t=r['Tipo']||'Otro';acc[t]=(acc[t]||0)+pM(r['Litros']);return acc;},{})
-  ).sort((a,b)=>b[1]-a[1]).map(([t,lts])=>`<tr><td style="font-weight:600">${t}</td><td class="r">${lts.toFixed(0)} L</td><td class="r y">${tLts>0?(lts/tLts*100).toFixed(1):0}%</td></tr>`).join('');
-
-  $('main').innerHTML=`
-    <div class="krow">
-      <div class="kc"><div class="kc-hd"><div class="kl">Total litros</div><div class="ki b"><svg viewBox="0 0 24 24"><path d="M19.77 7.23l.01-.01-3.72-3.72L15 4.56l2.11 2.11c-.94.36-1.61 1.26-1.61 2.33 0 1.38 1.12 2.5 2.5 2.5.36 0 .69-.08 1-.21v7.21c0 .55-.45 1-1 1s-1-.45-1-1V14c0-1.1-.9-2-2-2h-1V5c0-1.1-.9-2-2-2H6c-1.1 0-2 .9-2 2v16h10v-7.5h1.5v5c0 1.38 1.12 2.5 2.5 2.5s2.5-1.12 2.5-2.5V9c0-.69-.28-1.32-.73-1.77z"/></svg></div></div><div class="kv b">${fmtN(tLts)} L</div><div class="kd">${c?`AA: ${fmtN(tLtsa)} L ${dlt(tLts,tLtsa)}`:''}&nbsp;</div></div>
-      <div class="kc"><div class="kc-hd"><div class="kl">Gasto en diesel</div><div class="ki r"><svg viewBox="0 0 24 24"><path d="M19 13H5v-2h14v2z"/></svg></div></div><div class="kv r">${fmtK(tMnt)}</div><div class="kd">&nbsp;</div></div>
-      <div class="kc"><div class="kc-hd"><div class="kl">Precio prom./L</div><div class="ki y"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 110 20A10 10 0 0112 2z"/></svg></div></div><div class="kv y">${tLts>0?'$'+(tMnt/tLts).toFixed(2):'-'}</div><div class="kd">&nbsp;</div></div>
-      <div class="kc"><div class="kc-hd"><div class="kl">KM totales</div><div class="ki g"><svg viewBox="0 0 24 24"><path d="M3.5 18.5l6-6 4 4 7-8"/></svg></div></div><div class="kv g">${fmtN(Object.values(kmByUni).reduce((s,v)=>s+v,0))} km</div><div class="kd">&nbsp;</div></div>
+  $('main').innerHTML=
+    filterBox([
+      {label:'Mes',html:selMes()},
+      {label:'Unidad',html:`<select class="f-sel" onchange="curUni=this.value;render()"><option value="Todos">Todas</option>${allUni.map(o=>`<option value="${o}" ${curUni===o?'selected':''}>${o}</option>`).join('')}</select>`},
+    ])+
+    `<div class="krow">
+      <div class="kc"><div class="kc-hd"><div class="kl">Total litros</div><div class="ki b"><svg viewBox="0 0 24 24"><path d="M19.77 7.23l.01-.01-3.72-3.72L15 4.56l2.11 2.11c-.94.36-1.61 1.26-1.61 2.33 0 1.38 1.12 2.5 2.5 2.5.36 0 .69-.08 1-.21v7.21c0 .55-.45 1-1 1s-1-.45-1-1V14c0-1.1-.9-2-2-2h-1V5c0-1.1-.9-2-2-2H6c-1.1 0-2 .9-2 2v16h10v-7.5h1.5v5c0 1.38 1.12 2.5 2.5 2.5s2.5-1.12 2.5-2.5V9c0-.69-.28-1.32-.73-1.77z"/></svg></div></div><div class="kv b">${fmtN(tLts)} L</div><div class="kd">${co()?`AA: ${fmtN(tLtsa)} L ${dlt(tLts,tLtsa)}`:''}&nbsp;</div></div>
+      <div class="kc"><div class="kc-hd"><div class="kl">Gasto diesel</div><div class="ki r"><svg viewBox="0 0 24 24"><path d="M19 13H5v-2h14v2z"/></svg></div></div><div class="kv r">${fmtK(tMnt)}</div><div class="kd">&nbsp;</div></div>
+      <div class="kc"><div class="kc-hd"><div class="kl">Precio prom./L</div><div class="ki y"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 110 20A10 10 0 0112 2z"/></svg></div></div><div class="kv y">${tLts>0?'$'+(tMnt/tLts).toFixed(2):'N/A'}</div><div class="kd">&nbsp;</div></div>
+      <div class="kc"><div class="kc-hd"><div class="kl">KM totales</div><div class="ki g"><svg viewBox="0 0 24 24"><path d="M3.5 18.5l6-6 4 4 7-8"/></svg></div></div><div class="kv g">${fmtN(Object.values(kmByU).reduce((s,v)=>s+v,0))} km</div><div class="kd">&nbsp;</div></div>
       <div class="kc"><div class="kc-hd"><div class="kl">Registros</div><div class="ki p"><svg viewBox="0 0 24 24"><path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/></svg></div></div><div class="kv p">${fmtN(d.length)}</div><div class="kd">&nbsp;</div></div>
     </div>
-
     <div class="g2">
-      <div class="cc"><div class="cc-t">Litros por mes</div>
-        <div style="position:relative;height:160px"><canvas id="cDmes"></canvas></div>
-      </div>
-      <div>
-        <div class="slbl">Por tipo de registro</div>
-        <div class="tw"><table><thead><tr><th>Tipo</th><th class="r">Litros</th><th class="r">%</th></tr></thead><tbody>${tiposRows}</tbody></table></div>
-      </div>
+      <div class="cc"><div class="cc-t">Litros por mes</div><div style="position:relative;height:200px"><canvas id="cDm"></canvas></div></div>
+      <div><div class="slbl">Por tipo de registro</div><div class="tw"><table><thead><tr><th>Tipo</th><th class="r">Litros</th><th class="r">%</th></tr></thead><tbody>${tipoRows}</tbody></table></div></div>
     </div>
+    <div class="slbl">Rendimiento por unidad - verde >= 3 km/L, amarillo >= 2 km/L, rojo < 2 km/L</div>
+    <div class="tw"><table><thead><tr><th>Unidad</th><th class="r">Litros</th><th class="r">Gasto</th><th class="r">$/Litro</th><th class="r">KM recorridos</th><th class="r">Rendimiento</th></tr></thead><tbody>${rows}</tbody><tfoot><tr><td>Total</td><td class="r">${tLts.toFixed(0)} L</td><td class="r">${fmt(tMnt)}</td><td></td><td class="r">${fmtN(Object.values(kmByU).reduce((s,v)=>s+v,0))} km</td><td></td></tr></tfoot></table></div>`;
 
-    <div class="fbox">
-      <div class="fbox-title">Filtros</div>
-      <div class="fbox-grid">
-        <div class="fg"><label>Mes</label>${mP}</div>
-        <div class="fg"><label>Unidad</label>${uniP}</div>
-      </div>
-    </div>
-
-    <div class="slbl">Rendimiento y consumo por unidad</div>
-    <div class="tw"><table>
-      <thead><tr><th>Unidad</th><th class="r">Litros</th><th class="r">Gasto</th><th class="r">$/Litro</th><th class="r">KM recorridos</th><th class="r">Rendimiento</th></tr></thead>
-      <tbody>${rows}</tbody>
-      <tfoot><tr><td>Total</td><td class="r">${tLts.toFixed(0)} L</td><td class="r re">${fmt(tMnt)}</td><td></td><td class="r">${fmtN(Object.values(kmByUni).reduce((s,v)=>s+v,0))} km</td><td></td></tr></tfoot>
-    </table></div>
-    <p style="font-size:10px;color:var(--t3);margin-top:6px">* Rendimiento: km recorridos ÷ litros cargados · Verde ≥3 km/L · Amarillo ≥2 km/L · Rojo &lt;2 km/L</p>`;
-
-  const dsD=[{label:'L',data:sg,backgroundColor:'rgba(15,52,96,.75)',borderRadius:3}];
-  mkBarN('cDmes',MES,dsD);
+  mkChart('cDm','bar',MES,[{label:'L',data:sgL,backgroundColor:'rgba(15,52,96,.75)',borderRadius:4}],mkBarN_Opts());
 }
 
-// -- TAB: RENTABILIDAD -----------------------------------------------------
-function drawRentabilidad(){
-  const y=yr();
-  const vd=filterYr(V).filter(r=>pM(r['Tarifa'])>0);
-  const gd=filterYr(G);
-  const dd=filterYr(D);
-
-  // ingresos y viajes por unidad
+// === TAB: RENTABILIDAD ===
+function dRent(){
+  const vd=fYr(V).filter(r=>pM(r['Tarifa'])>0);
+  const gd=fYr(G);
+  const dd=fYr(D);
   const byU={};
   vd.forEach(r=>{
     const u=String(r['Unidad'])||'S/U';
     if(!byU[u])byU[u]={v:0,ing:0,viat:0,diesel:0,casetas:0,arreglos:0,mant:0,nomina:0,multas:0,otros:0};
-    byU[u].v++;
-    byU[u].ing+=pM(r['Tarifa']);
-    byU[u].viat+=pM(r['Viáticos']);
+    byU[u].v++;byU[u].ing+=pM(r['Tarifa']);
+    byU[u].viat+=pM(r['Viaticos']||r['Viáticos']);
     byU[u].diesel+=pM(r['Diesel']);
     byU[u].casetas+=pM(r['Casetas']);
     byU[u].arreglos+=pM(r['Arreglos']);
     byU[u].mant+=pM(r['Rescate / Mantenimiento']);
   });
-
-  // gastos asignados por unidad desde hoja Gastos
   gd.forEach(r=>{
-    const u=String(r['Unidad'])||'';
-    const m=pM(r['Monto']);
-    const cl=(r['Clasificación']||'').toLowerCase();
-    const cat=(r['Categoría']||'').toLowerCase();
-    if(!u||!byU[u])return;
-    if(cl.includes('nómina')||cl.includes('nomina'))byU[u].nomina+=m;
+    const u=String(r['Unidad'])||'';if(!u||!byU[u])return;
+    const m=pM(r['Monto']),cl=(r['Clasificacion']||r['Clasificación']||'').toLowerCase();
+    if(cl.includes('nomina')||cl.includes('nómina'))byU[u].nomina+=m;
     else if(cl.includes('multa'))byU[u].multas+=m;
-    else if(cl.includes('mantenimiento')||cl.includes('llanta'))byU[u].mant+=m;
-    else if(cl.includes('viático')||cl.includes('viatico'))byU[u].viat+=m;
+    else if(cl.includes('mant')||cl.includes('llanta'))byU[u].mant+=m;
+    else if(cl.includes('viatico')||cl.includes('viático'))byU[u].viat+=m;
     else if(cl.includes('arregl'))byU[u].arreglos+=m;
     else if(cl.includes('diesel'))byU[u].diesel+=m;
     else if(cl.includes('caseta'))byU[u].casetas+=m;
   });
-
-  // diesel litros por unidad
-  dd.forEach(r=>{
-    const u=String(r['Unidad'])||'';
-    if(u&&byU[u])byU[u].diesel+=pM(r['Monto']);
-  });
+  dd.forEach(r=>{const u=String(r['Unidad'])||'';if(u&&byU[u])byU[u].diesel+=pM(r['Monto']);});
 
   const units=Object.keys(byU).filter(u=>byU[u].ing>0).sort((a,b)=>byU[b].ing-byU[a].ing);
   const tI=units.reduce((s,u)=>s+byU[u].ing,0);
-
   const rows=units.map(u=>{
     const r=byU[u];
-    const cost=r.viat+r.diesel+r.casetas+r.arreglos+r.mant+r.nomina+r.multas+r.otros;
-    const ut=r.ing-cost;
-    const mg=r.ing?(ut/r.ing*100).toFixed(1):'N/A';
+    const ct=r.viat+r.diesel+r.casetas+r.arreglos+r.mant+r.nomina+r.multas+r.otros;
+    const ut=r.ing-ct;const mg=r.ing?(ut/r.ing*100).toFixed(1):'N/A';
     const mc=parseFloat(mg)>=30?'g':parseFloat(mg)>=0?'y':'re';
-    return `<tr>
-      <td style="font-weight:700">${u}</td>
-      <td class="r b">${r.v}</td>
-      <td class="r g">${fmt(r.ing)}</td>
-      <td class="r mu">${r.v?fmt(Math.round(r.ing/r.v)):'N/A'}</td>
-      <td class="r re">${r.nomina?fmt(r.nomina):'N/A'}</td>
-      <td class="r re">${r.viat?fmt(r.viat):'N/A'}</td>
-      <td class="r re">${r.diesel?fmt(r.diesel):'N/A'}</td>
-      <td class="r re">${r.casetas?fmt(r.casetas):'N/A'}</td>
-      <td class="r re">${r.mant?fmt(r.mant):'N/A'}</td>
-      <td class="r re">${r.arreglos?fmt(r.arreglos):'N/A'}</td>
-      <td class="r re">${r.multas?fmt(r.multas):'N/A'}</td>
-      <td class="r re">${cost?fmt(cost):'N/A'}</td>
-      <td class="r ${ut>=0?'g':'re'}">${fmt(ut)}</td>
-      <td class="r ${mc}">${mg}%</td>
-      <td class="r y">${tI?(r.ing/tI*100).toFixed(1):0}%</td>
-    </tr>`;}).join('');
-
+    return`<tr><td style="font-weight:700">${u}</td><td class="r b">${r.v}</td><td class="r g">${fmt(r.ing)}</td><td class="r mu">${r.v?fmt(Math.round(r.ing/r.v)):'N/A'}</td><td class="r re">${r.nomina?fmt(r.nomina):'—'}</td><td class="r re">${r.viat?fmt(r.viat):'—'}</td><td class="r re">${r.diesel?fmt(r.diesel):'—'}</td><td class="r re">${r.casetas?fmt(r.casetas):'—'}</td><td class="r re">${r.mant?fmt(r.mant):'—'}</td><td class="r re">${r.arreglos?fmt(r.arreglos):'—'}</td><td class="r re">${r.multas?fmt(r.multas):'—'}</td><td class="r re">${ct?fmt(ct):'—'}</td><td class="r ${ut>=0?'g':'re'}">${fmt(ut)}</td><td class="r ${mc}">${mg}%</td><td class="r y">${tI?(r.ing/tI*100).toFixed(1):0}%</td></tr>`;
+  }).join('');
   const tC=units.reduce((s,u)=>{const r=byU[u];return s+r.viat+r.diesel+r.casetas+r.arreglos+r.mant+r.nomina+r.multas+r.otros;},0);
-  const tU=tI-tC;
-  const tMg=tI?(tU/tI*100).toFixed(1):0;
+  const tU=tI-tC,tMg=tI?(tU/tI*100).toFixed(1):0;
+  const mgD=units.map(u=>{const r=byU[u];const ct=r.viat+r.diesel+r.casetas+r.arreglos+r.mant+r.nomina+r.multas+r.otros;return r.ing?((r.ing-ct)/r.ing*100).toFixed(1):0;});
+  const mgC=mgD.map(v=>+v>=30?'rgba(5,150,105,.8)':+v>=0?'rgba(217,119,6,.8)':'rgba(220,38,38,.8)');
 
-  const mgData=units.map(u=>{const r=byU[u];const ct=r.viat+r.diesel+r.casetas+r.arreglos+r.mant+r.nomina+r.multas+r.otros;return r.ing?((r.ing-ct)/r.ing*100).toFixed(1):0;});
-  const mgCols=mgData.map(v=>+v>=30?'rgba(5,150,105,.8)':+v>=0?'rgba(217,119,6,.8)':'rgba(220,38,38,.8)');
-
-  $('main').innerHTML=`
-    <div class="krow">
+  $('main').innerHTML=
+    `<div class="krow">
       <div class="kc"><div class="kc-hd"><div class="kl">Unidades</div><div class="ki y"><svg viewBox="0 0 24 24"><path d="M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4z"/></svg></div></div><div class="kv y">${units.length}</div><div class="kd">&nbsp;</div></div>
-      <div class="kc"><div class="kc-hd"><div class="kl">Ingresos totales</div><div class="ki g"><svg viewBox="0 0 24 24"><path d="M3.5 18.5l6-6 4 4 7-8"/></svg></div></div><div class="kv g">${fmtK(tI)}</div><div class="kd">&nbsp;</div></div>
-      <div class="kc"><div class="kc-hd"><div class="kl">Costos totales</div><div class="ki r"><svg viewBox="0 0 24 24"><path d="M19 13H5v-2h14v2z"/></svg></div></div><div class="kv r">${fmtK(tC)}</div><div class="kd">&nbsp;</div></div>
-      <div class="kc"><div class="kc-hd"><div class="kl">Utilidad total</div><div class="ki ${tU>=0?'g':'r'}"><svg viewBox="0 0 24 24"><path d="M12 2v20M2 12h20"/></svg></div></div><div class="kv ${tU>=0?'g':'r'}">${fmtK(tU)}</div><div class="kd">&nbsp;</div></div>
+      <div class="kc"><div class="kc-hd"><div class="kl">Ingresos</div><div class="ki g"><svg viewBox="0 0 24 24"><path d="M3.5 18.5l6-6 4 4 7-8"/></svg></div></div><div class="kv g">${fmtK(tI)}</div><div class="kd">&nbsp;</div></div>
+      <div class="kc"><div class="kc-hd"><div class="kl">Costos</div><div class="ki r"><svg viewBox="0 0 24 24"><path d="M19 13H5v-2h14v2z"/></svg></div></div><div class="kv r">${fmtK(tC)}</div><div class="kd">&nbsp;</div></div>
+      <div class="kc"><div class="kc-hd"><div class="kl">Utilidad</div><div class="ki ${tU>=0?'g':'r'}"><svg viewBox="0 0 24 24"><path d="M12 2v20M2 12h20"/></svg></div></div><div class="kv ${tU>=0?'g':'r'}">${fmtK(tU)}</div><div class="kd">&nbsp;</div></div>
       <div class="kc"><div class="kc-hd"><div class="kl">Margen prom.</div><div class="ki b"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 110 20A10 10 0 0112 2z"/></svg></div></div><div class="kv b">${tMg}%</div><div class="kd">&nbsp;</div></div>
     </div>
+    <div class="cc"><div class="cc-t">Margen directo por unidad - verde >= 30%, amarillo >= 0%, rojo negativo</div><div style="position:relative;height:${Math.max(200,units.length*26+60)}px"><canvas id="cRent"></canvas></div></div>
+    <div class="slbl">Costeo detallado por unidad</div>
+    <div class="tw"><table><thead><tr><th>Unidad</th><th class="r">Viajes</th><th class="r">Ingresos</th><th class="r">$/Viaje</th><th class="r">Nomina</th><th class="r">Viaticos</th><th class="r">Diesel</th><th class="r">Casetas</th><th class="r">Mant/Llant</th><th class="r">Arreglos</th><th class="r">Multas</th><th class="r">Costo Total</th><th class="r">Utilidad</th><th class="r">Margen</th><th class="r">% Ing</th></tr></thead><tbody>${rows}</tbody><tfoot><tr><td>TOTAL</td><td class="r">${fmtN(units.reduce((s,u)=>s+byU[u].v,0))}</td><td class="r">${fmt(tI)}</td><td></td><td class="r">${fmt(units.reduce((s,u)=>s+byU[u].nomina,0))}</td><td class="r">${fmt(units.reduce((s,u)=>s+byU[u].viat,0))}</td><td class="r">${fmt(units.reduce((s,u)=>s+byU[u].diesel,0))}</td><td class="r">${fmt(units.reduce((s,u)=>s+byU[u].casetas,0))}</td><td class="r">${fmt(units.reduce((s,u)=>s+byU[u].mant,0))}</td><td class="r">${fmt(units.reduce((s,u)=>s+byU[u].arreglos,0))}</td><td class="r">${fmt(units.reduce((s,u)=>s+byU[u].multas,0))}</td><td class="r">${fmt(tC)}</td><td class="r ${tU>=0?'g':'re'}">${fmt(tU)}</td><td class="r y">${tMg}%</td><td class="r">100%</td></tr></tfoot></table></div>`;
 
-    <div class="cc"><div class="cc-t">Margen directo por unidad — Verde ≥30% · Amarillo ≥0% · Rojo negativo</div>
-      <div style="position:relative;height:${Math.max(180,units.length*28+50)}px"><canvas id="cRent"></canvas></div>
-    </div>
-
-    <div class="slbl">Desglose de rentabilidad por unidad</div>
-    <div class="tw"><table>
-      <thead><tr><th>Unidad</th><th class="r">Viajes</th><th class="r">Ingresos</th><th class="r">$/Viaje</th><th class="r">Nómina</th><th class="r">Viáticos</th><th class="r">Diesel</th><th class="r">Casetas</th><th class="r">Mant/Llant</th><th class="r">Arreglos</th><th class="r">Multas</th><th class="r">Costo Total</th><th class="r">Utilidad</th><th class="r">Margen</th><th class="r">% Ing</th></tr></thead>
-      <tbody>${rows}</tbody>
-      <tfoot><tr><td>TOTAL</td><td class="r">${fmtN(units.reduce((s,u)=>s+byU[u].v,0))}</td><td class="r g">${fmt(tI)}</td><td></td><td class="r re">${fmt(units.reduce((s,u)=>s+byU[u].nomina,0))}</td><td class="r re">${fmt(units.reduce((s,u)=>s+byU[u].viat,0))}</td><td class="r re">${fmt(units.reduce((s,u)=>s+byU[u].diesel,0))}</td><td class="r re">${fmt(units.reduce((s,u)=>s+byU[u].casetas,0))}</td><td class="r re">${fmt(units.reduce((s,u)=>s+byU[u].mant,0))}</td><td class="r re">${fmt(units.reduce((s,u)=>s+byU[u].arreglos,0))}</td><td class="r re">${fmt(units.reduce((s,u)=>s+byU[u].multas,0))}</td><td class="r re">${fmt(tC)}</td><td class="r ${tU>=0?'g':'re'}">${fmt(tU)}</td><td class="r y">${tMg}%</td><td class="r">100%</td></tr></tfoot>
-    </table></div>`;
-
-  CH['cRent']=new Chart($('cRent'),{type:'bar',data:{labels:units,datasets:[{label:'Margen %',data:mgData,backgroundColor:mgCols,borderRadius:3}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${c.raw}%`}}},scales:{x:{ticks:{color:'#94a3b8',font:{size:9},callback:v=>v+'%'},grid:{color:'rgba(0,0,0,.04)'}},y:{ticks:{color:'#475569',font:{size:9}},grid:{display:false}}}}});
+  CH['cRent']=new Chart($('cRent'),{type:'bar',data:{labels:units,datasets:[{label:'Margen %',data:mgD,backgroundColor:mgC,borderRadius:4}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},datalabels:{display:true,anchor:'end',align:'right',color:'#475569',font:{size:10},formatter:v=>v+'%'},tooltip:{callbacks:{label:c=>` ${c.raw}%`}}},scales:{x:{ticks:{color:'#94a3b8',font:{size:11},callback:v=>v+'%'},grid:{color:'rgba(0,0,0,.04)'}},y:{ticks:{color:'#475569',font:{size:11}},grid:{display:false}}}}});
 }
 
-// -- TAB: P&L ---------------------------------------------------------------
-function drawPNL(){
-  const y=yr(),c=co();
-  const sv=mStats(filterYr(V).filter(r=>pM(r['Tarifa'])>0),r=>pM(r['Tarifa']));
-  const sva=mStats(filterYrMinus1(V).filter(r=>pM(r['Tarifa'])>0),r=>pM(r['Tarifa']));
-  const sg=MES.map((_,m)=>filterYr(G).filter(r=>mOf(r)===m).reduce((s,r)=>s+pM(r['Monto']),0));
-  const sga=MES.map((_,m)=>filterYrMinus1(G).filter(r=>mOf(r)===m).reduce((s,r)=>s+pM(r['Monto']),0));
+// === TAB: P&L ===
+function dPNL(){
+  const c=co();
+  const y=yr();
 
+  // Ingresos por mes
+  const sv=mStats(fYr(V).filter(r=>pM(r['Tarifa'])>0),r=>pM(r['Tarifa']));
+  const sva=mStats(fYrA(V).filter(r=>pM(r['Tarifa'])>0),r=>pM(r['Tarifa']));
   const tI=sv.reduce((s,r)=>s+r.i,0),tIa=sva.reduce((s,r)=>s+r.i,0);
-  const tG=sg.reduce((s,a)=>s+a,0),tGa=sga.reduce((s,a)=>s+a,0);
-  const tU=tI-tG,tUa=tIa-tGa;
-  const mg=tI?((tU/tI)*100).toFixed(1):0;
-  const mga=tIa?((tUa/tIa)*100).toFixed(1):0;
 
-  // gastos por categoría mensual
-  const byCatY={};filterYr(G).forEach(r=>{const cat=r['Categoría']||'Otro';byCatY[cat]=(byCatY[cat]||0)+pM(r['Monto']);});
-  const catRows=Object.entries(byCatY).sort((a,b)=>b[1]-a[1]).map(([cat,vt])=>{
-    const mCells=MES.map((_,m)=>{let gm=0;filterYr(G).filter(r=>r['Categoría']===cat&&mOf(r)===m).forEach(r=>gm+=pM(r['Monto']));return `<td class="r mu">${gm?fmt(gm):'N/A'}</td>`;}).join('');
-    return `<tr><td class="pnl-tbl" style="padding-left:20px;color:var(--t2)">${cat}</td>${mCells}<td class="r re">${fmt(vt)}</td>${c?`<td></td><td></td>`:''}</tr>`;
-  }).join('');
+  // Ingresos por cliente (para desglose)
+  const byCli={};
+  fYr(V).filter(r=>pM(r['Tarifa'])>0).forEach(r=>{
+    const cl=r['Cliente']||'Otro';
+    if(!byCli[cl])byCli[cl]=MES.map(()=>0);
+    const m=mOf(r);if(m>=0)byCli[cl][m]+=pM(r['Tarifa']);
+  });
 
-  const ingR=MES.map((_,m)=>`<td class="r g">${sv[m].i?fmt(sv[m].i):'N/A'}</td>`).join('');
-  const gasR=MES.map((_,m)=>`<td class="r re">${sg[m]?fmt(sg[m]):'N/A'}</td>`).join('');
-  const utR=MES.map((_,m)=>{const u=sv[m].i-sg[m];return `<td class="r ${u>=0?'g':'re'}">${(sv[m].i||sg[m])?fmt(u):'N/A'}</td>`;}).join('');
-  const mgR=MES.map((_,m)=>{const u=sv[m].i-sg[m];const mg2=sv[m].i?(u/sv[m].i*100).toFixed(0):'N/A';return `<td class="r ${parseFloat(mg2)>=30?'g':parseFloat(mg2)>=0?'y':'re'}">${mg2}%</td>`;}).join('');
+  // Gastos clasificados por Clasificacion, por mes
+  const gd=fYr(G);
+  function gByClasM(claves){
+    return MES.map((_,m)=>gd.filter(r=>{const cl=r['Clasificacion']||r['Clasificación']||'';return claves.some(k=>cl.toLowerCase().includes(k.toLowerCase()))&&mOf(r)===m;}).reduce((s,r)=>s+pM(r['Monto']),0));
+  }
+  function gByClasTotal(claves){return gd.filter(r=>{const cl=r['Clasificacion']||r['Clasificación']||'';return claves.some(k=>cl.toLowerCase().includes(k.toLowerCase()));}).reduce((s,r)=>s+pM(r['Monto']),0);}
+  function gByCatM(cat){return MES.map((_,m)=>gd.filter(r=>{const c2=r['Categoria']||r['Categoría']||'';return c2===cat&&mOf(r)===m;}).reduce((s,r)=>s+pM(r['Monto']),0));}
+  function gByCatTotal(cat){return gd.filter(r=>(r['Categoria']||r['Categoría']||'')=== cat).reduce((s,r)=>s+pM(r['Monto']),0);}
 
-  $('main').innerHTML=`
-    <div class="krow">
+  // Cost to serve lines (Clasificacion field)
+  const costLines=[
+    {label:'Diesel',keys:['Diesel']},
+    {label:'Diesel Credito',keys:['Diesel Crédito','Diesel Credito']},
+    {label:'Diesel Interno',keys:['Diesel Interno']},
+    {label:'Diesel Prisciliano',keys:['Diesel Prisciliano']},
+    {label:'Casetas',keys:['Casetas']},
+    {label:'Viaticos',keys:['Viáticos','Viaticos']},
+    {label:'Grua',keys:['Grúa','Grua']},
+    {label:'Seguro',keys:['Seguro']},
+    {label:'Bascula',keys:['Báscula','Bascula']},
+    {label:'Activacion camiones',keys:['Activación de camiones','Activacion de camiones']},
+    {label:'Equipo seguridad',keys:['Equipo de seguridad']},
+    {label:'Permisos SCT',keys:['Permisos SCT']},
+    {label:'Regulacion - Placas',keys:['Regulación - Placas','Regulacion - Placas']},
+    {label:'Multas',keys:['Multas']},
+    {label:'Mant. Camiones',keys:['Mantenimiento Camiones']},
+    {label:'Mant. Llantas',keys:['Mantenimiento Llantas']},
+    {label:'Mant. Caja',keys:['Mantenimiento Caja']},
+    {label:'Refacciones',keys:['Refacciones, consumibles y aditamentos']},
+    {label:'Herramientas',keys:['Herramientas y área Mantenimiento','Herramientas y area Mantenimiento']},
+    {label:'Arreglo',keys:['Arreglo']},
+    {label:'Otros Gastos Op.',keys:['Otros Gastos Operativos']},
+    {label:'Nomina OPS',keys:['Nómina OPS','Nomina OPS']},
+    {label:'Adelanto Nomina OPS',keys:['Adelanto de Nómina OPS','Adelanto de Nomina OPS']},
+    {label:'Renta Camion y Caja',keys:['Renta Camión y Caja','Renta Camion y Caja','Renta CAmión y Caja']},
+    {label:'Renta Patio',keys:['Renta Patio']},
+  ];
+
+  const costMes=costLines.map(cl=>({...cl,mes:gByClasM(cl.keys),total:gByClasTotal(cl.keys)}));
+  const totalCostServe=MES.map((_,m)=>costMes.reduce((s,cl)=>s+cl.mes[m],0));
+  const totalCostServeT=costMes.reduce((s,cl)=>s+cl.total,0);
+
+  // Fijos Ops
+  const fijosOpsM=MES.map((_,m)=>gd.filter(r=>r['Tipo']==='Fijos'&&mOf(r)===m).reduce((s,r)=>s+pM(r['Monto']),0));
+  const fijosOpsT=gd.filter(r=>r['Tipo']==='Fijos').reduce((s,r)=>s+pM(r['Monto']),0);
+
+  // Creditos
+  const creditosM=gByClasM(['Créditos','Creditos','Intereses']);
+  const creditosT=gByClasTotal(['Créditos','Creditos','Intereses']);
+
+  const fijosM=MES.map((_,m)=>fijosOpsM[m]+creditosM[m]);
+  const fijosT=fijosOpsT+creditosT;
+
+  // SG&A (gastos administrativos)
+  const sgaM=MES.map((_,m)=>gd.filter(r=>{const cat=r['Categoria']||r['Categoría']||'';return cat==='Gastos Administrativos'&&mOf(r)===m;}).reduce((s,r)=>s+pM(r['Monto']),0));
+  const sgaT=gd.filter(r=>(r['Categoria']||r['Categoría']||'')==='Gastos Administrativos').reduce((s,r)=>s+pM(r['Monto']),0);
+
+  // Derived lines
+  const margenDirectoM=MES.map((_,m)=>sv[m].i-totalCostServe[m]);
+  const margenDirectoT=tI-totalCostServeT;
+
+  const totalGastosM=MES.map((_,m)=>totalCostServe[m]+fijosM[m]);
+  const totalGastosT=totalCostServeT+fijosT;
+
+  const margenBrutoM=MES.map((_,m)=>sv[m].i-totalGastosM[m]);
+  const margenBrutoT=tI-totalGastosT;
+
+  const ebitdaM=MES.map((_,m)=>margenBrutoM[m]-sgaM[m]);
+  const ebitdaT=margenBrutoT-sgaT;
+
+  // EBIT = EBITDA (no tenemos depreciacion)
+  const ebitM=ebitdaM;const ebitT=ebitdaT;
+  const netM=ebitM;const netT=ebitT;
+
+  // Format P&L cell
+  const pc=(v,cls='')=>`<td class="${v<0?'pnl-neg':v>0?'pnl-pos':''} ${cls}">${v!==0?fmt(v):'$0'}</td>`;
+  const pcPct=(num,den)=>{if(!den||den===0)return '<td class="mu">N/A</td>';const p=num/den*100;return `<td class="${p<0?'pnl-neg':'pnl-pos'}">${p.toFixed(1)}%</td>`;};
+
+  // Build P&L table rows
+  const pnlRows=[];
+  // Header months
+  pnlRows.push(`<tr class="r-ing"><td>INGRESOS TOTALES</td>${sv.map((_,m)=>pc(sv[m].i)).join('')}<td>${fmt(tI)}</td></tr>`);
+  // by cliente
+  Object.entries(byCli).sort((a,b)=>b[1].reduce((s,v)=>s+v,0)-a[1].reduce((s,v)=>s+v,0)).forEach(([cli,mes])=>{
+    const tot=mes.reduce((s,v)=>s+v,0);
+    pnlRows.push(`<tr class="r-sub"><td>&nbsp;&nbsp;${cli}</td>${mes.map(v=>`<td class="${v<0?'pnl-neg':''} ${v>0?'pnl-pos':''}">${v?fmt(v):'—'}</td>`).join('')}<td>${fmt(tot)}</td></tr>`);
+  });
+
+  pnlRows.push(`<tr class="r-section"><td>(-) COST TO SERVE</td>${totalCostServe.map(v=>`<td>${v?'('+fmt(v)+')':'—'}</td>`).join('')}<td>(${fmt(totalCostServeT)})</td></tr>`);
+  costMes.forEach(cl=>{
+    if(cl.total===0)return;
+    pnlRows.push(`<tr class="r-sub"><td>&nbsp;&nbsp;${cl.label}</td>${cl.mes.map(v=>`<td class="mu">${v?'('+fmt(v)+')':'—'}</td>`).join('')}<td class="mu">(${fmt(cl.total)})</td></tr>`);
+  });
+
+  pnlRows.push(`<tr class="r-tot"><td>MARGEN DIRECTO</td>${margenDirectoM.map(v=>pc(v)).join('')}<td class="${margenDirectoT>=0?'pnl-pos':'pnl-neg'}">${fmt(margenDirectoT)}</td></tr>`);
+  pnlRows.push(`<tr class="r-pct"><td>&nbsp;&nbsp;% Margen Directo</td>${margenDirectoM.map((v,m)=>pcPct(v,sv[m].i)).join('')}<td>${pcPct(margenDirectoT,tI).replace('<td','').replace('</td>','')}</td></tr>`);
+
+  pnlRows.push(`<tr class="r-section"><td>FIJOS</td>${fijosM.map(v=>`<td>${v?'('+fmt(v)+')':'—'}</td>`).join('')}<td>(${fmt(fijosT)})</td></tr>`);
+  if(fijosOpsT>0)pnlRows.push(`<tr class="r-sub"><td>&nbsp;&nbsp;Fijos Ops</td>${fijosOpsM.map(v=>`<td class="mu">${v?'('+fmt(v)+')':'—'}</td>`).join('')}<td class="mu">(${fmt(fijosOpsT)})</td></tr>`);
+  if(creditosT>0)pnlRows.push(`<tr class="r-sub"><td>&nbsp;&nbsp;Creditos + Intereses</td>${creditosM.map(v=>`<td class="mu">${v?'('+fmt(v)+')':'—'}</td>`).join('')}<td class="mu">(${fmt(creditosT)})</td></tr>`);
+
+  pnlRows.push(`<tr class="r-tot"><td>MARGEN BRUTO</td>${margenBrutoM.map(v=>pc(v)).join('')}<td class="${margenBrutoT>=0?'pnl-pos':'pnl-neg'}">${fmt(margenBrutoT)}</td></tr>`);
+
+  pnlRows.push(`<tr class="r-section"><td>(-) SG&amp;A</td>${sgaM.map(v=>`<td>${v?'('+fmt(v)+')':'—'}</td>`).join('')}<td>(${fmt(sgaT)})</td></tr>`);
+
+  pnlRows.push(`<tr class="r-ebitda"><td>EBITDA</td>${ebitdaM.map(v=>pc(v)).join('')}<td class="${ebitdaT>=0?'pnl-pos':'pnl-neg'}">${fmt(ebitdaT)}</td></tr>`);
+  pnlRows.push(`<tr class="r-pct"><td>&nbsp;&nbsp;% Margen Operativo</td>${ebitdaM.map((v,m)=>pcPct(v,sv[m].i)).join('')}<td>${pcPct(ebitdaT,tI).replace('<td','').replace('</td>','')}</td></tr>`);
+
+  pnlRows.push(`<tr class="r-sub"><td>&nbsp;&nbsp;Depreciacion y amortizacion</td>${MES.map(()=>'<td class="mu">$0</td>').join('')}<td class="mu">$0</td></tr>`);
+  pnlRows.push(`<tr class="r-tot"><td>EBIT</td>${ebitM.map(v=>pc(v)).join('')}<td class="${ebitT>=0?'pnl-pos':'pnl-neg'}">${fmt(ebitT)}</td></tr>`);
+  pnlRows.push(`<tr class="r-sub"><td>&nbsp;&nbsp;Intereses</td>${MES.map(()=>'<td class="mu">$0</td>').join('')}<td class="mu">$0</td></tr>`);
+  pnlRows.push(`<tr class="r-tot"><td>EBT</td>${ebitM.map(v=>pc(v)).join('')}<td class="${ebitT>=0?'pnl-pos':'pnl-neg'}">${fmt(ebitT)}</td></tr>`);
+
+  pnlRows.push(`<tr class="r-net"><td>NET INCOME</td>${netM.map(v=>pc(v)).join('')}<td>${fmt(netT)}</td></tr>`);
+  pnlRows.push(`<tr class="r-pct"><td>&nbsp;&nbsp;% Margen Neto</td>${netM.map((v,m)=>pcPct(v,sv[m].i)).join('')}<td>${pcPct(netT,tI).replace('<td','').replace('</td>','')}</td></tr>`);
+  pnlRows.push(`<tr class="r-sub"><td>&nbsp;&nbsp;Flujo Operativo</td>${netM.map(v=>`<td>${v?fmt(v):'$0'}</td>`).join('')}<td>${fmt(netT)}</td></tr>`);
+  pnlRows.push(`<tr class="r-sub"><td>&nbsp;&nbsp;CAPEX</td>${MES.map(()=>'<td class="mu">$0</td>').join('')}<td class="mu">$0</td></tr>`);
+  pnlRows.push(`<tr class="r-sub"><td>&nbsp;&nbsp;Free Cash Flow</td>${netM.map(v=>`<td>${v?fmt(v):'$0'}</td>`).join('')}<td>${fmt(netT)}</td></tr>`);
+
+  $('main').innerHTML=
+    `<div class="krow">
       <div class="kc"><div class="kc-hd"><div class="kl">Ingresos ${y==='all'?'':y}</div><div class="ki g"><svg viewBox="0 0 24 24"><path d="M3.5 18.5l6-6 4 4 7-8"/></svg></div></div><div class="kv g">${fmtK(tI)}</div><div class="kd">${c?`AA: ${fmtK(tIa)} ${dlt(tI,tIa)}`:''}&nbsp;</div></div>
-      <div class="kc"><div class="kc-hd"><div class="kl">Gastos op.</div><div class="ki r"><svg viewBox="0 0 24 24"><path d="M19 13H5v-2h14v2z"/></svg></div></div><div class="kv r">${fmtK(tG)}</div><div class="kd">${c?`AA: ${fmtK(tGa)}`:''}&nbsp;</div></div>
-      <div class="kc"><div class="kc-hd"><div class="kl">Utilidad bruta</div><div class="ki ${tU>=0?'g':'r'}"><svg viewBox="0 0 24 24"><path d="M12 2v20M2 12h20"/></svg></div></div><div class="kv ${tU>=0?'g':'r'}">${fmtK(tU)}</div><div class="kd">${c?`AA: ${fmtK(tUa)} ${dlt(tU,tUa)}`:''}&nbsp;</div></div>
-      <div class="kc"><div class="kc-hd"><div class="kl">Margen</div><div class="ki b"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 110 20A10 10 0 0112 2z"/></svg></div></div><div class="kv b">${mg}%</div><div class="kd">${c?`AA: ${mga}%`:''}&nbsp;</div></div>
-      <div class="kc"><div class="kc-hd"><div class="kl">Viajes</div><div class="ki rl"><svg viewBox="0 0 24 24"><path d="M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4z"/></svg></div></div><div class="kv rl">${fmtN(sv.reduce((s,r)=>s+r.v,0))}</div><div class="kd">${c?`AA: ${fmtN(sva.reduce((s,r)=>s+r.v,0))} ${dlt(sv.reduce((s,r)=>s+r.v,0),sva.reduce((s,r)=>s+r.v,0))}`:''}&nbsp;</div></div>
+      <div class="kc"><div class="kc-hd"><div class="kl">Margen Directo</div><div class="ki ${margenDirectoT>=0?'g':'r'}"><svg viewBox="0 0 24 24"><path d="M12 2v20M2 12h20"/></svg></div></div><div class="kv ${margenDirectoT>=0?'g':'r'}">${fmtK(margenDirectoT)}</div><div class="kd">${tI?(margenDirectoT/tI*100).toFixed(1)+'%':''}&nbsp;</div></div>
+      <div class="kc"><div class="kc-hd"><div class="kl">Margen Bruto</div><div class="ki ${margenBrutoT>=0?'g':'r'}"><svg viewBox="0 0 24 24"><path d="M12 2v20M2 12h20"/></svg></div></div><div class="kv ${margenBrutoT>=0?'g':'r'}">${fmtK(margenBrutoT)}</div><div class="kd">${tI?(margenBrutoT/tI*100).toFixed(1)+'%':''}&nbsp;</div></div>
+      <div class="kc"><div class="kc-hd"><div class="kl">EBITDA</div><div class="ki t"><svg viewBox="0 0 24 24"><path d="M3 13h2v8H3zm4-4h2v12H7zm4-4h2v16h-2zm4 8h2v8h-2zm4-4h2v12h-2z"/></svg></div></div><div class="kv t">${fmtK(ebitdaT)}</div><div class="kd">${tI?(ebitdaT/tI*100).toFixed(1)+'%':''}&nbsp;</div></div>
+      <div class="kc"><div class="kc-hd"><div class="kl">Net Income</div><div class="ki ${netT>=0?'g':'r'}"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 110 20A10 10 0 0112 2z"/></svg></div></div><div class="kv ${netT>=0?'g':'r'}">${fmtK(netT)}</div><div class="kd">${tI?(netT/tI*100).toFixed(1)+'%':''}&nbsp;</div></div>
     </div>
-
-    <div class="cc"><div class="cc-t">Ingresos vs Gastos — ${y==='all'?'Todos los años':y}${c?' vs AA':''}</div>
-      <div class="lgnd">
-        <span><span class="lsq" style="background:rgba(5,150,105,.75)"></span>Ingresos</span>
-        ${c?`<span><span class="lsq" style="background:rgba(5,150,105,.2)"></span>Ingresos AA</span>`:''}
-        <span><span class="lsq" style="background:rgba(220,38,38,.75)"></span>Gastos</span>
-        ${c?`<span><span class="lsq" style="background:rgba(220,38,38,.2)"></span>Gastos AA</span>`:''}
-      </div>
-      <div style="position:relative;height:200px"><canvas id="cPNL"></canvas></div>
-    </div>
-
-    <div class="slbl">Estado de Resultados — ${y==='all'?'Todos los años':y}${c?' vs AA':''}</div>
-    <div class="tw" style="overflow-x:auto"><table class="pnl-tbl">
-      <thead><tr><th>Concepto</th>${MES.map(m=>`<th class="r">${m}</th>`).join('')}<th class="r">TOTAL ${y==='all'?'':y}</th>${c?`<th class="r">TOTAL AA</th><th class="r">Var.</th>`:''}</tr></thead>
-      <tbody>
-        <tr style="background:#2D3748"><td style="color:rgba(255,255,255,.8);font-weight:700;padding:7px 10px">INGRESOS</td>${MES.map(()=>'<td></td>').join('')}<td class="r" style="color:rgba(255,255,255,.8);font-family:var(--mono);text-align:right;padding:7px 10px">${fmt(tI)}</td>${c?`<td class="r" style="color:rgba(255,255,255,.8);font-family:var(--mono);text-align:right;padding:7px 10px">${fmt(tIa)}</td><td class="r" style="padding:7px 10px;text-align:right">${dlt(tI,tIa)}</td>`:''}</tr>
-        <tr><td style="padding-left:20px;color:var(--t2)">Ingresos por viajes</td>${ingR}<td class="r g">${fmt(tI)}</td>${c?`<td class="r g">${fmt(tIa)}</td><td class="r">${dlt(tI,tIa)}</td>`:''}</tr>
-        <tr style="background:#2D3748"><td style="color:rgba(255,255,255,.8);font-weight:700;padding:7px 10px">GASTOS OPERATIVOS</td>${MES.map(()=>'<td></td>').join('')}<td class="r" style="color:rgba(255,255,255,.8);font-family:var(--mono);text-align:right;padding:7px 10px">${fmt(tG)}</td>${c?`<td class="r" style="color:rgba(255,255,255,.8);font-family:var(--mono);text-align:right;padding:7px 10px">${fmt(tGa)}</td><td></td>`:''}</tr>
-        ${catRows}
-        <tr style="background:var(--s2);font-weight:700;border-top:1px solid var(--br2)"><td>Total Gastos</td>${gasR}<td class="r re">${fmt(tG)}</td>${c?`<td class="r re">${fmt(tGa)}</td><td></td>`:''}</tr>
-        <tr style="background:#00897B"><td style="color:#fff;font-weight:700;font-size:11px;padding:7px 10px">UTILIDAD OPERATIVA</td>${utR}<td class="r" style="color:#fff;font-family:var(--mono);text-align:right;padding:7px 10px">${fmt(tU)}</td>${c?`<td class="r" style="color:#fff;font-family:var(--mono);text-align:right;padding:7px 10px">${fmt(tUa)}</td><td class="r" style="color:#fff;padding:7px 10px;text-align:right">${dlt(tU,tUa)}</td>`:''}</tr>
-        <tr style="background:var(--s2);font-weight:700;border-top:1px solid var(--br2)"><td>Margen %</td>${mgR}<td class="r y">${mg}%</td>${c?`<td class="r y">${mga}%</td><td></td>`:''}</tr>
-      </tbody>
+    <div class="cc"><div class="cc-t">Ingresos vs Total Gastos${c?' vs AA':''}</div><div class="lgnd"><span><span class="lsq" style="background:rgba(5,150,105,.75)"></span>Ingresos</span><span><span class="lsq" style="background:rgba(220,38,38,.75)"></span>Gastos</span><span><span class="lsq" style="background:rgba(0,137,123,.75)"></span>EBITDA</span></div><div style="position:relative;height:220px"><canvas id="cPNL"></canvas></div></div>
+    <div class="slbl">Estado de Resultados - ${y==='all'?'Todos los anos':y}</div>
+    <div class="pnl-wrap"><table class="pnl-tbl">
+      <thead><tr><th>Concepto</th>${MES.map(m=>`<th>${m}</th>`).join('')}<th>TOTAL</th></tr></thead>
+      <tbody>${pnlRows.join('')}</tbody>
     </table></div>`;
 
-  const ds=[{label:'I',data:sv.map(s=>s.i),backgroundColor:'rgba(5,150,105,.75)',borderRadius:3},{label:'G',data:sg,backgroundColor:'rgba(220,38,38,.75)',borderRadius:3}];
-  if(c){ds.push({label:'Ia',data:sva.map(s=>s.i),backgroundColor:'rgba(5,150,105,.2)',borderRadius:3});ds.push({label:'Ga',data:sga,backgroundColor:'rgba(220,38,38,.2)',borderRadius:3});}
-  mkBar('cPNL',MES,ds);
+  const tGmes=MES.map((_,m)=>totalCostServe[m]+fijosM[m]+sgaM[m]);
+  mkChart('cPNL','bar',MES,[
+    {label:'Ingresos',data:sv.map(s=>s.i),backgroundColor:'rgba(5,150,105,.75)',borderRadius:4},
+    {label:'Gastos',data:tGmes,backgroundColor:'rgba(220,38,38,.75)',borderRadius:4},
+    {label:'EBITDA',data:ebitdaM,backgroundColor:'rgba(0,137,123,.75)',borderRadius:4,type:'line',borderColor:'rgba(0,137,123,.9)',pointRadius:4,fill:false},
+  ],mkBarOpts(false,false));
 }
 
-// -- INIT -----------------------------------------------------------------
 loadAll();
 </script>
 </body>
