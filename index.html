@@ -236,7 +236,7 @@ const fmtN=n=>Math.round(n).toLocaleString('es-MX');
 const fmtP=n=>n?((n*100).toFixed(1)+'%'):'0.0%';
 const pM=s=>{if(!s||s==='N/A')return 0;return parseFloat(String(s).replace(/[$,\s"]/g,''))||0;};
 const mOf=r=>MIDX[(r.Mes||'').toLowerCase().trim()]??-1;
-const yOf=r=>String(r['ANO']||r['ANo']||r['ano']||r['AÑO']||r['Año']||'');
+const yOf=r=>String(r['AÑO']||r['ANO']||r['ANo']||r['Año']||r['ano']||r['year']||'');
 const semOf=r=>parseInt(r['Num Semana']||0);
 const pct=(a,b)=>b?((a-b)/b*100).toFixed(1):'N/A';
 const dlt=(a,b)=>{const p=pct(a,b);if(p==='N/A')return '';const u=+p>=0;return `<span class="${u?'up':'dn'}">${u?'+':''}${p}%</span>`;};
@@ -283,6 +283,34 @@ async function loadAll(){
     $('ld-msg').textContent='Cargando kilometros...';
     const tk=await fetchCSV(URL_K);
     K=parseCSV(tk).filter(r=>r['Trip Distance (km)']&&!isNaN(parseFloat(r['Trip Distance (km)'])));
+
+    // Diesel has no AÑO column -- inject year from Fecha field
+    D.forEach(r=>{
+      if(!r['AÑO']||r['AÑO']===''){
+        const f=r['Fecha']||'';
+        // Try to extract 4-digit year from date string
+        const m4=f.match(/\b(20\d{2})\b/);
+        if(m4)r['AÑO']=m4[1];
+        else if(f.includes('/')){
+          // format d/m/yyyy or m/d/yyyy or d/m/yy
+          const parts=f.split('/');
+          const last=parts[parts.length-1];
+          if(last.length===4)r['AÑO']=last;
+          else if(last.length===2)r['AÑO']='20'+last;
+        }
+      }
+    });
+    // KMS also has no AÑO -- inject from Año column or Start At
+    K.forEach(r=>{
+      if(!r['AÑO']||r['AÑO']===''){
+        r['AÑO']=r['Año']||r['ano']||r['year']||'';
+        if(!r['AÑO']){
+          const sa=r['Start At']||'';
+          const m4=sa.match(/\b(20\d{2})\b/);
+          if(m4)r['AÑO']=m4[1];
+        }
+      }
+    });
 
     const now=new Date();
     $('sbDate').textContent=now.toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'})+' '+now.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'});
