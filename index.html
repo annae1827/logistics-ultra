@@ -105,10 +105,15 @@ html,body{height:100%;font-family:var(--font);font-size:13px;background:var(--bg
 .bval{font-size:10px;min-width:72px;text-align:right;font-weight:600;font-family:var(--mono)}
 
 /* PILLS */
-.pills{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px}
-.pill{font-size:10px;padding:3px 9px;border-radius:99px;cursor:pointer;border:1px solid var(--br);background:var(--s1);color:var(--t2);font-family:var(--font);font-weight:500;transition:all .1s}
-.pill:hover{border-color:#00897B;color:#00897B}
-.pill.on{background:#00897B;color:#fff;border-color:#00897B}
+.f-row{margin-bottom:8px}
+.fbox{background:var(--s0);border:1px solid var(--br);border-radius:var(--r);padding:14px 16px;box-shadow:var(--sh);margin-bottom:14px}
+.fbox-title{font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;display:flex;align-items:center;gap:5px}
+.fbox-title::before{content:'';width:3px;height:12px;background:#00897B;border-radius:2px;display:inline-block}
+.fbox-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px}
+.fg{display:flex;flex-direction:column;gap:4px}
+.fg label{font-size:10px;font-weight:600;color:var(--t2);text-transform:uppercase;letter-spacing:.04em}
+.f-sel{width:100%;background:var(--s1);border:1px solid var(--br2);color:var(--t1);font-size:12px;padding:6px 10px;border-radius:var(--r2);font-family:var(--font);cursor:pointer;appearance:auto}
+.f-sel:focus{outline:none;border-color:#00897B;box-shadow:0 0 0 2px rgba(0,137,123,.15)}
 
 /* TABLE */
 .tw{overflow-x:auto;border-radius:var(--r);border:1px solid var(--br);box-shadow:var(--sh);margin-bottom:14px}
@@ -440,11 +445,11 @@ function drawViajes(){
   const opSort=Object.keys(byOp).sort((a,b)=>byOp[b].v-byOp[a].v).slice(0,10);
   const svcSort=Object.keys(bySvc).filter(s=>s&&s!=='#N/A').sort((a,b)=>bySvc[b].v-bySvc[a].v).slice(0,10);
 
-  const mP=['Todos',...MES].map((m,i)=>`<button class="pill ${curMes===(i-1)?'on':''}" onclick="curMes=${i-1};render()">${m}</button>`).join('');
-  const cliP=['Todos',...allCli].map(c2=>`<button class="pill ${curCliente===c2?'on':''}" onclick="curCliente=${JSON.stringify(c2)};render()">${c2}</button>`).join('');
-  const uniP=['Todos',...allUni].map(u=>`<button class="pill ${curUnidad===u?'on':''}" onclick="curUnidad=${JSON.stringify(u)};render()">${u}</button>`).join('');
-  const opP=['Todos',...allOp.slice(0,20)].map(o=>`<button class="pill ${curOp===o?'on':''}" onclick="curOp=${JSON.stringify(o)};render()">${o.split(' ')[0]||o}</button>`).join('');
-  const svcP=['Todos',...allSvc.slice(0,20)].map(s=>`<button class="pill ${curSvc===s?'on':''}" onclick="curSvc=${JSON.stringify(s)};render()">${s}</button>`).join('');
+  const mP='<select class="f-sel" onchange="curMes=parseInt(this.value);render()"><option value="-1">Todos los meses</option>'+MES.map((m,i)=>`<option value="${i}" ${curMes===i?'selected':''}>${m}</option>`).join('')+'</select>';
+  const cliP='<select class="f-sel" onchange="curCliente=this.value;render()"><option value="Todos">Todos los clientes</option>'+allCli.map(c2=>`<option value="${c2}" ${curCliente===c2?'selected':''}>${c2}</option>`).join('')+'</select>';
+  const uniP='<select class="f-sel" onchange="curUnidad=this.value;render()"><option value="Todos">Todas las unidades</option>'+allUni.map(u=>`<option value="${u}" ${curUnidad===u?'selected':''}>${u}</option>`).join('')+'</select>';
+  const opP='<select class="f-sel" onchange="curOp=this.value;render()"><option value="Todos">Todos los operadores</option>'+allOp.map(o=>`<option value="${o}" ${curOp===o?'selected':''}>${o}</option>`).join('')+'</select>';
+  const svcP='<select class="f-sel" onchange="curSvc=this.value;render()"><option value="Todos">Todos los servicios</option>'+allSvc.map(s=>`<option value="${s}" ${curSvc===s?'selected':''}>${s}</option>`).join('')+'</select>';
 
   const rows=d.slice(0,300).map(r=>`<tr>
     <td class="mu">${r['Dia']||''} ${r['Mes']||''} ${r['AÑO']||''}</td>
@@ -489,12 +494,16 @@ function drawViajes(){
       <div style="position:relative;height:${Math.max(140,svcSort.length*24+40)}px"><canvas id="cVsvc"></canvas></div>
     </div>
 
-    <div class="slbl">Filtros</div>
-    <div class="slbl" style="font-weight:400;color:var(--t2)">Mes</div><div class="pills">${mP}</div>
-    <div class="slbl" style="font-weight:400;color:var(--t2)">Cliente</div><div class="pills">${cliP}</div>
-    <div class="slbl" style="font-weight:400;color:var(--t2)">Unidad</div><div class="pills">${uniP}</div>
-    <div class="slbl" style="font-weight:400;color:var(--t2)">Operador</div><div class="pills">${opP}</div>
-    <div class="slbl" style="font-weight:400;color:var(--t2)">Tipo de servicio</div><div class="pills">${svcP}</div>
+    <div class="fbox">
+      <div class="fbox-title">Filtros</div>
+      <div class="fbox-grid">
+        <div class="fg"><label>Mes</label>${mP}</div>
+        <div class="fg"><label>Cliente</label>${cliP}</div>
+        <div class="fg"><label>Unidad</label>${uniP}</div>
+        <div class="fg"><label>Operador</label>${opP}</div>
+        <div class="fg"><label>Tipo de servicio</label>${svcP}</div>
+      </div>
+    </div>
 
     <div class="slbl">Registro de viajes${d.length>300?' (mostrando 300)':''}</div>
     <div class="tw"><table>
@@ -544,11 +553,11 @@ function drawIngresos(){
   const opSort=Object.keys(byOp).sort((a,b)=>byOp[b].i-byOp[a].i).slice(0,10);
   const svcSort=Object.keys(bySvc).filter(s=>s&&s!=='#N/A').sort((a,b)=>bySvc[b].i-bySvc[a].i).slice(0,10);
 
-  const mP=['Todos',...MES].map((m,i)=>`<button class="pill ${curMes===(i-1)?'on':''}" onclick="curMes=${i-1};render()">${m}</button>`).join('');
-  const cliP=['Todos',...allCli].map(c2=>`<button class="pill ${curCliente===c2?'on':''}" onclick="curCliente=${JSON.stringify(c2)};render()">${c2}</button>`).join('');
-  const uniP=['Todos',...allUni].map(u=>`<button class="pill ${curUnidad===u?'on':''}" onclick="curUnidad=${JSON.stringify(u)};render()">${u}</button>`).join('');
-  const opP=['Todos',...allOp.slice(0,20)].map(o=>`<button class="pill ${curOp===o?'on':''}" onclick="curOp=${JSON.stringify(o)};render()">${o.split(' ')[0]||o}</button>`).join('');
-  const svcP=['Todos',...allSvc.slice(0,20)].map(s=>`<button class="pill ${curSvc===s?'on':''}" onclick="curSvc=${JSON.stringify(s)};render()">${s}</button>`).join('');
+  const mP='<select class="f-sel" onchange="curMes=parseInt(this.value);render()"><option value="-1">Todos los meses</option>'+MES.map((m,i)=>`<option value="${i}" ${curMes===i?'selected':''}>${m}</option>`).join('')+'</select>';
+  const cliP='<select class="f-sel" onchange="curCliente=this.value;render()"><option value="Todos">Todos los clientes</option>'+allCli.map(c2=>`<option value="${c2}" ${curCliente===c2?'selected':''}>${c2}</option>`).join('')+'</select>';
+  const uniP='<select class="f-sel" onchange="curUnidad=this.value;render()"><option value="Todos">Todas las unidades</option>'+allUni.map(u=>`<option value="${u}" ${curUnidad===u?'selected':''}>${u}</option>`).join('')+'</select>';
+  const opP='<select class="f-sel" onchange="curOp=this.value;render()"><option value="Todos">Todos los operadores</option>'+allOp.map(o=>`<option value="${o}" ${curOp===o?'selected':''}>${o}</option>`).join('')+'</select>';
+  const svcP='<select class="f-sel" onchange="curSvc=this.value;render()"><option value="Todos">Todos los servicios</option>'+allSvc.map(s=>`<option value="${s}" ${curSvc===s?'selected':''}>${s}</option>`).join('')+'</select>';
 
   const cliRows=cliSort.map(k=>{const r=byCli[k];return `<tr><td style="font-weight:600">${k}</td><td class="r">${r.v}</td><td class="r g">${fmt(r.i)}</td><td class="r mu">${r.v?fmt(Math.round(r.i/r.v)):'N/A'}</td><td class="r y">${tI?(r.i/tI*100).toFixed(1):0}%</td></tr>`;}).join('');
   const svcRows=svcSort.map(k=>{const r=bySvc[k];return `<tr><td style="font-weight:600">${k}</td><td class="r">${r.v}</td><td class="r g">${fmt(r.i)}</td><td class="r mu">${r.v?fmt(Math.round(r.i/r.v)):'N/A'}</td><td class="r y">${tI?(r.i/tI*100).toFixed(1):0}%</td></tr>`;}).join('');
@@ -583,12 +592,16 @@ function drawIngresos(){
       <div class="cc"><div class="cc-t">Ingresos por unidad — top 12</div><div style="position:relative;height:${Math.max(160,uniSort.length*26+40)}px"><canvas id="cIuni"></canvas></div></div>
     </div>
 
-    <div class="slbl">Filtros</div>
-    <div class="slbl" style="font-weight:400;color:var(--t2)">Mes</div><div class="pills">${mP}</div>
-    <div class="slbl" style="font-weight:400;color:var(--t2)">Cliente</div><div class="pills">${cliP}</div>
-    <div class="slbl" style="font-weight:400;color:var(--t2)">Unidad</div><div class="pills">${uniP}</div>
-    <div class="slbl" style="font-weight:400;color:var(--t2)">Operador</div><div class="pills">${opP}</div>
-    <div class="slbl" style="font-weight:400;color:var(--t2)">Tipo de servicio</div><div class="pills">${svcP}</div>`;
+    <div class="fbox">
+      <div class="fbox-title">Filtros</div>
+      <div class="fbox-grid">
+        <div class="fg"><label>Mes</label>${mP}</div>
+        <div class="fg"><label>Cliente</label>${cliP}</div>
+        <div class="fg"><label>Unidad</label>${uniP}</div>
+        <div class="fg"><label>Operador</label>${opP}</div>
+        <div class="fg"><label>Tipo de servicio</label>${svcP}</div>
+      </div>
+    </div>`;
 
   const dsI=[{label:'i',data:sv.map(s=>s.i),backgroundColor:'rgba(5,150,105,.75)',borderRadius:3}];
   if(c)dsI.push({label:'ia',data:sva.map(s=>s.i),backgroundColor:'rgba(5,150,105,.2)',borderRadius:3});
@@ -631,8 +644,8 @@ function drawGastos(){
 
   const mRows=MES.map((m,i)=>{const gm=sg[i];if(!gm)return '';return `<tr><td style="font-weight:600">${m}</td>${top6cats.map(c2=>`<td class="r mu">${byCatM[c2][i]?fmt(byCatM[c2][i]):'N/A'}</td>`).join('')}<td class="r re">${fmt(gm)}</td></tr>`;}).join('');
 
-  const mP=['Todos',...MES].map((m,i)=>`<button class="pill ${curMes===(i-1)?'on':''}" onclick="curMes=${i-1};render()">${m}</button>`).join('');
-  const catP=allCat.map(c2=>`<button class="pill ${curCat===c2?'on':''}" onclick="curCat=${JSON.stringify(c2)};render()">${c2}</button>`).join('');
+  const mP='<select class="f-sel" onchange="curMes=parseInt(this.value);render()"><option value="-1">Todos los meses</option>'+MES.map((m,i)=>`<option value="${i}" ${curMes===i?'selected':''}>${m}</option>`).join('')+'</select>';
+  const catP='<select class="f-sel" onchange="curCat=this.value;render()"><option value="Todos">Todas las categorias</option>'+allCat.filter(c2=>c2!=='Todos').map(c2=>`<option value="${c2}" ${curCat===c2?'selected':''}>${c2}</option>`).join('')+'</select>';
 
   const rows=d.slice(0,200).map(r=>`<tr>
     <td class="mu">${r['Fecha']||''}</td>
@@ -660,8 +673,13 @@ function drawGastos(){
       <div class="cc"><div class="cc-t">Por categoría</div>${bars}</div>
     </div>
 
-    <div class="slbl">Mes</div><div class="pills">${mP}</div>
-    <div class="slbl">Categoría</div><div class="pills">${catP}</div>
+    <div class="fbox">
+      <div class="fbox-title">Filtros</div>
+      <div class="fbox-grid">
+        <div class="fg"><label>Mes</label>${mP}</div>
+        <div class="fg"><label>Categoría</label>${catP}</div>
+      </div>
+    </div>
 
     <div class="slbl">Desglose mensual — top 6 categorías</div>
     <div class="tw"><table>
@@ -714,8 +732,8 @@ function drawDiesel(){
   const sg=MES.map((_,m)=>d.filter(r=>mOf(r)===m).reduce((s,r)=>s+pM(r['Litros']),0));
   const sgM=MES.map((_,m)=>d.filter(r=>mOf(r)===m).reduce((s,r)=>s+pM(r['Monto']),0));
 
-  const mP=['Todos',...MES].map((m,i)=>`<button class="pill ${curMes===(i-1)?'on':''}" onclick="curMes=${i-1};render()">${m}</button>`).join('');
-  const uniP=['Todos',...allUni].map(u=>`<button class="pill ${curUnidad===u?'on':''}" onclick="curUnidad=${JSON.stringify(u)};render()">${u}</button>`).join('');
+  const mP='<select class="f-sel" onchange="curMes=parseInt(this.value);render()"><option value="-1">Todos los meses</option>'+MES.map((m,i)=>`<option value="${i}" ${curMes===i?'selected':''}>${m}</option>`).join('')+'</select>';
+  const uniP='<select class="f-sel" onchange="curUnidad=this.value;render()"><option value="Todos">Todas las unidades</option>'+allUni.map(u=>`<option value="${u}" ${curUnidad===u?'selected':''}>${u}</option>`).join('')+'</select>';
 
   const rows=uniSort.map(u=>{
     const r=byUni[u];
@@ -755,8 +773,13 @@ function drawDiesel(){
       </div>
     </div>
 
-    <div class="slbl">Mes</div><div class="pills">${mP}</div>
-    <div class="slbl">Unidad</div><div class="pills">${uniP}</div>
+    <div class="fbox">
+      <div class="fbox-title">Filtros</div>
+      <div class="fbox-grid">
+        <div class="fg"><label>Mes</label>${mP}</div>
+        <div class="fg"><label>Unidad</label>${uniP}</div>
+      </div>
+    </div>
 
     <div class="slbl">Rendimiento y consumo por unidad</div>
     <div class="tw"><table>
