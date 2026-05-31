@@ -524,42 +524,80 @@ function dIngresos(){
 // === TAB: GASTOS ===
 function dGastos(){
   const c=co();
-  const catField=r=>r['Categoría']||r['Categoria']||'Otro';
-  let d=fYr(G),da=fYrA(G);
-  if(curMes>=0){d=d.filter(r=>mOf(r)===curMes);da=da.filter(r=>mOf(r)===curMes);}
-  if(curCat!='Todos'){d=d.filter(r=>catField(r)===curCat);da=da.filter(r=>catField(r)===curCat);}
+  const catF=r=>r['Categoria']||r['Categoría']||'Otro';
+  const clasF=r=>r['Clasificacion']||r['Clasificación']||'Otro';
+  const rutaF=r=>r['Ruta']||'S/R';
+  const uniF=r=>String(r['Unidad']||'S/U');
+  const opF=r=>r['Operador']||'S/O';
 
-  const base=fYr(G);
-  const allCat=['Todos',...[...new Set(base.map(catField).filter(Boolean))].sort()];
-  const tG=d.reduce((s,r)=>s+pM(r['Monto']),0),tGa=da.reduce((s,r)=>s+pM(r['Monto']),0);
-  const tGY=fYr(G).reduce((s,r)=>s+pM(r['Monto']),0);
-  const fij=d.filter(r=>r['Tipo']==='Fijos').reduce((s,r)=>s+pM(r['Monto']),0);
-  const vr=d.filter(r=>r['Tipo']==='Variables').reduce((s,r)=>s+pM(r['Monto']),0);
+  // Excluir CAPEX de analisis operativo
+  const EXCL=['CAPEX','Créditos','Creditos','Importaciones y compra de Unidades','Importaciones y compra de unidades'];
 
-  const byCat={};d.forEach(r=>{const cat=catField(r);byCat[cat]=(byCat[cat]||0)+pM(r['Monto']);});
+  let base=fYr(G).filter(r=>!EXCL.includes(catF(r)));
+  let baseA=fYrA(G).filter(r=>!EXCL.includes(catF(r)));
+
+  // Filter
+  if(curMes>=0){base=base.filter(r=>mOf(r)===curMes);baseA=baseA.filter(r=>mOf(r)===curMes);}
+  if(curCat!='Todos')base=base.filter(r=>catF(r)===curCat);
+  if(curSvc!='Todos')base=base.filter(r=>clasF(r)===curSvc);  // reuse curSvc for clasificacion
+  if(curUni!='Todos')base=base.filter(r=>uniF(r)===curUni);
+  if(curOp!='Todos')base=base.filter(r=>opF(r)===curOp);
+
+  const allBase=fYr(G).filter(r=>!EXCL.includes(catF(r)));
+  const allCats=[...new Set(allBase.map(catF).filter(Boolean))].sort();
+  const allClas=[...new Set(allBase.map(clasF).filter(Boolean))].sort();
+  const allUnis=[...new Set(allBase.map(uniF).filter(Boolean))].sort();
+  const allOps=[...new Set(allBase.map(opF).filter(Boolean))].sort();
+
+  const tG=base.reduce((s,r)=>s+pM(r['Monto']),0);
+  const tGa=baseA.reduce((s,r)=>s+pM(r['Monto']),0);
+  const fij=base.filter(r=>r['Tipo']==='Fijos').reduce((s,r)=>s+pM(r['Monto']),0);
+  const vr=base.filter(r=>r['Tipo']==='Variables').reduce((s,r)=>s+pM(r['Monto']),0);
+
+  // 1. Por Categoria
+  const byCat={};base.forEach(r=>{const k=catF(r);byCat[k]=(byCat[k]||0)+pM(r['Monto']);});
   const catS=Object.entries(byCat).sort((a,b)=>b[1]-a[1]);
-  const mx=catS[0]?catS[0][1]:1;
 
-  const byClas={};d.forEach(r=>{const cl=r['Clasificacion']||r['Clasificación']||'Otro';byClas[cl]=(byClas[cl]||0)+pM(r['Monto']);});
-  const clasS=Object.entries(byClas).sort((a,b)=>b[1]-a[1]).slice(0,15);
+  // 2. Por Clasificacion
+  const byClas={};base.forEach(r=>{const k=clasF(r);byClas[k]=(byClas[k]||0)+pM(r['Monto']);});
+  const clasS=Object.entries(byClas).sort((a,b)=>b[1]-a[1]).slice(0,20);
 
-  const sg=gMes(G,yr()),sga=gMes({filter:r=>fYrA(G).includes(r)},yr());
-  const sgReal=MES.map((_,m)=>fYr(G).filter(r=>mOf(r)===m).reduce((s,r)=>s+pM(r['Monto']),0));
-  const sgaReal=MES.map((_,m)=>fYrA(G).filter(r=>mOf(r)===m).reduce((s,r)=>s+pM(r['Monto']),0));
+  // 3. Por Unidad
+  const byUni={};base.forEach(r=>{const k=uniF(r);if(k&&k!='S/U'&&k!='0'){if(!byUni[k])byUni[k]=0;byUni[k]+=pM(r['Monto']);}});
+  const uniS=Object.entries(byUni).sort((a,b)=>b[1]-a[1]).slice(0,15);
 
-  // top 5 cats monthly
-  const top5=catS.slice(0,5).map(([c])=>c);
-  const byCatM={};top5.forEach(c=>byCatM[c]=MES.map(()=>0));
-  fYr(G).forEach(r=>{const cat=catField(r);const m=mOf(r);if(top5.includes(cat)&&m>=0)byCatM[cat][m]+=pM(r['Monto']);});
+  // 4. Por Operador
+  const byOp={};base.forEach(r=>{const k=opF(r);if(k&&k!='S/O'){if(!byOp[k])byOp[k]=0;byOp[k]+=pM(r['Monto']);}});
+  const opS=Object.entries(byOp).sort((a,b)=>b[1]-a[1]).slice(0,12);
 
-  const mRows=MES.map((m,i)=>{const gm=sgReal[i];if(!gm)return '';return `<tr><td style="font-weight:600">${m}</td>${top5.map(c=>`<td class="r mu">${byCatM[c][i]?fmt(byCatM[c][i]):'—'}</td>`).join('')}<td class="r re">${fmt(gm)}</td></tr>`;}).join('');
+  // 5. Por Ruta
+  const byRuta={};base.forEach(r=>{const k=rutaF(r);if(k&&k!='S/R'&&k!=''){if(!byRuta[k])byRuta[k]=0;byRuta[k]+=pM(r['Monto']);}});
+  const rutaS=Object.entries(byRuta).sort((a,b)=>b[1]-a[1]).slice(0,12);
 
-  const rows=d.slice(0,200).map(r=>`<tr>
+  // 6. Mensual
+  const sgM=MES.map((_,m)=>allBase.filter(r=>mOf(r)===m).reduce((s,r)=>s+pM(r['Monto']),0));
+  const sgaM=MES.map((_,m)=>baseA.filter(r=>mOf(r)===m).reduce((s,r)=>s+pM(r['Monto']),0));
+
+  // 7. Tabla mensual por top 6 categorias
+  const top6=catS.slice(0,6).map(([c])=>c);
+  const byCatM={};top6.forEach(c=>byCatM[c]=MES.map(()=>0));
+  allBase.forEach(r=>{const cat=catF(r);const m=mOf(r);if(top6.includes(cat)&&m>=0)byCatM[cat][m]+=pM(r['Monto']);});
+  const mRows=MES.map((m,i)=>{const gm=sgM[i];if(!gm)return '';
+    return `<tr><td style="font-weight:600">${m}</td>${top6.map(c=>`<td class="r mu">${byCatM[c][i]?fmt(byCatM[c][i]):'—'}</td>`).join('')}<td class="r re">${fmt(gm)}</td></tr>`;
+  }).join('');
+
+  // Bar helper
+  const mkHBar=(id,labels,data,color)=>`<div class="cc" style="margin-bottom:14px"><div class="cc-t">${id}</div><div style="position:relative;height:${Math.max(160,labels.length*28+60)}px"><canvas id="c${id.replace(/\s/g,'_')}"></canvas></div></div>`;
+
+  // Detail table
+  const rows=base.slice(0,250).map(r=>`<tr>
     <td class="mu">${r['Fecha']||''}</td>
     <td>${r['Descripcion']||r['Descripción']||''}</td>
-    <td><span class="bdg bg">${catField(r)}</span></td>
-    <td class="mu">${r['Clasificacion']||r['Clasificación']||''}</td>
-    <td class="mu">${r['Unidad']||''}</td>
+    <td><span class="bdg bg">${catF(r)}</span></td>
+    <td><span class="bdg bt">${clasF(r)}</span></td>
+    <td class="mu">${uniF(r)}</td>
+    <td class="mu">${opF(r)}</td>
+    <td class="mu">${rutaF(r)}</td>
     <td>${r['Tipo']==='Fijos'?'<span class="bdg by">Fijo</span>':r['Tipo']==='Variables'?'<span class="bdg bb">Variable</span>':''}</td>
     <td class="r re">${fmt(pM(r['Monto']))}</td>
   </tr>`).join('');
@@ -567,26 +605,93 @@ function dGastos(){
   $('main').innerHTML=
     filterBox([
       {label:'Mes',html:selMes()},
-      {label:'Categoria',html:`<select class="f-sel" onchange="curCat=this.value;render()"><option value="Todos">Todas</option>${allCat.slice(1).map(o=>`<option value="${o}" ${curCat===o?'selected':''}>${o}</option>`).join('')}</select>`},
+      {label:'Categoria',html:`<select class="f-sel" onchange="curCat=this.value;render()"><option value="Todos">Todas las categorias</option>${allCats.map(o=>`<option value="${o}" ${curCat===o?'selected':''}>${o}</option>`).join('')}</select>`},
+      {label:'Clasificacion',html:`<select class="f-sel" onchange="curSvc=this.value;render()"><option value="Todos">Todas las clasificaciones</option>${allClas.map(o=>`<option value="${o}" ${curSvc===o?'selected':''}>${o}</option>`).join('')}</select>`},
+      {label:'Unidad',html:`<select class="f-sel" onchange="curUni=this.value;render()"><option value="Todos">Todas las unidades</option>${allUnis.map(o=>`<option value="${o}" ${curUni===o?'selected':''}>${o}</option>`).join('')}</select>`},
+      {label:'Operador',html:`<select class="f-sel" onchange="curOp=this.value;render()"><option value="Todos">Todos los operadores</option>${allOps.map(o=>`<option value="${o}" ${curOp===o?'selected':''}>${o}</option>`).join('')}</select>`},
     ])+
     `<div class="krow">
-      <div class="kc"><div class="kc-hd"><div class="kl">Gastos ${yr()}</div><div class="ki r"><svg viewBox="0 0 24 24"><path d="M19 13H5v-2h14v2z"/></svg></div></div><div class="kv r">${fmtK(tGY)}</div><div class="kd">${c?`AA: ${fmtK(fYrA(G).reduce((s,r)=>s+pM(r['Monto']),0))} ${dlt(tGY,fYrA(G).reduce((s,r)=>s+pM(r['Monto']),0))}`:''}&nbsp;</div></div>
-      <div class="kc"><div class="kc-hd"><div class="kl">Fijos</div><div class="ki y"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 110 20A10 10 0 0112 2z"/></svg></div></div><div class="kv y">${fmtK(fij)}</div><div class="kd">${tG?(fij/tG*100).toFixed(1)+'%':''}&nbsp;</div></div>
-      <div class="kc"><div class="kc-hd"><div class="kl">Variables</div><div class="ki b"><svg viewBox="0 0 24 24"><path d="M3.5 18.5l6-6 4 4 7-8"/></svg></div></div><div class="kv b">${fmtK(vr)}</div><div class="kd">${tG?(vr/tG*100).toFixed(1)+'%':''}&nbsp;</div></div>
-      <div class="kc"><div class="kc-hd"><div class="kl">Registros</div><div class="ki p"><svg viewBox="0 0 24 24"><path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/></svg></div></div><div class="kv p">${fmtN(d.length)}</div><div class="kd">&nbsp;</div></div>
+      <div class="kc"><div class="kc-hd"><div class="kl">Gasto total</div><div class="ki r"><svg viewBox="0 0 24 24"><path d="M19 13H5v-2h14v2z"/></svg></div></div><div class="kv r">${fmtK(tG)}</div><div class="kd">${c?`AA: ${fmtK(tGa)} ${dlt(tG,tGa)}`:''}&nbsp;</div></div>
+      <div class="kc"><div class="kc-hd"><div class="kl">Fijos</div><div class="ki y"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 110 20A10 10 0 0112 2z"/></svg></div></div><div class="kv y">${fmtK(fij)}</div><div class="kd">${tG?(fij/tG*100).toFixed(1)+'% del total':''}</div></div>
+      <div class="kc"><div class="kc-hd"><div class="kl">Variables</div><div class="ki b"><svg viewBox="0 0 24 24"><path d="M3.5 18.5l6-6 4 4 7-8"/></svg></div></div><div class="kv b">${fmtK(vr)}</div><div class="kd">${tG?(vr/tG*100).toFixed(1)+'% del total':''}</div></div>
+      <div class="kc"><div class="kc-hd"><div class="kl">Categorias</div><div class="ki t"><svg viewBox="0 0 24 24"><path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/></svg></div></div><div class="kv t">${catS.length}</div><div class="kd">&nbsp;</div></div>
+      <div class="kc"><div class="kc-hd"><div class="kl">Mayor gasto</div><div class="ki r"><svg viewBox="0 0 24 24"><path d="M12 2l3 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/></svg></div></div><div class="kv r" style="font-size:14px">${catS[0]?catS[0][0]:'—'}</div><div class="kd">${catS[0]?fmtK(catS[0][1]):''}</div></div>
     </div>
-    <div class="g2">
-      <div class="cc"><div class="cc-t">Gastos mensuales${c?' vs AA':''}</div><div class="lgnd"><span><span class="lsq" style="background:rgba(220,38,38,.75)"></span>${yr()==='all'?'Todos':yr()}</span>${c?`<span><span class="lsq" style="background:rgba(220,38,38,.25)"></span>AA</span>`:''}</div><div style="position:relative;height:200px"><canvas id="cGm"></canvas></div></div>
-      <div class="cc"><div class="cc-t">Por categoria</div>${catS.slice(0,15).map(([cat,v])=>`<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><div style="font-size:12px;color:var(--t2);min-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${cat}</div><div style="flex:1;height:14px;background:var(--s2);border-radius:3px;overflow:hidden"><div style="width:${(v/mx*100).toFixed(1)}%;height:100%;background:#dc2626;opacity:.7;border-radius:3px"></div></div><div style="font-size:11px;min-width:80px;text-align:right;font-family:var(--mono);color:var(--red);font-weight:600">${fmt(v)}</div></div>`).join('')}</div>
-    </div>
-    <div class="slbl">Desglose mensual - top 5 categorias</div>
-    <div class="tw"><table><thead><tr><th>Mes</th>${top5.map(c=>`<th class="r">${c.substring(0,14)}</th>`).join('')}<th class="r">Total</th></tr></thead><tbody>${mRows}</tbody><tfoot><tr><td>Total ${yr()}</td>${top5.map(c=>`<td class="r">${fmt(byCatM[c].reduce((s,v)=>s+v,0))}</td>`).join('')}<td class="r">${fmt(tGY)}</td></tr></tfoot></table></div>
-    <div class="slbl">Detalle${d.length>200?' (200)':''}</div>
-    <div class="tw"><table><thead><tr><th>Fecha</th><th>Descripcion</th><th>Categoria</th><th>Clasificacion</th><th>Unidad</th><th>Tipo</th><th class="r">Monto</th></tr></thead><tbody>${rows}</tbody><tfoot><tr><td colspan="6">Total${curCat!='Todos'?' - '+curCat:''}</td><td class="r">${fmt(tG)}</td></tr></tfoot></table></div>`;
 
-  const dsG=[{label:'g',data:sgReal,backgroundColor:'rgba(220,38,38,.75)',borderRadius:4}];
-  if(c)dsG.push({label:'ga',data:sgaReal,backgroundColor:'rgba(220,38,38,.25)',borderRadius:4});
-  mkChart('cGm','bar',MES,dsG,mkBarOpts(false,false));
+    <div class="g2">
+      <div class="cc"><div class="cc-t">Gasto mensual${c?' vs AA':''}</div>
+        <div class="lgnd"><span><span class="lsq" style="background:rgba(220,38,38,.75)"></span>${yr()==='all'?'Todos':yr()}</span>${c?`<span><span class="lsq" style="background:rgba(220,38,38,.25)"></span>AA</span>`:''}</div>
+        <div style="position:relative;height:200px"><canvas id="cGmes"></canvas></div>
+      </div>
+      <div>
+        <div class="cc"><div class="cc-t">Por categoria</div>
+          ${catS.slice(0,10).map(([k,v])=>{const pct2=tG?(v/tG*100).toFixed(1):0;return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+            <div style="font-size:12px;color:var(--t1);min-width:165px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500">${k}</div>
+            <div style="flex:1;height:13px;background:var(--s2);border-radius:3px;overflow:hidden"><div style="width:${(v/(catS[0]?catS[0][1]:1)*100).toFixed(1)}%;height:100%;background:#dc2626;opacity:.7;border-radius:3px"></div></div>
+            <div style="font-size:11px;min-width:75px;text-align:right;font-family:var(--mono);color:var(--red);font-weight:600">${fmt(v)}</div>
+            <div style="font-size:10px;min-width:38px;text-align:right;color:var(--t3)">${pct2}%</div>
+          </div>`;}).join('')}
+        </div>
+      </div>
+    </div>
+
+    <div class="g2">
+      <div class="cc"><div class="cc-t">Por clasificacion - top 20</div>
+        <div style="position:relative;height:${Math.max(200,clasS.length*28+60)}px"><canvas id="cGclas"></canvas></div>
+      </div>
+      <div class="cc"><div class="cc-t">Por unidad - areas de oportunidad</div>
+        <div style="position:relative;height:${Math.max(200,uniS.length*28+60)}px"><canvas id="cGuni"></canvas></div>
+      </div>
+    </div>
+
+    <div class="g2">
+      <div class="cc"><div class="cc-t">Por operador - top 12</div>
+        <div style="position:relative;height:${Math.max(200,opS.length*28+60)}px"><canvas id="cGop"></canvas></div>
+      </div>
+      <div class="cc"><div class="cc-t">Por ruta - top 12</div>
+        <div style="position:relative;height:${Math.max(200,rutaS.length*28+60)}px"><canvas id="cGruta"></canvas></div>
+      </div>
+    </div>
+
+    <div class="slbl">Desglose mensual - top 6 categorias</div>
+    <div class="tw"><table>
+      <thead><tr><th>Mes</th>${top6.map(c=>`<th class="r">${c.substring(0,16)}</th>`).join('')}<th class="r">Total</th></tr></thead>
+      <tbody>${mRows}</tbody>
+      <tfoot><tr><td>Total</td>${top6.map(c=>`<td class="r">${fmt(byCatM[c].reduce((s,v)=>s+v,0))}</td>`).join('')}<td class="r">${fmt(tG)}</td></tr></tfoot>
+    </table></div>
+
+    <div class="g2">
+      <div>
+        <div class="slbl">Ranking por clasificacion</div>
+        <div class="tw"><table>
+          <thead><tr><th>Clasificacion</th><th class="r">Monto</th><th class="r">% del total</th></tr></thead>
+          <tbody>${clasS.map(([k,v])=>`<tr><td style="font-weight:500">${k}</td><td class="r re">${fmt(v)}</td><td class="r mu">${tG?(v/tG*100).toFixed(1):0}%</td></tr>`).join('')}</tbody>
+        </table></div>
+      </div>
+      <div>
+        <div class="slbl">Ranking por unidad</div>
+        <div class="tw"><table>
+          <thead><tr><th>Unidad</th><th class="r">Gasto</th><th class="r">% del total</th></tr></thead>
+          <tbody>${uniS.map(([k,v])=>`<tr><td style="font-weight:700">${k}</td><td class="r re">${fmt(v)}</td><td class="r mu">${tG?(v/tG*100).toFixed(1):0}%</td></tr>`).join('')}</tbody>
+        </table></div>
+      </div>
+    </div>
+
+    <div class="slbl">Detalle de gastos${base.length>250?' (250 registros)':''}</div>
+    <div class="tw"><table>
+      <thead><tr><th>Fecha</th><th>Descripcion</th><th>Categoria</th><th>Clasificacion</th><th>Unidad</th><th>Operador</th><th>Ruta</th><th>Tipo</th><th class="r">Monto</th></tr></thead>
+      <tbody>${rows}</tbody>
+      <tfoot><tr><td colspan="8">Total</td><td class="r re">${fmt(tG)}</td></tr></tfoot>
+    </table></div>`;
+
+  // Charts
+  const dsG=[{label:'g',data:sgM,backgroundColor:'rgba(220,38,38,.75)',borderRadius:4}];
+  if(c)dsG.push({label:'ga',data:sgaM,backgroundColor:'rgba(220,38,38,.25)',borderRadius:4});
+  mkChart('cGmes','bar',MES,dsG,mkBarOpts(false,false));
+  mkChart('cGclas','bar',clasS.map(([k])=>k),[{label:'g',data:clasS.map(([,v])=>v),backgroundColor:CLRS.map(c=>`${c}cc`),borderRadius:4}],mkBarHOpts(false));
+  mkChart('cGuni','bar',uniS.map(([k])=>k),[{label:'g',data:uniS.map(([,v])=>v),backgroundColor:'rgba(220,38,38,.7)',borderRadius:4}],mkBarHOpts(false));
+  mkChart('cGop','bar',opS.map(([k])=>k),[{label:'g',data:opS.map(([,v])=>v),backgroundColor:'rgba(124,58,237,.7)',borderRadius:4}],mkBarHOpts(false));
+  mkChart('cGruta','bar',rutaS.map(([k])=>k),[{label:'g',data:rutaS.map(([,v])=>v),backgroundColor:'rgba(8,145,178,.7)',borderRadius:4}],mkBarHOpts(false));
 }
 
 // === TAB: DIESEL ===
