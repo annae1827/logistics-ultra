@@ -453,19 +453,22 @@ const CLIENTES = [
 ];
 
 const COL_MAP = {
-  fechaFactura:      ['fecha factura','fecha de factura','fecha fact','fecha'],
-  numFactura:        ['número de factura','numero de factura','no. factura','no factura','folio','factura'],
-  referencia:        ['referencia','ref'],
-  ruta:              ['ruta','descripcion','descripción','servicio'],
-  monto:             ['monto','importe','total','monto factura'],
-  montoPagado:       ['monto pagado','pago recibido','pagado','cobrado'],
-  moneda:            ['tipo de moneda','moneda','divisa'],
-  diasCredito:       ['días de crédito','dias de credito','crédito','credito','dias credito'],
-  diasTranscurridos: ['días transcurridos','dias transcurridos','dias','antigüedad'],
+  fechaFactura:      ['fecha contable','fecha factura','fecha de factura','fecha fact','fecha'],
+  numFactura:        ['no. de factura','no. factura','numero de factura','número de factura','no factura','folio','factura'],
+  referencia:        ['referencia (pedido)','referencia','ref','pedido'],
+  ruta:              ['concepto / ruta','concepto/ruta','concepto ruta','ruta','concepto','descripcion','descripción','servicio'],
+  montoFactura:      ['monto factura','importe factura','total factura','factura monto'],
+  montoPago:         ['monto pago','monto pagado','pago','cobrado','importe','monto','total'],
+  moneda:            ['moneda','tipo de moneda','divisa','currency'],
+  diasTranscurridos: ['dias transcurridos','días transcurridos','dias trans','dias','antigüedad'],
+  diasCredito:       ['días de crédito','dias de credito','dias credito','credito','horas credito','horas de credito','crédito'],
+  fechaProgramada:   ['fecha programada de pago','fecha programada','fecha estimada','fecha pago programada'],
   estatus:           ['estatus','status','estado'],
-  fechaPago:         ['fecha pago','fecha de pago','fecha cobro','pago'],
-  adeudo:            ['adeudo','saldo','diferencia'],
+  fechaPago:         ['fecha real de pago','fecha de pago','fecha pago','fecha cobro'],
+  adeudo:            ['adeudo','saldo','diferencia','saldo pendiente'],
 };
+
+const USD_MXN = 19; // Tipo de cambio USD → MXN
 
 /* ════════════════════════════════════════
    ESTADO GLOBAL
@@ -516,20 +519,41 @@ function mapCol(row, field) {
 }
 
 function mapRow(raw, cliente) {
+  const moneda       = normMoneda(mapCol(raw,'moneda'));
+  const montoFact    = parseMoney(mapCol(raw,'montoFactura'));
+  const montoPago    = parseMoney(mapCol(raw,'montoPago'));
+  // Si hay monto factura separado úsalo, sino el monto pago es ambos
+  const monto        = montoFact > 0 ? montoFact : montoPago;
+  const montoPagado  = montoPago > 0 ? montoPago : monto;
+  const adeudoRaw    = parseMoney(mapCol(raw,'adeudo'));
+  const adeudo       = adeudoRaw > 0 ? adeudoRaw : (monto > montoPagado && montoPagado > 0 ? monto - montoPagado : 0);
+
+  // Días transcurridos: usar columna o calcular desde fecha contable
+  let diasTrans = parseInt(mapCol(raw,'diasTranscurridos')) || 0;
+  const fechaFact = parseDate(mapCol(raw,'fechaFactura'));
+  if (!diasTrans && fechaFact) {
+    diasTrans = Math.floor((new Date() - fechaFact) / 86400000);
+  }
+
+  // Días de crédito (puede ser horas en ALEN — si >100 asumimos horas, convertir a días)
+  let diasCred = parseFloat(mapCol(raw,'diasCredito')) || 0;
+  if (diasCred > 100 && diasCred < 10000) diasCred = Math.round(diasCred / 24); // horas → días
+
   return {
     cliente,
-    fechaFactura:      parseDate(mapCol(raw,'fechaFactura')),
+    fechaFactura:      fechaFact,
     numFactura:        mapCol(raw,'numFactura'),
     referencia:        mapCol(raw,'referencia'),
     ruta:              mapCol(raw,'ruta'),
-    monto:             parseMoney(mapCol(raw,'monto')),
-    montoPagado:       parseMoney(mapCol(raw,'montoPagado')),
-    moneda:            normMoneda(mapCol(raw,'moneda')),
-    diasCredito:       parseInt(mapCol(raw,'diasCredito')) || 0,
-    diasTranscurridos: parseInt(mapCol(raw,'diasTranscurridos')) || 0,
+    monto,
+    montoPagado,
+    moneda,
+    diasCredito:       diasCred,
+    diasTranscurridos: diasTrans,
+    fechaProgramada:   parseDate(mapCol(raw,'fechaProgramada')),
     estatus:           normEstatus(mapCol(raw,'estatus')),
     fechaPago:         parseDate(mapCol(raw,'fechaPago')),
-    adeudo:            parseMoney(mapCol(raw,'adeudo')),
+    adeudo,
   };
 }
 
@@ -600,9 +624,17 @@ async function loadCliente(c) {
   const url = BASE_URL + '?gid=' + c.gid + '&single=true&output=csv';
   try {
     const text = await fetchCSV(url);
-    const rows = parseCSV(text).map(r => mapRow(r, c.nombre)).filter(r => r.numFactura || r.monto > 0);
+    const rawRows = parseCSV(text);
+    // Debug: log headers found for first client
+    if (rawRows.length > 0) {
+      console.log('[' + c.nombre + '] Headers:', Object.keys(rawRows[0]).join(' | '));
+      console.log('[' + c.nombre + '] Row 1 sample:', JSON.stringify(rawRows[0]));
+    }
+    const rows = rawRows.map(r => mapRow(r, c.nombre)).filter(r => r.numFactura || r.monto > 0);
+    console.log('[' + c.nombre + '] Rows parsed:', rows.length, rows.length > 0 ? '| monto[0]:' + rows[0].monto + ' estatus:' + rows[0].estatus : '(vacío)');
     return { cliente: c.nombre, rows };
   } catch(e) {
+    console.error('[' + c.nombre + '] ERROR:', e.message);
     return { cliente: c.nombre, rows: [], error: e.message };
   }
 }
@@ -666,8 +698,10 @@ function getAllRows()  { return allData.flatMap(c => c.rows); }
 function getPaid(rows){ return rows.filter(r => r.estatus==='PAGADO' && r.fechaPago); }
 
 function mxn(r, campo) {
-  const v = campo==='monto' ? r.monto : campo==='pagado' ? (r.montoPagado||r.monto) : (r.adeudo||r.monto);
-  return r.moneda==='USD' ? v*18 : v;
+  const v = campo==='monto'   ? r.monto :
+            campo==='pagado'  ? (r.montoPagado||r.monto) :
+            campo==='adeudo'  ? (r.adeudo||0) : r.monto;
+  return r.moneda==='USD' ? v * USD_MXN : v;
 }
 
 function fmt(n, mon) {
