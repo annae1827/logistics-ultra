@@ -487,9 +487,21 @@ let pdfClienteActivo = null;
 function parseCSV(text) {
   const lines = text.trim().split('\n');
   if (lines.length < 2) return [];
-  const headers = lines[0].split(',').map(h => h.replace(/["'\r]/g,'').trim().toLowerCase());
+
+  // Buscar la fila real de headers — la que contiene 'fecha contable' o 'no. de fact'
+  let headerIdx = 0;
+  for (let i = 0; i < Math.min(15, lines.length); i++) {
+    const lower = lines[i].toLowerCase();
+    if (lower.includes('fecha contable') || lower.includes('no. de fact') ||
+        lower.includes('fecha factura') || lower.includes('no. de factura')) {
+      headerIdx = i;
+      break;
+    }
+  }
+
+  const headers = lines[headerIdx].split(',').map(h => h.replace(/["'\r]/g,'').trim().toLowerCase());
   const rows = [];
-  for (let i = 1; i < lines.length; i++) {
+  for (let i = headerIdx + 1; i < lines.length; i++) {
     const vals = splitCSV(lines[i]);
     if (vals.every(v => !v.replace(/["'\r\s]/g,''))) continue;
     const obj = {};
