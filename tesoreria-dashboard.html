@@ -639,6 +639,12 @@ async function loadCliente(c) {
 }
 
 async function loadAllData() {
+  // Hard failsafe: hide overlay after 60s no matter what
+  const overlayKill = setTimeout(() => {
+    const o = document.getElementById('loadingOverlay');
+    if (o) o.style.display = 'none';
+  }, 60000);
+
   setStatus('loading', 'Cargando clientes...');
   allData = CLIENTES.map(c => ({ cliente: c.nombre, rows: [], loading: true }));
   populateFilters();
@@ -676,23 +682,22 @@ async function loadAllData() {
 function setStatus(state, msg) {
   const dot = document.getElementById('statusDot');
   const txt = document.getElementById('statusText');
-  dot.className = 'status-dot' + (state==='loading'?' loading':state==='error'?' error':'');
-  txt.textContent = msg;
+  if (dot) dot.className = 'status-dot' + (state==='loading'?' loading':state==='error'?' error':'');
+  if (txt) txt.textContent = msg;
   const overlay = document.getElementById('loadingOverlay');
   const fill    = document.getElementById('overlayFill');
   const omsg    = document.getElementById('overlayMsg');
-  if (!overlay || overlay.style.display==='none') return;
+  if (!overlay) return;
   if (state==='loading') {
-    omsg.textContent = msg;
-    const m = msg.match(/(\d+)\/(\d+)/);
-    fill.style.width = m ? (parseInt(m[1])/parseInt(m[2])*100)+'%' : '8%';
+    if (omsg) omsg.textContent = msg;
+    if (fill) { const m = msg.match(/(\d+)\/(\d+)/); fill.style.width = m ? (parseInt(m[1])/parseInt(m[2])*100)+'%' : '8%'; }
   } else {
-    fill.style.width = '100%';
-    omsg.textContent = state==='error' ? '\u26a0 '+msg : '\u2713 '+msg;
-    setTimeout(() => {
-      overlay.style.opacity='0'; overlay.style.transition='opacity .5s';
-      setTimeout(() => { overlay.style.display='none'; },500);
-    }, 600);
+    // Always hide overlay on ok or error
+    if (fill) fill.style.width = '100%';
+    if (omsg) omsg.textContent = state==='error' ? '\u26a0 '+msg : '\u2713 '+msg;
+    overlay.style.opacity = '0';
+    overlay.style.transition = 'opacity .5s';
+    setTimeout(() => { overlay.style.display = 'none'; }, 500);
   }
 }
 
