@@ -433,7 +433,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
    CONFIGURACIÓN
 ════════════════════════════════════════ */
 const BASE_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ8pL24fRHM2DlVvk_UT_QgUS3mg3d7kNKK8CQmUuuZjcPZmonQLob-seBgosxLOFzCpANJUu4f_wit/pub';
-const PROXY_URL = 'https://script.google.com/macros/s/AKfycbwpAHG_qF9YrDKjA2U7ptpk0amUj2rGq5WSdJwApJq6szjpqiJx2AHz2GkC0D2yU-Xx9A/exec';
+const PROXY_URL = 'https://script.google.com/macros/s/AKfycbyvHFkElY-8eqa0T9HtVbDq2UyxNHp2TWWUj8lWTzZZPT3XqB4MQVuftnedAWt6hOFQwQ/exec';
 
 const CLIENTES = [
   { nombre:'ALEN',          gid:'1702462645' },
@@ -607,22 +607,39 @@ function parseMoney(s) {
    FETCH — carga progresiva
 ════════════════════════════════════════ */
 function fetchCSV(url) {
-  // Extraer gid de la URL y usar el proxy de Apps Script
   const gidMatch = url.match(/gid=(\d+)/);
-  const proxyUrl = gidMatch
-    ? PROXY_URL + '?gid=' + gidMatch[1]
-    : PROXY_URL + '?url=' + encodeURIComponent(url);
+  const gid = gidMatch ? gidMatch[1] : '0';
+  const cbName = 'cb_' + gid + '_' + Date.now();
 
   return new Promise((resolve, reject) => {
-    const timeout = setTimeout(() => reject(new Error('timeout')), 15000);
-    fetch(proxyUrl)
-      .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
-      .then(text => {
-        clearTimeout(timeout);
-        if (!text || text.trim().startsWith('<!')) throw new Error('Hoja no publicada');
-        resolve(text);
-      })
-      .catch(e => { clearTimeout(timeout); reject(e); });
+    const timeout = setTimeout(() => {
+      delete window[cbName];
+      const s = document.getElementById('jsonp_' + cbName);
+      if (s) s.remove();
+      reject(new Error('timeout'));
+    }, 20000);
+
+    window[cbName] = function(csv) {
+      clearTimeout(timeout);
+      delete window[cbName];
+      const s = document.getElementById('jsonp_' + cbName);
+      if (s) s.remove();
+      if (!csv || csv.trim().startsWith('<!')) {
+        reject(new Error('Hoja no publicada'));
+      } else {
+        resolve(csv);
+      }
+    };
+
+    const script = document.createElement('script');
+    script.id = 'jsonp_' + cbName;
+    script.src = PROXY_URL + '?gid=' + gid + '&callback=' + cbName;
+    script.onerror = () => {
+      clearTimeout(timeout);
+      delete window[cbName];
+      reject(new Error('Failed to fetch'));
+    };
+    document.head.appendChild(script);
   });
 }
 
