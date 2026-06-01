@@ -1,1177 +1,1187 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <title>Tesorería · Logistics Ultra</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-datalabels/2.2.0/chartjs-plugin-datalabels.min.js"></script>
 <style>
-:root{--bg:#0d0f12;--bg2:#13161b;--bg3:#1a1e26;--border:#252a34;--border2:#2e3545;--text:#e8eaf0;--text2:#8b92a5;--text3:#555f73;--accent:#e8c96a;--accent2:#b89c3e;--green:#4ade80;--green-dim:#166534;--red:#f87171;--red-dim:#7f1d1d;--blue:#60a5fa;--blue-dim:#1e3a5f;--amber:#fbbf24;--amber-dim:#78350f;--radius:8px}
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
-.header{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 32px;display:flex;align-items:center;justify-content:space-between;height:64px;position:sticky;top:0;z-index:100}
-.header-brand{display:flex;align-items:center;gap:14px}
-.logo-sq{width:36px;height:36px;background:var(--accent);border-radius:6px;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:14px;color:#000}
-.header-title{font-family:'Syne',sans-serif;font-size:16px;font-weight:700}
-.header-sub{font-size:11px;color:var(--text3);font-family:'DM Mono',monospace}
-.header-right{display:flex;align-items:center;gap:12px}
-.refresh-btn{background:var(--bg3);border:1px solid var(--border2);color:var(--text2);padding:7px 14px;border-radius:var(--radius);font-family:'DM Mono',monospace;font-size:11px;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:6px}
-.refresh-btn:hover{border-color:var(--accent);color:var(--accent)}
-.status-dot{width:8px;height:8px;border-radius:50%;background:var(--green);animation:pulse 2s infinite}
-.status-dot.loading{background:var(--amber);animation:none}
-.status-dot.error{background:var(--red);animation:none}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
-.tabs-nav{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 32px;display:flex;gap:2px;overflow-x:auto}
-.tab-btn{background:none;border:none;border-bottom:2px solid transparent;color:var(--text3);padding:14px 18px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap;transition:all .2s;margin-bottom:-1px}
-.tab-btn:hover{color:var(--text2)}
-.tab-btn.active{color:var(--accent);border-bottom-color:var(--accent)}
-.main{padding:28px 32px;max-width:1600px}
-.tab-pane{display:none}
-.tab-pane.active{display:block}
-.kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:16px;margin-bottom:24px}
-.kpi-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;position:relative;overflow:hidden}
-.kpi-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--accent);opacity:.4}
-.kpi-label{font-family:'DM Mono',monospace;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
-.kpi-value{font-family:'Syne',sans-serif;font-size:20px;font-weight:700;line-height:1}
-.kpi-value.green{color:var(--green)}
-.kpi-value.red{color:var(--red)}
-.kpi-value.amber{color:var(--amber)}
-.kpi-sub{font-size:11px;color:var(--text3);margin-top:5px}
-.panel{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:20px}
-.panel-header{padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
-.panel-title{font-family:'Syne',sans-serif;font-size:14px;font-weight:700}
-.panel-body{padding:18px 20px}
-.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px}
-.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:20px}
-.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}
-@media(max-width:900px){.grid-2,.grid-3,.grid-4{grid-template-columns:1fr}}
-.chart-wrap{position:relative;height:260px}
-.chart-wrap.tall{height:320px}
-.data-table{width:100%;border-collapse:collapse;font-size:12px}
-.data-table th{font-family:'DM Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:var(--text3);padding:10px 12px;text-align:left;border-bottom:1px solid var(--border);background:var(--bg);white-space:nowrap;cursor:pointer;user-select:none}
-.data-table th:hover{color:var(--text2)}
-.data-table th.sorted{color:var(--accent)}
-.data-table td{padding:8px 12px;border-bottom:1px solid var(--border);color:var(--text2);vertical-align:middle}
-.data-table tr:hover td{background:var(--bg3);color:var(--text)}
-.data-table tr:last-child td{border-bottom:none}
-.data-table .num{font-family:'DM Mono',monospace;text-align:right}
-.data-table .center{text-align:center}
-.badge{display:inline-flex;align-items:center;padding:3px 8px;border-radius:4px;font-family:'DM Mono',monospace;font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.5px}
-.badge-paid{background:var(--green-dim);color:var(--green)}
-.badge-pending{background:var(--amber-dim);color:var(--amber)}
-.badge-overdue{background:var(--red-dim);color:var(--red)}
-.badge-partial{background:var(--blue-dim);color:var(--blue)}
-.badge-neutral{background:var(--bg3);color:var(--text3)}
-.filters{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:20px}
-.filter-select,.filter-input{background:var(--bg2);border:1px solid var(--border2);color:var(--text);padding:8px 12px;border-radius:var(--radius);font-family:'DM Sans',sans-serif;font-size:12px;cursor:pointer;transition:border-color .2s;outline:none}
-.filter-select:focus,.filter-input:focus{border-color:var(--accent)}
-.filter-input{min-width:180px}
-.filter-input::placeholder{color:var(--text3)}
-.filter-label{font-size:11px;color:var(--text3);font-family:'DM Mono',monospace}
-.period-group{display:flex;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
-.period-btn{background:none;border:none;border-right:1px solid var(--border);color:var(--text3);padding:7px 13px;font-family:'DM Mono',monospace;font-size:11px;cursor:pointer;transition:all .15s}
-.period-btn:last-child{border-right:none}
-.period-btn:hover{color:var(--text2);background:var(--bg2)}
-.period-btn.active{background:var(--accent);color:#000;font-weight:500}
-.download-btn{background:var(--bg3);border:1px solid var(--border2);color:var(--text2);padding:7px 14px;border-radius:var(--radius);font-family:'DM Mono',monospace;font-size:11px;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:6px}
-.download-btn:hover{border-color:var(--green);color:var(--green)}
-.pdf-btn{background:var(--bg3);border:1px solid var(--border2);color:var(--text2);padding:7px 14px;border-radius:var(--radius);font-family:'DM Mono',monospace;font-size:11px;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:6px}
-.pdf-btn:hover{border-color:var(--accent);color:var(--accent)}
-.progress-bar{height:4px;background:var(--border);border-radius:2px;overflow:hidden;margin-top:6px}
-.progress-fill{height:100%;background:var(--accent);border-radius:2px;transition:width .4s ease}
-.progress-fill.green{background:var(--green)}
-.progress-fill.red{background:var(--red)}
-.table-wrap{overflow-x:auto;max-height:480px;overflow-y:auto}
-.client-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;margin-bottom:24px}
-.client-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;cursor:pointer;transition:all .2s;position:relative}
-.client-card:hover{border-color:var(--accent2);transform:translateY(-1px)}
-.client-card.active{border-color:var(--accent)}
-.client-name{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;margin-bottom:10px}
-.empty-state{text-align:center;padding:50px 20px;color:var(--text3)}
-.empty-icon{font-size:36px;margin-bottom:12px}
-.toast{position:fixed;bottom:24px;right:24px;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius);padding:12px 18px;font-size:13px;color:var(--text);z-index:9998;transition:all .3s;transform:translateY(80px);opacity:0;max-width:320px}
-.toast.show{transform:translateY(0);opacity:1}
-.toast.success{border-color:var(--green)}
-.toast.error{border-color:var(--red)}
-::-webkit-scrollbar{width:6px;height:6px}
-::-webkit-scrollbar-track{background:var(--bg)}
-::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
-/* MODAL */
-.modal-overlay{display:none;position:fixed;inset:0;background:#000000bb;z-index:500;align-items:center;justify-content:center}
-.modal-overlay.open{display:flex}
-.modal-box{background:var(--bg2);border:1px solid var(--border2);border-radius:10px;padding:28px 32px;width:440px;max-width:95vw}
-.modal-title{font-family:'Syne',sans-serif;font-size:16px;font-weight:700;margin-bottom:20px}
-.modal-field{margin-bottom:14px}
-.modal-label{font-family:'DM Mono',monospace;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
-.modal-input{width:100%;background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:9px 12px;border-radius:6px;font-family:'DM Sans',sans-serif;font-size:13px;outline:none;transition:border-color .2s}
-.modal-input:focus{border-color:var(--accent)}
-.modal-grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.modal-actions{display:flex;gap:10px;margin-top:20px}
-.btn-primary{flex:1;background:var(--accent);border:none;color:#000;padding:11px;border-radius:6px;font-family:'Syne',sans-serif;font-weight:700;font-size:13px;cursor:pointer}
-.btn-secondary{background:var(--bg3);border:1px solid var(--border2);color:var(--text2);padding:11px 18px;border-radius:6px;font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer}
-/* Comparativo table */
-.comp-table{width:100%;border-collapse:collapse;font-size:12px}
-.comp-table th{font-family:'DM Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:var(--text3);padding:10px 12px;text-align:right;border-bottom:1px solid var(--border);background:var(--bg)}
-.comp-table th:first-child{text-align:left}
-.comp-table td{padding:9px 12px;border-bottom:1px solid var(--border);color:var(--text2);text-align:right;font-family:'DM Mono',monospace;font-size:11px}
-.comp-table td:first-child{text-align:left;font-family:'DM Sans',sans-serif;font-size:12px;color:var(--text);font-weight:500}
-.comp-table tr:hover td{background:var(--bg3)}
-.delta-pos{color:var(--green)}
-.delta-neg{color:var(--red)}
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
+
+  :root {
+    --teal:       #00897B;
+    --teal-light: #4DB6AC;
+    --teal-dim:   #00695C;
+    --dark:       #1A202C;
+    --dark2:      #2D3748;
+    --dark3:      #3A4A5C;
+    --mid:        #4A5568;
+    --muted:      #718096;
+    --line:       #2D3748;
+    --bg:         #111827;
+    --bg2:        #1A2332;
+    --bg3:        #222F3E;
+    --text:       #E2E8F0;
+    --text2:      #A0AEC0;
+    --green:      #48BB78;
+    --red:        #FC8181;
+    --yellow:     #F6E05E;
+    --orange:     #F6AD55;
+    --mono:       'IBM Plex Mono', monospace;
+    --sans:       'IBM Plex Sans', sans-serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--text);
+    font-size: 14px;
+    min-height: 100vh;
+  }
+
+  /* ── HEADER ── */
+  .header {
+    background: var(--bg2);
+    border-bottom: 1px solid var(--line);
+    padding: 14px 28px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .header-logo {
+    width: 34px; height: 34px;
+    background: var(--teal);
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+  }
+  .header-title { font-size: 15px; font-weight: 600; letter-spacing: 0.01em; }
+  .header-sub   { font-size: 11px; color: var(--muted); font-family: var(--mono); }
+  .header-right { margin-left: auto; font-size: 11px; color: var(--muted); font-family: var(--mono); }
+
+  /* ── TABS ── */
+  .tab-bar {
+    background: var(--bg2);
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    overflow-x: auto;
+    padding: 0 20px;
+  }
+  .tab-btn {
+    padding: 11px 18px;
+    font-size: 12px;
+    font-weight: 500;
+    font-family: var(--sans);
+    color: var(--muted);
+    border: none;
+    background: none;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: color .2s, border-color .2s;
+    white-space: nowrap;
+  }
+  .tab-btn:hover  { color: var(--text); }
+  .tab-btn.active { color: var(--teal-light); border-bottom-color: var(--teal-light); }
+
+  /* ── CONTENT ── */
+  .tab-content { display: none; padding: 24px 28px; }
+  .tab-content.active { display: block; }
+
+  /* ── FILTERS ── */
+  .filter-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 20px;
+    background: var(--bg2);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 14px 16px;
+    align-items: flex-end;
+  }
+  .filter-group { display: flex; flex-direction: column; gap: 4px; }
+  .filter-label { font-size: 10px; font-family: var(--mono); color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+  .filter-bar select,
+  .filter-bar input {
+    background: var(--bg3);
+    border: 1px solid var(--dark3);
+    color: var(--text);
+    border-radius: 5px;
+    padding: 6px 10px;
+    font-size: 12px;
+    font-family: var(--sans);
+    min-width: 130px;
+  }
+  .filter-bar select:focus,
+  .filter-bar input:focus { outline: none; border-color: var(--teal); }
+  .btn {
+    padding: 7px 16px;
+    border-radius: 5px;
+    border: none;
+    cursor: pointer;
+    font-size: 12px;
+    font-family: var(--sans);
+    font-weight: 500;
+    transition: opacity .2s;
+  }
+  .btn:hover { opacity: .85; }
+  .btn-primary { background: var(--teal); color: #fff; }
+  .btn-ghost   { background: var(--bg3); border: 1px solid var(--dark3); color: var(--text2); }
+  .btn-sm      { padding: 5px 11px; font-size: 11px; }
+
+  /* ── KPI CARDS ── */
+  .kpi-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px,1fr)); gap: 12px; margin-bottom: 24px; }
+  .kpi-card {
+    background: var(--bg2);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 16px;
+  }
+  .kpi-label { font-size: 10px; font-family: var(--mono); color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 8px; }
+  .kpi-value { font-size: 22px; font-weight: 600; font-family: var(--mono); }
+  .kpi-sub   { font-size: 11px; color: var(--muted); margin-top: 3px; }
+  .kpi-green { border-left: 3px solid var(--green); }
+  .kpi-red   { border-left: 3px solid var(--red); }
+  .kpi-yellow{ border-left: 3px solid var(--yellow); }
+  .kpi-teal  { border-left: 3px solid var(--teal-light); }
+
+  /* ── CHARTS ── */
+  .charts-row { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 24px; }
+  .chart-card {
+    background: var(--bg2);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 18px;
+  }
+  .chart-title { font-size: 11px; font-family: var(--mono); color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 14px; }
+  .chart-wrap  { position: relative; height: 220px; }
+
+  /* ── TABLE ── */
+  .table-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .table-title { font-size: 12px; font-family: var(--mono); color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+  .table-wrap { overflow-x: auto; border-radius: 8px; border: 1px solid var(--line); }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  thead tr { background: var(--bg3); }
+  thead th {
+    padding: 10px 12px;
+    text-align: left;
+    font-size: 10px;
+    font-family: var(--mono);
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    border-bottom: 1px solid var(--line);
+    cursor: pointer;
+    white-space: nowrap;
+    user-select: none;
+  }
+  thead th:hover { color: var(--teal-light); }
+  tbody tr { border-bottom: 1px solid var(--line); transition: background .15s; }
+  tbody tr:hover { background: var(--bg3); }
+  tbody td { padding: 9px 12px; color: var(--text2); white-space: nowrap; }
+  tbody td.mono { font-family: var(--mono); }
+
+  /* ── BADGES ── */
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-size: 10px;
+    font-family: var(--mono);
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+  .badge-green  { background: rgba(72,187,120,.15); color: var(--green); }
+  .badge-red    { background: rgba(252,129,129,.15); color: var(--red); }
+  .badge-yellow { background: rgba(246,224,94,.15);  color: var(--yellow); }
+  .badge-orange { background: rgba(246,173,85,.15);  color: var(--orange); }
+  .badge-muted  { background: rgba(113,128,150,.15); color: var(--muted); }
+
+  /* ── CLIENT CARDS ── */
+  .client-grid { display: grid; grid-template-columns: repeat(auto-fill,minmax(220px,1fr)); gap: 12px; margin-bottom: 24px; }
+  .client-card {
+    background: var(--bg2);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 14px 16px;
+    cursor: pointer;
+    transition: border-color .2s;
+  }
+  .client-card:hover  { border-color: var(--teal); }
+  .client-card.active { border-color: var(--teal-light); background: rgba(0,137,123,.06); }
+  .client-name  { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+  .client-total { font-size: 18px; font-weight: 600; font-family: var(--mono); color: var(--teal-light); }
+  .client-meta  { font-size: 10px; color: var(--muted); font-family: var(--mono); margin-top: 4px; }
+  .client-bar-wrap { height: 3px; background: var(--dark3); border-radius: 2px; margin-top: 8px; }
+  .client-bar { height: 3px; background: var(--teal); border-radius: 2px; }
+
+  /* ── LOADING / ERROR ── */
+  .state-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 200px;
+    color: var(--muted);
+    font-family: var(--mono);
+    gap: 10px;
+    font-size: 13px;
+  }
+  .spinner {
+    width: 28px; height: 28px;
+    border: 3px solid var(--dark3);
+    border-top-color: var(--teal);
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── PAGINATION ── */
+  .pagination {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 14px;
+    font-size: 12px;
+    color: var(--muted);
+    font-family: var(--mono);
+  }
+  .pagination button {
+    padding: 4px 10px;
+    border: 1px solid var(--dark3);
+    background: var(--bg2);
+    color: var(--text2);
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 11px;
+  }
+  .pagination button:disabled { opacity: .35; cursor: default; }
+  .pagination button.current { border-color: var(--teal); color: var(--teal-light); }
+
+  /* ── MISC ── */
+  .section-divider { height: 1px; background: var(--line); margin: 22px 0; }
+  .empty { text-align: center; padding: 40px; color: var(--muted); font-family: var(--mono); font-size: 12px; }
+  .tag-moneda { font-family: var(--mono); font-size: 10px; color: var(--muted); }
 </style>
 </head>
 <body>
 
-<!-- LOADING OVERLAY -->
-<div id="loadingOverlay" style="position:fixed;inset:0;background:#0d0f12;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px">
-  <div style="display:flex;align-items:center;gap:14px">
-    <div style="width:52px;height:52px;background:#e8c96a;border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:Syne,sans-serif;font-weight:800;font-size:18px;color:#000">LU</div>
-    <div>
-      <div style="font-family:Syne,sans-serif;font-size:20px;font-weight:700;color:#e8eaf0">Tesorería · Logistics Ultra</div>
-      <div style="font-family:DM Mono,monospace;font-size:11px;color:#555f73;letter-spacing:1px">REPORTE DE COBRANZA</div>
-    </div>
-  </div>
-  <div style="width:280px;height:3px;background:#252a34;border-radius:2px;overflow:hidden">
-    <div id="overlayFill" style="height:100%;width:0%;background:#e8c96a;border-radius:2px;transition:width .4s ease"></div>
-  </div>
-  <div id="overlayMsg" style="font-family:DM Mono,monospace;font-size:12px;color:#555f73">Iniciando carga...</div>
-</div>
-
 <!-- HEADER -->
 <div class="header">
-  <div class="header-brand">
-    <div class="logo-sq">LU</div>
-    <div>
-      <div class="header-title">Tesorería · Cobranza</div>
-      <div class="header-sub">LOGISTICS ULTRA</div>
-    </div>
+  <div class="header-logo">🏦</div>
+  <div>
+    <div class="header-title">Dashboard de Tesorería</div>
+    <div class="header-sub">Logistics Ultra · Estados de cuenta</div>
   </div>
-  <div class="header-right">
-    <div id="statusDot" class="status-dot loading"></div>
-    <span id="statusText" style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text3)">Cargando...</span>
-    <button class="refresh-btn" onclick="loadAllData()">&#8635; Actualizar</button>
-  </div>
+  <div class="header-right" id="lastUpdated">—</div>
 </div>
 
 <!-- TABS -->
-<div class="tabs-nav">
-  <button class="tab-btn active"  onclick="switchTab('resumen',this)">Resumen General</button>
-  <button class="tab-btn"         onclick="switchTab('comparativo',this)">Comparativo AA</button>
-  <button class="tab-btn"         onclick="switchTab('ingresos',this)">Ingresos</button>
-  <button class="tab-btn"         onclick="switchTab('cartera',this)">Cartera Viva</button>
-  <button class="tab-btn"         onclick="switchTab('clientes',this)">Por Cliente</button>
-  <button class="tab-btn"         onclick="switchTab('estados',this)">Estados de Cuenta</button>
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="switchTab('resumen')">Resumen</button>
+  <button class="tab-btn" onclick="switchTab('ingresos')">Ingresos</button>
+  <button class="tab-btn" onclick="switchTab('cuentas')">Estados de Cuenta</button>
+  <button class="tab-btn" onclick="switchTab('vencidos')">Vencidos / Por Cobrar</button>
 </div>
 
-<div class="main">
+<!-- ══════════════════════════════════════
+     TAB: RESUMEN
+══════════════════════════════════════ -->
+<div id="tab-resumen" class="tab-content active">
+  <div class="filter-bar">
+    <div class="filter-group">
+      <span class="filter-label">Período</span>
+      <select id="res-periodo" onchange="renderResumen()">
+        <option value="mes">Este mes</option>
+        <option value="semana">Esta semana</option>
+        <option value="quincena">Esta quincena</option>
+        <option value="anio">Este año</option>
+        <option value="todo">Todo</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">Desde</span>
+      <input type="date" id="res-desde" onchange="renderResumen()"/>
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">Hasta</span>
+      <input type="date" id="res-hasta" onchange="renderResumen()"/>
+    </div>
+    <button class="btn btn-ghost btn-sm" onclick="document.getElementById('res-desde').value='';document.getElementById('res-hasta').value='';renderResumen()">Limpiar</button>
+    <button class="btn btn-primary btn-sm" style="margin-left:auto" onclick="reloadAll()">↻ Recargar datos</button>
+  </div>
 
-<!-- ══ RESUMEN GENERAL ══ -->
-<div id="tab-resumen" class="tab-pane active">
-  <div id="kpi-resumen" class="kpi-grid"></div>
-  <div class="grid-2">
-    <div class="panel">
-      <div class="panel-header">
-        <span class="panel-title">Ingresos Cobrados por Período</span>
-        <div class="period-group" id="pgResumen">
-          <button class="period-btn" onclick="setPeriod('dia','pgResumen',this)">Día</button>
-          <button class="period-btn" onclick="setPeriod('semana','pgResumen',this)">Semana</button>
-          <button class="period-btn active" onclick="setPeriod('mes','pgResumen',this)">Mes</button>
-          <button class="period-btn" onclick="setPeriod('quincena','pgResumen',this)">Quinc.</button>
-          <button class="period-btn" onclick="setPeriod('anio','pgResumen',this)">Año</button>
-        </div>
-      </div>
-      <div class="panel-body"><div class="chart-wrap"><canvas id="chartPeriodo"></canvas></div></div>
-    </div>
-    <div class="panel">
-      <div class="panel-header"><span class="panel-title">Distribución por Cliente</span></div>
-      <div class="panel-body"><div class="chart-wrap"><canvas id="chartDonut"></canvas></div></div>
-    </div>
+  <div class="kpi-row" id="res-kpis">
+    <div class="state-box"><div class="spinner"></div><span>Cargando…</span></div>
   </div>
-  <div class="grid-3">
-    <div class="panel">
-      <div class="panel-header"><span class="panel-title">Estatus de Cartera</span></div>
-      <div class="panel-body">
-        <div style="margin-bottom:14px">
-          <div class="kpi-label">Pagado</div>
-          <div id="kpiPagado" class="kpi-value green" style="font-size:18px">—</div>
-          <div class="progress-bar"><div id="barPagado" class="progress-fill green" style="width:0%"></div></div>
-        </div>
-        <div style="margin-bottom:14px">
-          <div class="kpi-label">Pendiente</div>
-          <div id="kpiPend" class="kpi-value amber" style="font-size:18px">—</div>
-          <div class="progress-bar"><div id="barPend" class="progress-fill" style="width:0%;background:var(--amber)"></div></div>
-        </div>
-        <div>
-          <div class="kpi-label">Vencido</div>
-          <div id="kpiVenc" class="kpi-value red" style="font-size:18px">—</div>
-          <div class="progress-bar"><div id="barVenc" class="progress-fill red" style="width:0%"></div></div>
-        </div>
-      </div>
-    </div>
-    <div class="panel">
-      <div class="panel-header"><span class="panel-title">Top Clientes — Facturado</span></div>
-      <div class="panel-body"><div class="chart-wrap"><canvas id="chartTopFact"></canvas></div></div>
-    </div>
-    <div class="panel">
-      <div class="panel-header"><span class="panel-title">Antigüedad de Saldo</span></div>
-      <div class="panel-body"><div class="chart-wrap"><canvas id="chartAntig"></canvas></div></div>
-    </div>
-  </div>
-</div>
 
-<!-- ══ COMPARATIVO AA ══ -->
-<div id="tab-comparativo" class="tab-pane">
-  <div class="filters">
-    <div class="filter-label">PERÍODO:</div>
-    <div class="period-group" id="pgComp">
-      <button class="period-btn" onclick="setPeriod('mes','pgComp',this)">Mes</button>
-      <button class="period-btn active" onclick="setPeriod('anio','pgComp',this)">Año</button>
+  <div class="charts-row" id="res-charts" style="display:none">
+    <div class="chart-card">
+      <div class="chart-title">Ingresos cobrados por período</div>
+      <div class="chart-wrap"><canvas id="chartIngresosBar"></canvas></div>
     </div>
-    <div class="filter-label" style="margin-left:10px">CLIENTE:</div>
-    <select class="filter-select" id="compClienteFilter" onchange="renderComparativo()">
-      <option value="">Todos</option>
-    </select>
-  </div>
-  <div id="kpi-comp" class="kpi-grid"></div>
-  <div class="grid-2">
-    <div class="panel">
-      <div class="panel-header"><span class="panel-title">Facturado: Año Actual vs Año Anterior</span></div>
-      <div class="panel-body"><div class="chart-wrap tall"><canvas id="chartCompFact"></canvas></div></div>
-    </div>
-    <div class="panel">
-      <div class="panel-header"><span class="panel-title">Cobrado: Año Actual vs Año Anterior</span></div>
-      <div class="panel-body"><div class="chart-wrap tall"><canvas id="chartCompCob"></canvas></div></div>
+    <div class="chart-card">
+      <div class="chart-title">Distribución por cliente</div>
+      <div class="chart-wrap"><canvas id="chartClientePie"></canvas></div>
     </div>
   </div>
-  <div class="panel">
-    <div class="panel-header"><span class="panel-title">Resumen por Cliente — Facturado / Cobrado / Pendiente / Vencido</span></div>
-    <div class="table-wrap">
-      <table class="comp-table" id="tablaComp">
-        <thead><tr>
-          <th style="text-align:left">Cliente</th>
-          <th>Facturado AA</th><th>Facturado AA-1</th><th>Var %</th>
-          <th>Cobrado AA</th><th>Pendiente</th><th>Vencido</th>
-          <th>% Cobro</th>
-        </tr></thead>
-        <tbody id="tbodyComp"></tbody>
-      </table>
-    </div>
+
+  <div class="table-header">
+    <span class="table-title">Resumen por cliente</span>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr>
+        <th>Cliente</th>
+        <th>Facturado</th>
+        <th>Cobrado</th>
+        <th>Por cobrar</th>
+        <th>Adeudo</th>
+        <th>Facturas</th>
+        <th>% cobrado</th>
+      </tr></thead>
+      <tbody id="res-table-body"><tr><td colspan="7" class="empty">Cargando…</td></tr></tbody>
+    </table>
   </div>
 </div>
 
-<!-- ══ INGRESOS ══ -->
-<div id="tab-ingresos" class="tab-pane">
-  <div class="filters">
-    <div class="filter-label">PERÍODO:</div>
-    <div class="period-group" id="pgIngresos">
-      <button class="period-btn" onclick="setPeriod('dia','pgIngresos',this)">Día</button>
-      <button class="period-btn" onclick="setPeriod('semana','pgIngresos',this)">Semana</button>
-      <button class="period-btn active" onclick="setPeriod('mes','pgIngresos',this)">Mes</button>
-      <button class="period-btn" onclick="setPeriod('quincena','pgIngresos',this)">Quinc.</button>
-      <button class="period-btn" onclick="setPeriod('anio','pgIngresos',this)">Año</button>
+<!-- ══════════════════════════════════════
+     TAB: INGRESOS
+══════════════════════════════════════ -->
+<div id="tab-ingresos" class="tab-content">
+  <div class="filter-bar">
+    <div class="filter-group">
+      <span class="filter-label">Agrupar por</span>
+      <select id="ing-agrupacion" onchange="renderIngresos()">
+        <option value="dia">Día</option>
+        <option value="semana">Semana</option>
+        <option value="quincena">Quincena</option>
+        <option value="mes" selected>Mes</option>
+        <option value="anio">Año</option>
+      </select>
     </div>
-    <select class="filter-select" id="ingClienteFilter" onchange="renderIngresos()"><option value="">Todos los clientes</option></select>
-    <select class="filter-select" id="ingMonedaFilter" onchange="renderIngresos()">
-      <option value="">Todas las monedas</option><option value="MXN">MXN</option><option value="USD">USD</option>
-    </select>
-  </div>
-  <div id="kpi-ingresos" class="kpi-grid"></div>
-  <div class="panel">
-    <div class="panel-header"><span class="panel-title">Cobros por Período</span><button class="download-btn" onclick="exportCSV('ingresos')">&#8595; CSV</button></div>
-    <div class="panel-body"><div class="chart-wrap" style="height:300px"><canvas id="chartIngBar"></canvas></div></div>
-  </div>
-  <div class="panel" style="margin-top:0">
-    <div class="table-wrap">
-      <table class="data-table" id="tablaIngresos">
-        <thead><tr>
-          <th onclick="sortTable('tablaIngresos',0)">Fecha Pago</th>
-          <th onclick="sortTable('tablaIngresos',1)">Cliente</th>
-          <th onclick="sortTable('tablaIngresos',2)">Factura</th>
-          <th onclick="sortTable('tablaIngresos',3)">Ruta</th>
-          <th onclick="sortTable('tablaIngresos',4)" class="num">Monto Fact.</th>
-          <th onclick="sortTable('tablaIngresos',5)" class="num">Cobrado</th>
-          <th onclick="sortTable('tablaIngresos',6)">Moneda</th>
-          <th onclick="sortTable('tablaIngresos',7)" class="num">Días Cred.</th>
-          <th onclick="sortTable('tablaIngresos',8)">Período</th>
-        </tr></thead>
-        <tbody id="tbodyIngresos"></tbody>
-      </table>
+    <div class="filter-group">
+      <span class="filter-label">Cliente</span>
+      <select id="ing-cliente" onchange="renderIngresos()">
+        <option value="__ALL__">Todos</option>
+      </select>
     </div>
+    <div class="filter-group">
+      <span class="filter-label">Desde</span>
+      <input type="date" id="ing-desde" onchange="renderIngresos()"/>
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">Hasta</span>
+      <input type="date" id="ing-hasta" onchange="renderIngresos()"/>
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">Tipo</span>
+      <select id="ing-tipo" onchange="renderIngresos()">
+        <option value="cobrado">Cobrado</option>
+        <option value="facturado">Facturado</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="kpi-row" id="ing-kpis"></div>
+
+  <div class="chart-card" style="margin-bottom:20px">
+    <div class="chart-title" id="ing-chart-title">Ingresos cobrados por mes</div>
+    <div class="chart-wrap" style="height:280px"><canvas id="chartIngresosLine"></canvas></div>
+  </div>
+
+  <div class="chart-card">
+    <div class="chart-title">Por cliente (período seleccionado)</div>
+    <div class="chart-wrap" style="height:220px"><canvas id="chartIngClienteBar"></canvas></div>
   </div>
 </div>
 
-<!-- ══ CARTERA VIVA ══ -->
-<div id="tab-cartera" class="tab-pane">
-  <div class="filters">
-    <select class="filter-select" id="cartClienteFilter" onchange="renderCartera()"><option value="">Todos los clientes</option></select>
-    <select class="filter-select" id="cartEstatusFilter" onchange="renderCartera()">
-      <option value="">Todos los estatus</option>
-      <option value="VENCIDO">Vencido</option><option value="PENDIENTE">Pendiente</option><option value="PARCIAL">Parcial</option>
-    </select>
-    <input type="text" class="filter-input" id="cartSearch" placeholder="Buscar factura, ruta..." oninput="renderCartera()">
-  </div>
-  <div id="kpi-cartera" class="kpi-grid"></div>
-  <div class="grid-2">
-    <div class="panel">
-      <div class="panel-header"><span class="panel-title">Antigüedad de Saldo</span></div>
-      <div class="panel-body"><div class="chart-wrap"><canvas id="chartCartAntig"></canvas></div></div>
+<!-- ══════════════════════════════════════
+     TAB: ESTADOS DE CUENTA
+══════════════════════════════════════ -->
+<div id="tab-cuentas" class="tab-content">
+  <div class="filter-bar">
+    <div class="filter-group">
+      <span class="filter-label">Cliente</span>
+      <select id="ec-cliente" onchange="renderEstadoCuenta()">
+        <option value="__ALL__">Todos</option>
+      </select>
     </div>
-    <div class="panel">
-      <div class="panel-header"><span class="panel-title">Vencido por Cliente</span></div>
-      <div class="panel-body"><div class="chart-wrap"><canvas id="chartCartVenc"></canvas></div></div>
+    <div class="filter-group">
+      <span class="filter-label">Estatus</span>
+      <select id="ec-estatus" onchange="renderEstadoCuenta()">
+        <option value="">Todos</option>
+        <option value="Pagada">Pagada</option>
+        <option value="Pendiente">Pendiente</option>
+        <option value="Parcial">Parcial</option>
+        <option value="Vencida">Vencida</option>
+      </select>
     </div>
-  </div>
-  <div class="panel" style="margin-top:0">
-    <div class="panel-header"><span class="panel-title">Facturas Pendientes / Vencidas</span><button class="download-btn" onclick="exportCSV('cartera')">&#8595; CSV</button></div>
-    <div class="table-wrap">
-      <table class="data-table" id="tablaCartera">
-        <thead><tr>
-          <th onclick="sortTable('tablaCartera',0)">Fecha Fact.</th>
-          <th onclick="sortTable('tablaCartera',1)">Cliente</th>
-          <th onclick="sortTable('tablaCartera',2)">Factura</th>
-          <th onclick="sortTable('tablaCartera',3)">Ruta</th>
-          <th onclick="sortTable('tablaCartera',4)" class="num">Monto</th>
-          <th>Moneda</th>
-          <th onclick="sortTable('tablaCartera',6)" class="num">Días Cred.</th>
-          <th onclick="sortTable('tablaCartera',7)" class="num">Días Trans.</th>
-          <th onclick="sortTable('tablaCartera',8)" class="num">Adeudo</th>
-          <th class="center">Estatus</th>
-        </tr></thead>
-        <tbody id="tbodyCartera"></tbody>
-      </table>
+    <div class="filter-group">
+      <span class="filter-label">Desde</span>
+      <input type="date" id="ec-desde" onchange="renderEstadoCuenta()"/>
     </div>
+    <div class="filter-group">
+      <span class="filter-label">Hasta</span>
+      <input type="date" id="ec-hasta" onchange="renderEstadoCuenta()"/>
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">Buscar</span>
+      <input type="text" id="ec-buscar" placeholder="# factura, ruta…" oninput="renderEstadoCuenta()" style="min-width:160px"/>
+    </div>
+    <button class="btn btn-primary btn-sm" style="margin-left:auto" onclick="descargarCSV()">⬇ Descargar CSV</button>
   </div>
+
+  <div class="table-header">
+    <span class="table-title" id="ec-count">—</span>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr>
+        <th onclick="sortTable('ec','fechaContable')">Fecha factura ↕</th>
+        <th onclick="sortTable('ec','noFact')">No. Factura ↕</th>
+        <th>Cliente</th>
+        <th>Ruta / Concepto</th>
+        <th onclick="sortTable('ec','monto')" style="text-align:right">Monto ↕</th>
+        <th>Moneda</th>
+        <th onclick="sortTable('ec','diasTranscurridos')">Días ↕</th>
+        <th>F. Prog. Pago</th>
+        <th>F. Real Pago</th>
+        <th>Estatus</th>
+        <th style="text-align:right">Saldo</th>
+      </tr></thead>
+      <tbody id="ec-table-body"><tr><td colspan="11" class="empty">Cargando…</td></tr></tbody>
+    </table>
+  </div>
+  <div class="pagination" id="ec-pagination"></div>
 </div>
 
-<!-- ══ POR CLIENTE ══ -->
-<div id="tab-clientes" class="tab-pane">
-  <div class="filters">
-    <div class="period-group" id="pgClientes">
-      <button class="period-btn" onclick="setPeriod('dia','pgClientes',this)">Día</button>
-      <button class="period-btn" onclick="setPeriod('semana','pgClientes',this)">Semana</button>
-      <button class="period-btn active" onclick="setPeriod('mes','pgClientes',this)">Mes</button>
-      <button class="period-btn" onclick="setPeriod('quincena','pgClientes',this)">Quinc.</button>
-      <button class="period-btn" onclick="setPeriod('anio','pgClientes',this)">Año</button>
+<!-- ══════════════════════════════════════
+     TAB: VENCIDOS / POR COBRAR
+══════════════════════════════════════ -->
+<div id="tab-vencidos" class="tab-content">
+  <div class="filter-bar">
+    <div class="filter-group">
+      <span class="filter-label">Cliente</span>
+      <select id="vc-cliente" onchange="renderVencidos()">
+        <option value="__ALL__">Todos</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">Ver</span>
+      <select id="vc-tipo" onchange="renderVencidos()">
+        <option value="vencidas">Solo vencidas</option>
+        <option value="pendientes">Pendientes</option>
+        <option value="parciales">Parciales</option>
+        <option value="todas">Todas sin pagar</option>
+      </select>
     </div>
   </div>
-  <div class="client-grid" id="clienteCards"></div>
-  <div class="panel" id="panelClienteDet" style="display:none">
-    <div class="panel-header">
-      <span class="panel-title" id="clienteDetTitle">—</span>
-      <div style="display:flex;gap:8px">
-        <button class="pdf-btn" id="btnPDFCliente">&#128196; PDF</button>
-        <button class="download-btn" onclick="exportCSV('cliente')">&#8595; CSV</button>
-      </div>
-    </div>
-    <div class="panel-body">
-      <div class="grid-2">
-        <div><div class="chart-wrap"><canvas id="chartClientePer"></canvas></div></div>
-        <div><div class="chart-wrap"><canvas id="chartClienteEst"></canvas></div></div>
-      </div>
-    </div>
-    <div class="table-wrap" style="padding-bottom:16px">
-      <table class="data-table" id="tablaClienteDet">
-        <thead><tr>
-          <th>Fecha Fact.</th><th>Factura</th><th>Ruta</th>
-          <th class="num">Monto</th><th>Moneda</th>
-          <th class="num">Días Cred.</th><th class="num">Días Trans.</th>
-          <th class="num">Adeudo</th><th class="center">Estatus</th><th>Fecha Pago</th>
-        </tr></thead>
-        <tbody id="tbodyClienteDet"></tbody>
-      </table>
-    </div>
+
+  <div class="kpi-row" id="vc-kpis"></div>
+
+  <div class="client-grid" id="vc-cliente-cards"></div>
+
+  <div class="table-header">
+    <span class="table-title" id="vc-count">—</span>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr>
+        <th>Cliente</th>
+        <th onclick="sortTable('vc','fechaContable')">Fecha ↕</th>
+        <th>No. Factura</th>
+        <th>Ruta</th>
+        <th style="text-align:right" onclick="sortTable('vc','monto')">Monto ↕</th>
+        <th onclick="sortTable('vc','diasTranscurridos')">Días ↕</th>
+        <th>F. Prog. Pago</th>
+        <th>Estatus</th>
+        <th style="text-align:right">Saldo</th>
+      </tr></thead>
+      <tbody id="vc-table-body"><tr><td colspan="9" class="empty">Cargando…</td></tr></tbody>
+    </table>
   </div>
 </div>
-
-<!-- ══ ESTADOS DE CUENTA ══ -->
-<div id="tab-estados" class="tab-pane">
-  <p style="color:var(--text2);font-size:13px;margin-bottom:20px">Genera el estado de cuenta de cada cliente en PDF ejecutivo o descarga en CSV.</p>
-  <div class="client-grid" id="estadosGrid"></div>
-</div>
-
-</div><!-- /main -->
-
-<!-- PDF MODAL -->
-<div class="modal-overlay" id="pdfModal">
-  <div class="modal-box">
-    <div class="modal-title">&#128196; Generar Estado de Cuenta PDF</div>
-    <div class="modal-field">
-      <div class="modal-label">Razón Social del Cliente</div>
-      <input class="modal-input" id="pdfRazon" type="text" placeholder="Nombre fiscal">
-    </div>
-    <div class="modal-field">
-      <div class="modal-label">RFC</div>
-      <input class="modal-input" id="pdfRFC" type="text" placeholder="Ej. XAXX010101000">
-    </div>
-    <div class="modal-grid2">
-      <div class="modal-field">
-        <div class="modal-label">Período Desde</div>
-        <input class="modal-input" id="pdfDesde" type="date">
-      </div>
-      <div class="modal-field">
-        <div class="modal-label">Período Hasta</div>
-        <input class="modal-input" id="pdfHasta" type="date">
-      </div>
-    </div>
-    <div class="modal-field">
-      <div class="modal-label">Observaciones (opcional)</div>
-      <textarea class="modal-input" id="pdfNotas" rows="2" style="resize:none" placeholder="Condiciones de pago, notas..."></textarea>
-    </div>
-    <div class="modal-actions">
-      <button class="btn-primary" onclick="generarPDF()">Generar PDF</button>
-      <button class="btn-secondary" onclick="closePDFModal()">Cancelar</button>
-    </div>
-  </div>
-</div>
-
-<!-- TOAST -->
-<div class="toast" id="toast"></div>
 
 <script>
-/* ================================================
-   CONFIGURACIÓN
-================================================ */
+// ═══════════════════════════════════════════════════════
+//  CONFIG — ajusta aquí los GIDs de cada cliente
+// ═══════════════════════════════════════════════════════
 const PROXY = 'https://script.google.com/macros/s/AKfycbzGHGZ69Qp40sH7eV10J0Bv2xkrFueMYEzjAJ5KP7wL4s6Vah15_OoUeTLzBxOX9_6S5A/exec';
-const USD_MXN = 19;
 
-// Estructura por cliente: qué columnas usar
-// monto: columna de monto (factura o pago según cliente)
-// montoPagado: si existe columna separada de pago parcial
-// creditoEsHoras: si los días de crédito vienen en horas (ALEN, SORIANA)
-const CLIENTES = [
-  { nombre:'ALEN',          gid:'1702462645', creditoEsHoras:true  },
-  { nombre:'SORIANA',       gid:'923045851',  creditoEsHoras:true  },
-  { nombre:'TML',           gid:'1040786378', creditoEsHoras:false },
-  { nombre:'TYT',           gid:'863648102',  creditoEsHoras:false },
-  { nombre:'DPG',           gid:'1576319830', creditoEsHoras:false },
-  { nombre:'AMA',           gid:'612210011',  creditoEsHoras:false },
-  { nombre:'LOYALTY',       gid:'988631002',  creditoEsHoras:false },
-  { nombre:'MAGUVA',        gid:'102817706',  creditoEsHoras:false },
-  { nombre:'CRYOGENICS FNG',gid:'793015764',  creditoEsHoras:false },
-  { nombre:'PADILLA',       gid:'852643806',  creditoEsHoras:false },
-  { nombre:'AC TRADE',      gid:'673133141',  creditoEsHoras:false },
-  { nombre:'EVERTIS',       gid:'619318978',  creditoEsHoras:false },
-  { nombre:'DG TRUKING',    gid:'76574814',   creditoEsHoras:false },
-  { nombre:'MEGA',          gid:'1050871788', creditoEsHoras:false },
-  { nombre:'TRANSP. HG',    gid:'1164973928', creditoEsHoras:false },
+const CLIENTS = [
+  { name: 'ALEN',           gid: '1702462645' },
+  { name: 'SORIANA',        gid: '0'          },  // reemplaza con GID real
+  { name: 'DPG',            gid: '1'          },
+  { name: 'MAGUVA',         gid: '2'          },
+  { name: 'AMA',            gid: '3'          },
+  { name: 'TYT',            gid: '4'          },
+  { name: 'TML',            gid: '5'          },
+  { name: 'LOYALTY',        gid: '6'          },
+  { name: 'CRYOGENICS FNG', gid: '7'          },
+  { name: 'PADILLA',        gid: '8'          },
+  { name: 'AC TRADE',       gid: '9'          },
+  { name: 'EVERTIS',        gid: '10'         },
+  { name: 'MEGA',           gid: '11'         },
+  { name: 'TRANSP. HG',     gid: '12'         },
 ];
 
-/* ================================================
-   ESTADO GLOBAL
-================================================ */
-let allData = [];
-let activePeriods = { pgResumen:'mes', pgIngresos:'mes', pgClientes:'mes', pgComp:'anio' };
-let activeCliente = null;
+// ═══════════════════════════════════════════════════════
+//  ESTADO GLOBAL
+// ═══════════════════════════════════════════════════════
+let allRows  = [];   // todas las filas de todos los clientes
+let loadErrors = [];
+let sortState  = {};
+let ecPage = 1; const EC_PAGE_SIZE = 50;
 let charts = {};
-let sortStates = {};
-let pdfClienteActivo = null;
 
-/* ================================================
-   CSV PARSER — busca la fila real de headers
-================================================ */
-function parseCSV(text) {
-  // Normalizar saltos de línea
-  const lines = text.replace(/\r\n/g,'\n').replace(/\r/g,'\n').trim().split('\n');
-  if (lines.length < 2) return { headers:[], rows:[] };
+// ═══════════════════════════════════════════════════════
+//  FETCH + PARSE
+// ═══════════════════════════════════════════════════════
+async function fetchClient(client) {
+  const url = `${PROXY}?gid=${client.gid}`;
+  const res  = await fetch(url);
+  const text = await res.text();
+  return parseClientCSV(text, client.name);
+}
 
-  // Buscar fila de headers: la que tenga 'fecha contable' o 'fecha factura'
-  let hi = 0;
-  for (let i = 0; i < Math.min(20, lines.length); i++) {
-    const l = lines[i].toLowerCase();
-    if (l.includes('fecha contable') || l.includes('fecha factura') ||
-        l.includes('no. de fact')    || l.includes('no. de factura')) {
-      hi = i; break;
+function parseClientCSV(text, clientName) {
+  // Split lines, keep non-empty
+  const lines = text.split('\n').map(l => l.trimEnd());
+
+  // ── Find the HEADER row ──
+  // It must contain at least 3 of these keywords (case-insensitive)
+  const HEADER_KEYWORDS = ['FECHA', 'FACT', 'MONTO', 'ESTATUS', 'MONEDA', 'SALDO', 'CONCEPTO'];
+  let headerIdx = -1;
+  for (let i = 0; i < Math.min(lines.length, 25); i++) {
+    const upper = lines[i].toUpperCase();
+    const hits  = HEADER_KEYWORDS.filter(k => upper.includes(k)).length;
+    if (hits >= 3) { headerIdx = i; break; }
+  }
+  if (headerIdx === -1) return [];   // no header found
+
+  const headers = splitCSVLine(lines[headerIdx]).map(h => h.trim().toUpperCase());
+
+  // Helper: find column index by keyword
+  const col = (...keywords) => {
+    for (const kw of keywords) {
+      const idx = headers.findIndex(h => h.includes(kw.toUpperCase()));
+      if (idx !== -1) return idx;
     }
-  }
+    return -1;
+  };
 
-  const headers = splitLine(lines[hi]).map(h => h.trim().toLowerCase());
+  // Column map
+  const C = {
+    fechaContable:      col('FECHA CONTABLE', 'FECHA'),
+    noFact:             col('FACT', 'NO. DE FACT', 'FACTURA'),
+    concepto:           col('CONCEPTO', 'RUTA'),
+    referencia:         col('REFERENCIA', 'PEDIDO'),
+    monto:              col('MONTO PAGO', 'MONTO'),
+    moneda:             col('MONEDA'),
+    diasCredito:        col('DIAS DE CREDITO', 'CREDITO'),
+    diasTranscurridos:  col('DIAS TRANSCURRIDOS', 'TRANSCURRIDOS'),
+    horasPago:          col('HORAS DE PAGO', 'HORAS'),
+    fechaProgramada:    col('FECHA PROG', 'PROGRAMADA'),
+    estatus:            col('ESTATUS'),
+    fechaPago:          col('FECHA PAGO', 'PAGO REAL'),
+    observaciones:      col('OBSERVACIONES', 'OBS'),
+    saldo:              col('SALDO'),
+  };
+
   const rows = [];
-  for (let i = hi + 1; i < lines.length; i++) {
-    const vals = splitLine(lines[i]);
-    // Skip empty rows
-    if (!vals.some(v => v.trim())) continue;
-    const obj = {};
-    headers.forEach((h, idx) => { obj[h] = (vals[idx] || '').trim(); });
-    rows.push(obj);
+  for (let i = headerIdx + 1; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line) continue;
+
+    const cells = splitCSVLine(line);
+    if (cells.length < 4) continue;
+
+    // Skip summary-looking lines (they start with a label, not a date)
+    const firstCell = cells[0].replace(/"/g,'').trim();
+    if (!firstCell || !/\d/.test(firstCell.charAt(0))) continue;
+
+    const get = (idx) => idx >= 0 && idx < cells.length ? cells[idx].replace(/^"|"$/g,'').trim() : '';
+
+    const monto        = parseMoney(get(C.monto));
+    const saldo        = parseMoney(get(C.saldo));
+    const fechaContable = parseDate(get(C.fechaContable));
+    const fechaPago    = parseDate(get(C.fechaPago));
+    const fechaProg    = parseDate(get(C.fechaProgramada));
+
+    if (!fechaContable) continue;   // skip rows without a valid date
+
+    // Infer estatus
+    let estatus = get(C.estatus) || '';
+    if (!estatus) {
+      if (fechaPago) estatus = 'Pagada';
+      else if (saldo > 0) estatus = 'Pendiente';
+    }
+    // Normalize
+    estatus = normalizeEstatus(estatus);
+
+    rows.push({
+      _client:           clientName,
+      fechaContable,
+      noFact:            get(C.noFact),
+      concepto:          get(C.concepto),
+      referencia:        get(C.referencia),
+      monto,
+      moneda:            get(C.moneda) || 'PESOS',
+      diasCredito:       parseInt(get(C.diasCredito)) || 0,
+      diasTranscurridos: parseInt(get(C.diasTranscurridos)) || 0,
+      horasPago:         get(C.horasPago),
+      fechaProgramada:   fechaProg,
+      estatus,
+      fechaPago,
+      observaciones:     get(C.observaciones),
+      saldo,
+    });
   }
-  return { headers, rows };
+  return rows;
 }
 
-function splitLine(line) {
-  const res = []; let cur = ''; let inQ = false;
+// ── CSV line splitter (handles quoted commas) ──
+function splitCSVLine(line) {
+  const result = []; let cur = ''; let inQ = false;
   for (let i = 0; i < line.length; i++) {
-    if (line[i] === '"') { inQ = !inQ; continue; }
-    if (line[i] === ',' && !inQ) { res.push(cur); cur = ''; continue; }
-    cur += line[i];
+    const c = line[i];
+    if (c === '"') { inQ = !inQ; }
+    else if (c === ',' && !inQ) { result.push(cur); cur = ''; }
+    else { cur += c; }
   }
-  res.push(cur);
-  return res;
+  result.push(cur);
+  return result;
 }
 
-/* ================================================
-   MAPEO DE COLUMNAS — busca por nombre parcial
-================================================ */
-function col(obj, ...keys) {
-  for (const k of keys) {
-    const found = Object.keys(obj).find(h => h.includes(k.toLowerCase()));
-    if (found !== undefined && obj[found] !== undefined) return obj[found];
-  }
-  return '';
-}
-
-function money(s) {
+// ── Money parser: "$38,564,158.52" → 38564158.52 ──
+function parseMoney(s) {
   if (!s) return 0;
-  const n = parseFloat(s.toString().replace(/[$,\s]/g,'').replace(/[^\d.\-]/g,''));
+  const n = parseFloat(s.replace(/[$,\s]/g,''));
   return isNaN(n) ? 0 : n;
 }
 
-function date(s) {
-  if (!s || s === '-' || s.toLowerCase() === 'n/a') return null;
+// ── Date parser: "23/10/2024" or "10/23/2024" or "2024-10-23" ──
+function parseDate(s) {
+  if (!s) return null;
   s = s.trim();
-  // DD/MM/YYYY o DD-MM-YYYY
-  let m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
-  if (m) {
-    let y = parseInt(m[3]); if (y < 100) y += 2000;
-    return new Date(y, parseInt(m[2])-1, parseInt(m[1]));
-  }
+  // DD/MM/YYYY
+  let m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (m) return new Date(+m[3], +m[2]-1, +m[1]);
   // YYYY-MM-DD
-  m = s.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/);
-  if (m) return new Date(parseInt(m[1]), parseInt(m[2])-1, parseInt(m[3]));
-  const d = new Date(s);
-  return isNaN(d.getTime()) ? null : d;
+  m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (m) return new Date(+m[1], +m[2]-1, +m[3]);
+  return null;
 }
 
-function estatus(s) {
-  if (!s) return 'PENDIENTE';
-  const u = s.toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
-  if (u.includes('PAG') || u === 'COBRADO' || u === 'LIQUIDADO') return 'PAGADO';
-  if (u.includes('VENC')) return 'VENCIDO';
-  if (u.includes('PARC')) return 'PARCIAL';
-  return 'PENDIENTE';
+function normalizeEstatus(s) {
+  const u = (s||'').toUpperCase().trim();
+  if (u.includes('PAG')) return 'Pagada';
+  if (u.includes('PARCI')) return 'Parcial';
+  if (u.includes('VENCI')) return 'Vencida';
+  if (u.includes('PEND') || u === '') return 'Pendiente';
+  return s;
 }
 
-function moneda(s) {
-  if (!s) return 'MXN';
-  const u = s.toUpperCase();
-  return (u.includes('USD') || u.includes('DOL') || u.includes('DLS')) ? 'USD' : 'MXN';
-}
+// ═══════════════════════════════════════════════════════
+//  LOAD ALL
+// ═══════════════════════════════════════════════════════
+async function reloadAll() {
+  allRows = []; loadErrors = [];
+  document.getElementById('res-kpis').innerHTML = '<div class="state-box"><div class="spinner"></div><span>Cargando datos de clientes…</span></div>';
 
-function mapRow(raw, cliente, creditoEsHoras) {
-  // Monto: buscar 'monto pago' primero, luego 'monto factura', luego 'monto', 'importe', 'total'
-  const montoPago    = money(col(raw, 'monto pago', 'monto pagado'));
-  const montoFactura = money(col(raw, 'monto factura', 'importe factura'));
-  const montoGen     = money(col(raw, 'monto', 'importe', 'total'));
-  // El monto principal es: factura si existe, sino pago, sino genérico
-  const monto = montoFactura > 0 ? montoFactura : (montoPago > 0 ? montoPago : montoGen);
-  // Pagado: si hay monto pago separado y diferente al monto factura
-  const pagado = montoPago > 0 ? montoPago : monto;
-  const saldo  = money(col(raw, 'saldo', 'adeudo', 'diferencia'));
-  const adeudo = saldo > 0 ? saldo : (monto > pagado && pagado > 0 ? monto - pagado : 0);
+  // Only fetch ALEN for now (others have placeholder GIDs)
+  // Real GIDs should be filled in CLIENTS array
+  const realClients = CLIENTS.filter(c => c.gid !== '0' && c.gid !== '1' && c.gid !== '2' &&
+    c.gid !== '3' && c.gid !== '4' && c.gid !== '5' && c.gid !== '6' &&
+    c.gid !== '7' && c.gid !== '8' && c.gid !== '9' && c.gid !== '10' &&
+    c.gid !== '11' && c.gid !== '12');
 
-  const fechaFact = date(col(raw, 'fecha contable', 'fecha factura'));
-  
-  // Días transcurridos: usar columna o calcular
-  let diasTrans = parseInt(col(raw, 'dias transcurridos', 'días transcurridos', 'dias trans')) || 0;
-  if (!diasTrans && fechaFact) {
-    diasTrans = Math.floor((new Date() - fechaFact) / 86400000);
-  }
+  const results = await Promise.allSettled(realClients.map(c => fetchClient(c)));
+  results.forEach((r, i) => {
+    if (r.status === 'fulfilled') allRows.push(...r.value);
+    else loadErrors.push(realClients[i].name);
+  });
 
-  // Crédito: puede ser horas (ALEN/SORIANA) → convertir a días
-  let cred = parseFloat(col(raw, 'horas de pago', 'horas pago', 'días de crédito', 'dias de credito', 'dias credito', 'credito')) || 0;
-  if (creditoEsHoras && cred > 0) cred = cred / 8; // horas hábiles → días (8h/día)
-
-  return {
-    cliente,
-    fechaFactura:      fechaFact,
-    numFactura:        col(raw, 'no. de fact', 'no. de factura', 'no. factura', 'num. factura', 'folio'),
-    referencia:        col(raw, 'referencia'),
-    ruta:              col(raw, 'concepto / ruta', 'concepto/ruta', 'ruta', 'concepto', 'descripcion'),
-    monto,
-    montoPagado:       pagado,
-    moneda:            moneda(col(raw, 'moneda', 'tipo de moneda')),
-    diasCredito:       Math.round(cred),
-    diasTranscurridos: diasTrans,
-    fechaProgramada:   date(col(raw, 'fecha prog', 'fecha programada', 'fecha estimada')),
-    estatus:           estatus(col(raw, 'estatus', 'status', 'estado')),
-    fechaPago:         date(col(raw, 'fecha pago', 'fecha real de pago', 'fecha cobro')),
-    adeudo,
-  };
-}
-
-/* ================================================
-   FETCH
-================================================ */
-async function loadCliente(c) {
-  const url = PROXY + '?gid=' + c.gid;
-  try {
-    const res = await fetch(url);
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    const text = await res.text();
-    if (!text || text.trim().startsWith('<!')) throw new Error('Sin datos CSV');
-    const { headers, rows: rawRows } = parseCSV(text);
-    console.log('[' + c.nombre + '] headers:', headers.slice(0,8).join(' | '));
-    const rows = rawRows
-      .map(r => mapRow(r, c.nombre, c.creditoEsHoras))
-      .filter(r => r.fechaFactura || r.monto > 0);
-    console.log('[' + c.nombre + '] filas:', rows.length, rows[0] ? '| monto0=' + rows[0].monto + ' est=' + rows[0].estatus : '');
-    return { cliente: c.nombre, rows };
-  } catch(e) {
-    console.error('[' + c.nombre + '] ERROR:', e.message);
-    return { cliente: c.nombre, rows: [], error: e.message };
-  }
-}
-
-async function loadAllData() {
-  setStatus('loading', 'Cargando ' + CLIENTES.length + ' clientes...');
-  allData = CLIENTES.map(c => ({ cliente: c.nombre, rows: [] }));
-  populateFilters(); renderClienteCards(); renderEstados();
-
-  const results = await Promise.all(CLIENTES.map(c => loadCliente(c)));
-  allData = results;
-
-  renderAll();
-
-  const total  = allData.reduce((s,c) => s + c.rows.length, 0);
-  const errors = allData.filter(c => c.error).length;
-  if (total === 0) {
-    setStatus('error', 'Sin datos — verifica publicación del Sheet');
-    showToast('Sin datos cargados', 'error');
-  } else {
-    setStatus('ok', total + ' registros · ' + allData.filter(c=>c.rows.length>0).length + ' clientes' + (errors?' · '+errors+' errores':''));
-    showToast('\u2713 ' + total + ' registros', 'success');
-  }
-}
-
-function renderAll() {
-  populateFilters();
+  populateClientSelects();
   renderResumen();
-  renderComparativo();
   renderIngresos();
-  renderCartera();
-  renderClienteCards();
-  renderEstados();
+  renderEstadoCuenta();
+  renderVencidos();
+
+  document.getElementById('lastUpdated').textContent = 'Actualizado: ' + new Date().toLocaleString('es-MX');
 }
 
-/* ================================================
-   HELPERS
-================================================ */
-function allRows()  { return allData.flatMap(c => c.rows); }
-function paid(rows) { return rows.filter(r => r.estatus === 'PAGADO' && r.fechaPago); }
-
-function toMXN(r, campo) {
-  const v = campo === 'pagado' ? (r.montoPagado || r.monto)
-          : campo === 'adeudo' ? (r.adeudo || 0)
-          : r.monto;
-  return r.moneda === 'USD' ? v * USD_MXN : v;
-}
-
-function fmt(n, sym) {
-  if (n === null || n === undefined || isNaN(n)) return '—';
-  const s = sym === 'USD' ? 'USD $' : '$';
-  return s + Number(n).toLocaleString('es-MX', { minimumFractionDigits:2, maximumFractionDigits:2 });
-}
-
-function fmtD(d) {
-  if (!d) return '—';
-  return d.toLocaleDateString('es-MX', { day:'2-digit', month:'short', year:'numeric' });
-}
-
-function bdg(est) {
-  const m = { PAGADO:'badge-paid', PENDIENTE:'badge-pending', VENCIDO:'badge-overdue', PARCIAL:'badge-partial' };
-  return '<span class="badge ' + (m[est]||'badge-neutral') + '">' + (est||'—') + '</span>';
-}
-
-function pkey(d, p) {
-  if (!d) return null;
-  const y=d.getFullYear(), mo=d.getMonth()+1, day=d.getDate();
-  const z=n=>String(n).padStart(2,'0');
-  if(p==='dia')      return y+'-'+z(mo)+'-'+z(day);
-  if(p==='semana')   { const w=Math.ceil(((d-new Date(y,0,1))/86400000+new Date(y,0,1).getDay()+1)/7); return y+'-S'+z(w); }
-  if(p==='mes')      return y+'-'+z(mo);
-  if(p==='quincena') return y+'-'+z(mo)+'-Q'+(day<=15?'1':'2');
-  if(p==='anio')     return ''+y;
-  return y+'-'+z(mo);
-}
-
-function plabel(k, p) {
-  if(!k) return k;
-  const MN=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
-  if(p==='mes'){const[y,m]=k.split('-');return MN[parseInt(m)-1]+' '+y;}
-  if(p==='quincena'){const pts=k.split('-');return MN[parseInt(pts[1])-1]+' Q'+pts[2].replace('Q','')+' '+pts[0];}
-  return k;
-}
-
-function dc(id){if(charts[id]){charts[id].destroy();delete charts[id];}}
-
-function copts(dollar) {
-  return {
-    responsive:true, maintainAspectRatio:false,
-    plugins:{
-      legend:{display:false},
-      tooltip:{backgroundColor:'#1a1e26',borderColor:'#2e3545',borderWidth:1,
-        titleColor:'#e8eaf0',bodyColor:'#8b92a5',
-        titleFont:{family:'Syne',size:13},bodyFont:{family:'DM Mono',size:11},
-        callbacks:{label:ctx=>dollar?' $'+ctx.raw.toLocaleString('es-MX',{minimumFractionDigits:2}):''+ctx.raw}}
-    },
-    scales:{
-      x:{grid:{color:'#252a34'},ticks:{color:'#555f73',font:{family:'DM Mono',size:10}}},
-      y:{grid:{color:'#252a34'},ticks:{color:'#555f73',font:{family:'DM Mono',size:10},
-        callback:v=>dollar?'$'+v.toLocaleString('es-MX'):v}}
-    }
-  };
-}
-
-const CLR=['#e8c96a','#4ade80','#60a5fa','#f87171','#c084fc','#fb923c','#34d399','#a78bfa','#f472b6','#38bdf8','#facc15','#86efac','#93c5fd','#fca5a5','#d8b4fe'];
-
-function kpi(label,val,cls,sub){
-  return '<div class="kpi-card"><div class="kpi-label">'+label+'</div>' +
-    '<div class="kpi-value '+(cls||'')+'">'+val+'</div>' +
-    (sub?'<div class="kpi-sub">'+sub+'</div>':'')+'</div>';
-}
-
-function populateFilters(){
-  ['ingClienteFilter','cartClienteFilter','compClienteFilter'].forEach(id=>{
-    const sel=document.getElementById(id); if(!sel)return;
-    const cur=sel.value;
-    const first=sel.options[0].text;
-    sel.innerHTML='<option value="">'+first+'</option>';
-    allData.forEach(c=>{const o=document.createElement('option');o.value=c.cliente;o.textContent=c.cliente;sel.appendChild(o);});
-    sel.value=cur;
+function populateClientSelects() {
+  const clients = [...new Set(allRows.map(r => r._client))].sort();
+  ['ing-cliente','ec-cliente','vc-cliente'].forEach(id => {
+    const sel = document.getElementById(id);
+    const prev = sel.value;
+    sel.innerHTML = '<option value="__ALL__">Todos los clientes</option>';
+    clients.forEach(c => sel.innerHTML += `<option value="${c}">${c}</option>`);
+    sel.value = prev && clients.includes(prev) ? prev : '__ALL__';
   });
 }
 
-function setPeriod(p,gid,btn){
-  activePeriods[gid]=p;
-  document.querySelectorAll('#'+gid+' .period-btn').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
-  if(gid==='pgResumen')  renderResumen();
-  if(gid==='pgIngresos') renderIngresos();
-  if(gid==='pgClientes'){renderClienteCards();if(activeCliente)renderClienteDetalle(activeCliente);}
-  if(gid==='pgComp')     renderComparativo();
+// ═══════════════════════════════════════════════════════
+//  FILTER HELPERS
+// ═══════════════════════════════════════════════════════
+function filterByPeriodo(rows, periodoId, desdeId, hastaId) {
+  const periodo = document.getElementById(periodoId)?.value;
+  const desde   = document.getElementById(desdeId)?.value;
+  const hasta   = document.getElementById(hastaId)?.value;
+
+  if (desde || hasta) {
+    return rows.filter(r => {
+      if (!r.fechaContable) return false;
+      if (desde && r.fechaContable < new Date(desde)) return false;
+      if (hasta && r.fechaContable > new Date(hasta + 'T23:59:59')) return false;
+      return true;
+    });
+  }
+
+  const now  = new Date();
+  const y    = now.getFullYear();
+  const m    = now.getMonth();
+  const d    = now.getDate();
+
+  if (periodo === 'mes')      return rows.filter(r => r.fechaContable && r.fechaContable.getFullYear()===y && r.fechaContable.getMonth()===m);
+  if (periodo === 'anio')     return rows.filter(r => r.fechaContable && r.fechaContable.getFullYear()===y);
+  if (periodo === 'semana') {
+    const monday = new Date(now); monday.setDate(d - now.getDay() + 1); monday.setHours(0,0,0,0);
+    return rows.filter(r => r.fechaContable && r.fechaContable >= monday);
+  }
+  if (periodo === 'quincena') {
+    const start = new Date(y, m, d <= 15 ? 1 : 16);
+    const end   = new Date(y, m, d <= 15 ? 15 : new Date(y,m+1,0).getDate(), 23,59,59);
+    return rows.filter(r => r.fechaContable && r.fechaContable >= start && r.fechaContable <= end);
+  }
+  return rows;
 }
 
-function setStatus(state,msg){
-  const dot=document.getElementById('statusDot');
-  const txt=document.getElementById('statusText');
-  dot.className='status-dot'+(state==='loading'?' loading':state==='error'?' error':'');
-  txt.textContent=msg;
-  const ov=document.getElementById('loadingOverlay');
-  const fl=document.getElementById('overlayFill');
-  const om=document.getElementById('overlayMsg');
-  if(!ov||ov.style.display==='none')return;
-  if(state==='loading'){
-    om.textContent=msg;
-    const m=msg.match(/(\d+)\/(\d+)/);
-    fl.style.width=m?(parseInt(m[1])/parseInt(m[2])*100)+'%':'10%';
-  } else {
-    fl.style.width='100%'; om.textContent=(state==='error'?'⚠ ':'\u2713 ')+msg;
-    setTimeout(()=>{ov.style.opacity='0';ov.style.transition='opacity .5s';setTimeout(()=>ov.style.display='none',500);},700);
+// ═══════════════════════════════════════════════════════
+//  FORMATTERS
+// ═══════════════════════════════════════════════════════
+const fmtMXN   = n => new Intl.NumberFormat('es-MX',{style:'currency',currency:'MXN'}).format(n);
+const fmtShort = n => n >= 1e6 ? '$'+(n/1e6).toFixed(1)+'M' : n >= 1e3 ? '$'+(n/1e3).toFixed(0)+'K' : fmtMXN(n);
+const fmtDate  = d => d ? d.toLocaleDateString('es-MX') : '—';
+
+function estatusBadge(e) {
+  const map = { Pagada:'badge-green', Vencida:'badge-red', Parcial:'badge-orange', Pendiente:'badge-yellow' };
+  return `<span class="badge ${map[e]||'badge-muted'}">${e}</span>`;
+}
+
+// ═══════════════════════════════════════════════════════
+//  RESUMEN
+// ═══════════════════════════════════════════════════════
+function renderResumen() {
+  const filtered = filterByPeriodo(allRows,'res-periodo','res-desde','res-hasta');
+  const cobradas  = filtered.filter(r => r.estatus === 'Pagada');
+  const pendientes= filtered.filter(r => r.estatus !== 'Pagada');
+  const vencidas  = filtered.filter(r => r.estatus === 'Vencida');
+
+  const totalFact = filtered.reduce((s,r) => s+r.monto, 0);
+  const totalCob  = cobradas.reduce((s,r) => s+r.monto, 0);
+  const totalPend = pendientes.reduce((s,r) => s+(r.saldo||r.monto), 0);
+  const totalDeuda= filtered.filter(r => r.saldo > 0 && r.estatus === 'Parcial').reduce((s,r) => s+r.saldo, 0);
+
+  document.getElementById('res-kpis').innerHTML = `
+    <div class="kpi-card kpi-green"><div class="kpi-label">Cobrado</div><div class="kpi-value" style="color:var(--green)">${fmtShort(totalCob)}</div><div class="kpi-sub">${cobradas.length} facturas</div></div>
+    <div class="kpi-card kpi-teal"><div class="kpi-label">Facturado total</div><div class="kpi-value" style="color:var(--teal-light)">${fmtShort(totalFact)}</div><div class="kpi-sub">${filtered.length} facturas</div></div>
+    <div class="kpi-card kpi-yellow"><div class="kpi-label">Por cobrar</div><div class="kpi-value" style="color:var(--yellow)">${fmtShort(totalPend)}</div><div class="kpi-sub">${pendientes.length} facturas</div></div>
+    <div class="kpi-card kpi-red"><div class="kpi-label">Vencidas</div><div class="kpi-value" style="color:var(--red)">${fmtShort(vencidas.reduce((s,r)=>s+r.monto,0))}</div><div class="kpi-sub">${vencidas.length} facturas</div></div>
+    <div class="kpi-card"><div class="kpi-label">% cobrado</div><div class="kpi-value">${totalFact ? ((totalCob/totalFact)*100).toFixed(1)+'%' : '—'}</div><div class="kpi-sub">del total facturado</div></div>
+  `;
+
+  document.getElementById('res-charts').style.display = 'grid';
+
+  // Bar chart: cobrado por mes
+  const byMonth = {};
+  cobradas.forEach(r => {
+    if (!r.fechaContable) return;
+    const k = `${r.fechaContable.getFullYear()}-${String(r.fechaContable.getMonth()+1).padStart(2,'0')}`;
+    byMonth[k] = (byMonth[k]||0) + r.monto;
+  });
+  const sortedMonths = Object.keys(byMonth).sort();
+  buildBarChart('chartIngresosBar', sortedMonths, sortedMonths.map(k=>byMonth[k]), 'Cobrado');
+
+  // Pie: por cliente
+  const byClient = {};
+  cobradas.forEach(r => byClient[r._client] = (byClient[r._client]||0) + r.monto);
+  const cliLabels = Object.keys(byClient).sort((a,b) => byClient[b]-byClient[a]);
+  buildDoughnutChart('chartClientePie', cliLabels, cliLabels.map(k=>byClient[k]));
+
+  // Summary table
+  const maxTotal = Math.max(...Object.values(byClient).concat([1]));
+  const clients  = [...new Set(allRows.map(r=>r._client))].sort();
+  const tbody    = document.getElementById('res-table-body');
+  tbody.innerHTML = clients.map(c => {
+    const rr   = filtered.filter(r => r._client===c);
+    const cob  = rr.filter(r=>r.estatus==='Pagada').reduce((s,r)=>s+r.monto,0);
+    const fact = rr.reduce((s,r)=>s+r.monto,0);
+    const pend = rr.filter(r=>r.estatus!=='Pagada').reduce((s,r)=>s+(r.saldo||r.monto),0);
+    const adeu = rr.filter(r=>r.estatus==='Parcial').reduce((s,r)=>s+r.saldo,0);
+    const pct  = fact ? ((cob/fact)*100).toFixed(0)+'%' : '—';
+    return `<tr>
+      <td><strong>${c}</strong></td>
+      <td class="mono">${fmtMXN(fact)}</td>
+      <td class="mono" style="color:var(--green)">${fmtMXN(cob)}</td>
+      <td class="mono" style="color:var(--yellow)">${fmtMXN(pend)}</td>
+      <td class="mono" style="color:var(--red)">${adeu > 0 ? fmtMXN(adeu) : '—'}</td>
+      <td class="mono">${rr.length}</td>
+      <td class="mono">${pct}</td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="7" class="empty">Sin datos</td></tr>';
+}
+
+// ═══════════════════════════════════════════════════════
+//  INGRESOS
+// ═══════════════════════════════════════════════════════
+function renderIngresos() {
+  const agrup  = document.getElementById('ing-agrupacion').value;
+  const cliente= document.getElementById('ing-cliente').value;
+  const tipo   = document.getElementById('ing-tipo').value;
+  const desde  = document.getElementById('ing-desde').value;
+  const hasta  = document.getElementById('ing-hasta').value;
+
+  let rows = tipo === 'cobrado' ? allRows.filter(r => r.estatus==='Pagada') : allRows;
+  if (cliente !== '__ALL__') rows = rows.filter(r => r._client===cliente);
+  if (desde) rows = rows.filter(r => r.fechaContable && r.fechaContable >= new Date(desde));
+  if (hasta) rows = rows.filter(r => r.fechaContable && r.fechaContable <= new Date(hasta+'T23:59:59'));
+
+  const total  = rows.reduce((s,r)=>s+r.monto,0);
+  const prom   = rows.length ? total/rows.length : 0;
+
+  document.getElementById('ing-kpis').innerHTML = `
+    <div class="kpi-card kpi-teal"><div class="kpi-label">${tipo==='cobrado'?'Total cobrado':'Total facturado'}</div><div class="kpi-value" style="color:var(--teal-light)">${fmtShort(total)}</div><div class="kpi-sub">${rows.length} facturas</div></div>
+    <div class="kpi-card"><div class="kpi-label">Promedio por factura</div><div class="kpi-value">${fmtShort(prom)}</div></div>
+  `;
+
+  // Group by period
+  const grouped = {};
+  rows.forEach(r => {
+    if (!r.fechaContable) return;
+    const k = groupKey(r.fechaContable, agrup);
+    grouped[k] = (grouped[k]||0) + r.monto;
+  });
+  const keys = Object.keys(grouped).sort();
+
+  document.getElementById('ing-chart-title').textContent =
+    `${tipo==='cobrado'?'Cobrado':'Facturado'} por ${agrup}`;
+  buildLineChart('chartIngresosLine', keys, keys.map(k=>grouped[k]));
+
+  // By client bar
+  const byC = {};
+  rows.forEach(r => byC[r._client]=(byC[r._client]||0)+r.monto);
+  const cliLabels = Object.keys(byC).sort((a,b)=>byC[b]-byC[a]).slice(0,12);
+  buildHBarChart('chartIngClienteBar', cliLabels, cliLabels.map(k=>byC[k]));
+}
+
+function groupKey(d, agrup) {
+  const y = d.getFullYear(), m = d.getMonth(), day = d.getDate();
+  if (agrup==='dia')      return `${y}-${String(m+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+  if (agrup==='semana') {
+    const ddd = new Date(d); ddd.setDate(day - d.getDay()+1);
+    return `${ddd.getFullYear()}-S${String(Math.ceil(ddd.getDate()/7)).padStart(2,'0')}`;
+  }
+  if (agrup==='quincena') return `${y}-${String(m+1).padStart(2,'0')}-${day<=15?'1ra':'2da'}`;
+  if (agrup==='mes')      return `${y}-${String(m+1).padStart(2,'0')}`;
+  return `${y}`;
+}
+
+// ═══════════════════════════════════════════════════════
+//  ESTADO DE CUENTA
+// ═══════════════════════════════════════════════════════
+function getFilteredEC() {
+  let rows  = [...allRows];
+  const cli = document.getElementById('ec-cliente').value;
+  const est = document.getElementById('ec-estatus').value;
+  const des = document.getElementById('ec-desde').value;
+  const has = document.getElementById('ec-hasta').value;
+  const bsc = (document.getElementById('ec-buscar').value||'').toLowerCase();
+
+  if (cli !== '__ALL__') rows = rows.filter(r => r._client===cli);
+  if (est) rows = rows.filter(r => r.estatus===est);
+  if (des) rows = rows.filter(r => r.fechaContable && r.fechaContable >= new Date(des));
+  if (has) rows = rows.filter(r => r.fechaContable && r.fechaContable <= new Date(has+'T23:59:59'));
+  if (bsc) rows = rows.filter(r =>
+    r.noFact.toLowerCase().includes(bsc) ||
+    r.concepto.toLowerCase().includes(bsc) ||
+    r._client.toLowerCase().includes(bsc)
+  );
+
+  const sc = sortState['ec'];
+  if (sc) rows.sort((a,b) => {
+    const av = a[sc.col], bv = b[sc.col];
+    if (av instanceof Date && bv instanceof Date) return sc.asc ? av-bv : bv-av;
+    if (typeof av==='number') return sc.asc ? av-bv : bv-av;
+    return sc.asc ? String(av||'').localeCompare(String(bv||''),'es') : String(bv||'').localeCompare(String(av||''),'es');
+  });
+  return rows;
+}
+
+function renderEstadoCuenta() {
+  ecPage = 1;
+  renderECPage();
+}
+
+function renderECPage() {
+  const rows   = getFilteredEC();
+  const start  = (ecPage-1)*EC_PAGE_SIZE;
+  const pageRows = rows.slice(start, start+EC_PAGE_SIZE);
+  const total  = rows.length;
+
+  document.getElementById('ec-count').textContent = `${total.toLocaleString('es-MX')} registros`;
+
+  document.getElementById('ec-table-body').innerHTML = pageRows.length ? pageRows.map(r => `
+    <tr>
+      <td class="mono">${fmtDate(r.fechaContable)}</td>
+      <td class="mono">${r.noFact||'—'}</td>
+      <td><strong>${r._client}</strong></td>
+      <td>${r.concepto||'—'}</td>
+      <td class="mono" style="text-align:right">${fmtMXN(r.monto)}</td>
+      <td><span class="tag-moneda">${r.moneda}</span></td>
+      <td class="mono" style="text-align:center">${r.diasTranscurridos||'—'}</td>
+      <td class="mono">${fmtDate(r.fechaProgramada)}</td>
+      <td class="mono">${fmtDate(r.fechaPago)}</td>
+      <td>${estatusBadge(r.estatus)}</td>
+      <td class="mono" style="text-align:right;color:${r.saldo>0?'var(--red)':'var(--muted)'}">${r.saldo>0?fmtMXN(r.saldo):'—'}</td>
+    </tr>`) .join('') : '<tr><td colspan="11" class="empty">Sin registros</td></tr>';
+
+  // Pagination
+  const totalPages = Math.ceil(total/EC_PAGE_SIZE);
+  const pag = document.getElementById('ec-pagination');
+  pag.innerHTML = '';
+  if (totalPages > 1) {
+    const prev = document.createElement('button');
+    prev.textContent = '‹ Anterior'; prev.disabled = ecPage===1;
+    prev.onclick = () => { ecPage--; renderECPage(); };
+    pag.appendChild(prev);
+    pag.innerHTML += `<span>Pág ${ecPage} / ${totalPages}</span>`;
+    const next = document.createElement('button');
+    next.textContent = 'Siguiente ›'; next.disabled = ecPage===totalPages;
+    next.onclick = () => { ecPage++; renderECPage(); };
+    pag.appendChild(next);
   }
 }
 
-function showToast(msg,type){
-  const t=document.getElementById('toast');
-  t.textContent=msg; t.className='toast show'+(type?' '+type:'');
-  clearTimeout(window._tt); window._tt=setTimeout(()=>t.classList.remove('show'),3000);
+function descargarCSV() {
+  const rows = getFilteredEC();
+  const cli  = document.getElementById('ec-cliente').value;
+  const headers = ['Cliente','Fecha','No. Factura','Concepto/Ruta','Monto','Moneda','Días','F. Prog. Pago','F. Real Pago','Estatus','Saldo'];
+  const lines = [headers.join(','), ...rows.map(r => [
+    r._client, fmtDate(r.fechaContable), r.noFact, `"${r.concepto}"`, r.monto, r.moneda,
+    r.diasTranscurridos, fmtDate(r.fechaProgramada), fmtDate(r.fechaPago), r.estatus, r.saldo
+  ].join(','))];
+  const blob = new Blob(['\uFEFF'+lines.join('\n')], {type:'text/csv;charset=utf-8'});
+  const a    = document.createElement('a');
+  a.href     = URL.createObjectURL(blob);
+  a.download = `estado-cuenta-${cli==='__ALL__'?'todos':cli}-${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
 }
 
-function switchTab(id,btn){
-  document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
-  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
-  document.getElementById('tab-'+id).classList.add('active');
-  btn.classList.add('active');
-}
+// ═══════════════════════════════════════════════════════
+//  VENCIDOS / POR COBRAR
+// ═══════════════════════════════════════════════════════
+function renderVencidos() {
+  const cli  = document.getElementById('vc-cliente').value;
+  const tipo = document.getElementById('vc-tipo').value;
 
-/* ================================================
-   RESUMEN GENERAL
-================================================ */
-function renderResumen(){
-  const rows=allRows(); const p=activePeriods['pgResumen'];
-  const totF=rows.reduce((s,r)=>s+toMXN(r,'monto'),0);
-  const totC=paid(rows).reduce((s,r)=>s+toMXN(r,'pagado'),0);
-  const totP=rows.filter(r=>r.estatus!=='PAGADO').reduce((s,r)=>s+toMXN(r,'adeudo'),0);
-  const totV=rows.filter(r=>r.estatus==='VENCIDO').reduce((s,r)=>s+toMXN(r,'adeudo'),0);
+  let rows = allRows.filter(r => r.estatus !== 'Pagada');
+  if (tipo === 'vencidas')   rows = allRows.filter(r => r.estatus==='Vencida');
+  if (tipo === 'pendientes') rows = allRows.filter(r => r.estatus==='Pendiente');
+  if (tipo === 'parciales')  rows = allRows.filter(r => r.estatus==='Parcial');
+  if (cli !== '__ALL__') rows = rows.filter(r => r._client===cli);
 
-  document.getElementById('kpi-resumen').innerHTML=
-    kpi('Total Facturado',fmt(totF),'',rows.length+' facturas')+
-    kpi('Total Cobrado',fmt(totC),'green',paid(rows).length+' pagos')+
-    kpi('Cartera Pendiente',fmt(totP),'amber',rows.filter(r=>r.estatus!=='PAGADO').length+' facturas')+
-    kpi('Cartera Vencida',fmt(totV),'red',rows.filter(r=>r.estatus==='VENCIDO').length+' facturas')+
-    kpi('Clientes Activos',allData.filter(c=>c.rows.length>0).length,'',CLIENTES.length+' configurados');
+  const totalMonto = rows.reduce((s,r)=>s+r.monto,0);
+  const totalSaldo = rows.reduce((s,r)=>s+(r.saldo||r.monto),0);
 
-  const tot=totC+totP||1;
-  document.getElementById('kpiPagado').textContent=fmt(totC);
-  document.getElementById('kpiPend').textContent=fmt(totP);
-  document.getElementById('kpiVenc').textContent=fmt(totV);
-  document.getElementById('barPagado').style.width=(totC/tot*100)+'%';
-  document.getElementById('barPend').style.width=(totP/tot*100)+'%';
-  document.getElementById('barVenc').style.width=(totV/tot*100)+'%';
+  document.getElementById('vc-kpis').innerHTML = `
+    <div class="kpi-card kpi-red"><div class="kpi-label">Monto por cobrar</div><div class="kpi-value" style="color:var(--red)">${fmtShort(totalSaldo)}</div><div class="kpi-sub">${rows.length} facturas</div></div>
+    <div class="kpi-card kpi-yellow"><div class="kpi-label">Facturado sin pagar</div><div class="kpi-value" style="color:var(--yellow)">${fmtShort(totalMonto)}</div></div>
+  `;
 
-  // Cobrado por período
-  const byP={};
-  paid(rows).forEach(r=>{const k=pkey(r.fechaPago,p);if(k)byP[k]=(byP[k]||0)+toMXN(r,'pagado');});
-  const ks=Object.keys(byP).sort();
-  dc('chartPeriodo');
-  charts['chartPeriodo']=new Chart(document.getElementById('chartPeriodo'),{
-    type:'bar',data:{labels:ks.map(k=>plabel(k,p)),
-      datasets:[{label:'Cobrado',data:ks.map(k=>byP[k]),backgroundColor:'#e8c96a33',borderColor:'#e8c96a',borderWidth:2,borderRadius:4}]},
-    options:copts(true)});
-
-  // Donut por cliente
-  const byC={};
-  paid(rows).forEach(r=>{byC[r.cliente]=(byC[r.cliente]||0)+toMXN(r,'pagado');});
-  const ck=Object.keys(byC).sort((a,b)=>byC[b]-byC[a]);
-  dc('chartDonut');
-  charts['chartDonut']=new Chart(document.getElementById('chartDonut'),{
-    type:'doughnut',data:{labels:ck,datasets:[{data:ck.map(k=>byC[k]),backgroundColor:CLR,borderWidth:0}]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{color:'#8b92a5',font:{family:'DM Mono',size:10},boxWidth:10}}}}});
-
-  // Top facturado
-  const byF={};
-  rows.forEach(r=>{byF[r.cliente]=(byF[r.cliente]||0)+toMXN(r,'monto');});
-  const fk=Object.keys(byF).sort((a,b)=>byF[b]-byF[a]).slice(0,8);
-  dc('chartTopFact');
-  charts['chartTopFact']=new Chart(document.getElementById('chartTopFact'),{
-    type:'bar',data:{labels:fk,datasets:[{data:fk.map(k=>byF[k]),backgroundColor:'#60a5fa33',borderColor:'#60a5fa',borderWidth:2,borderRadius:4}]},
-    options:{...copts(true),indexAxis:'y'}});
-
-  // Antigüedad
-  const bk={'0-30':0,'31-60':0,'61-90':0,'91-120':0,'>120':0};
-  rows.filter(r=>r.estatus!=='PAGADO').forEach(r=>{
-    const d=r.diasTranscurridos,v=toMXN(r,'adeudo');
-    if(d<=30)bk['0-30']+=v;else if(d<=60)bk['31-60']+=v;else if(d<=90)bk['61-90']+=v;else if(d<=120)bk['91-120']+=v;else bk['>120']+=v;
+  // Client cards
+  const byC = {};
+  rows.forEach(r => {
+    if (!byC[r._client]) byC[r._client]={monto:0,count:0};
+    byC[r._client].monto += r.saldo||r.monto;
+    byC[r._client].count++;
   });
-  dc('chartAntig');
-  charts['chartAntig']=new Chart(document.getElementById('chartAntig'),{
-    type:'bar',data:{labels:Object.keys(bk).map(k=>k+' días'),
-      datasets:[{data:Object.values(bk),backgroundColor:['#4ade8044','#e8c96a44','#fb923c44','#f8717144','#dc262644'],borderColor:['#4ade80','#e8c96a','#fb923c','#f87171','#dc2626'],borderWidth:2,borderRadius:4}]},
-    options:copts(true)});
+  const maxM = Math.max(...Object.values(byC).map(v=>v.monto).concat([1]));
+  const cards = document.getElementById('vc-cliente-cards');
+  cards.innerHTML = Object.entries(byC).sort((a,b)=>b[1].monto-a[1].monto).map(([name,d])=>`
+    <div class="client-card">
+      <div class="client-name">${name}</div>
+      <div class="client-total" style="color:var(--red)">${fmtShort(d.monto)}</div>
+      <div class="client-meta">${d.count} facturas pendientes</div>
+      <div class="client-bar-wrap"><div class="client-bar" style="width:${(d.monto/maxM*100).toFixed(0)}%;background:var(--red)"></div></div>
+    </div>`).join('') || '<div style="color:var(--muted);font-size:12px;padding:8px">Sin registros</div>';
+
+  // Sort
+  const sc = sortState['vc'];
+  if (sc) rows.sort((a,b) => {
+    const av=a[sc.col], bv=b[sc.col];
+    if (av instanceof Date && bv instanceof Date) return sc.asc?av-bv:bv-av;
+    if (typeof av==='number') return sc.asc?av-bv:bv-av;
+    return sc.asc?String(av||'').localeCompare(String(bv||''),'es'):String(bv||'').localeCompare(String(av||''),'es');
+  });
+
+  document.getElementById('vc-count').textContent = `${rows.length} registros`;
+  document.getElementById('vc-table-body').innerHTML = rows.length ? rows.map(r=>`
+    <tr>
+      <td><strong>${r._client}</strong></td>
+      <td class="mono">${fmtDate(r.fechaContable)}</td>
+      <td class="mono">${r.noFact||'—'}</td>
+      <td>${r.concepto||'—'}</td>
+      <td class="mono" style="text-align:right;color:var(--red)">${fmtMXN(r.monto)}</td>
+      <td class="mono" style="text-align:center">${r.diasTranscurridos||'—'}</td>
+      <td class="mono">${fmtDate(r.fechaProgramada)}</td>
+      <td>${estatusBadge(r.estatus)}</td>
+      <td class="mono" style="text-align:right;color:var(--red)">${fmtMXN(r.saldo||r.monto)}</td>
+    </tr>`).join('') : '<tr><td colspan="9" class="empty">Sin registros</td></tr>';
 }
 
-/* ================================================
-   COMPARATIVO AA
-================================================ */
-function renderComparativo(){
-  const rows=allRows();
-  const cli=document.getElementById('compClienteFilter')?document.getElementById('compClienteFilter').value:'';
-  const src=cli?rows.filter(r=>r.cliente===cli):rows;
-  const y=new Date().getFullYear();
-  const aa=src.filter(r=>r.fechaFactura&&r.fechaFactura.getFullYear()===y);
-  const aa1=src.filter(r=>r.fechaFactura&&r.fechaFactura.getFullYear()===y-1);
-  const fAA=aa.reduce((s,r)=>s+toMXN(r,'monto'),0);
-  const fAA1=aa1.reduce((s,r)=>s+toMXN(r,'monto'),0);
-  const cAA=paid(aa).reduce((s,r)=>s+toMXN(r,'pagado'),0);
-  const cAA1=paid(aa1).reduce((s,r)=>s+toMXN(r,'pagado'),0);
-  const vf=fAA1?((fAA-fAA1)/fAA1*100):0;
-  const vc=cAA1?((cAA-cAA1)/cAA1*100):0;
-  document.getElementById('kpi-comp').innerHTML=
-    kpi('Facturado '+y,fmt(fAA),'',aa.length+' facturas')+
-    kpi('Facturado '+(y-1),fmt(fAA1),'',aa1.length+' facturas')+
-    kpi('Var. Facturado',(vf>=0?'+':'')+vf.toFixed(1)+'%',vf>=0?'green':'red','vs año anterior')+
-    kpi('Cobrado '+y,fmt(cAA),'green','')+
-    kpi('Var. Cobrado',(vc>=0?'+':'')+vc.toFixed(1)+'%',vc>=0?'green':'red','vs año anterior');
+// ═══════════════════════════════════════════════════════
+//  SORT
+// ═══════════════════════════════════════════════════════
+function sortTable(prefix, col) {
+  if (sortState[prefix]?.col === col) sortState[prefix].asc = !sortState[prefix].asc;
+  else sortState[prefix] = {col, asc:true};
+  if (prefix==='ec') renderECPage();
+  if (prefix==='vc') renderVencidos();
+}
 
-  const MN=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
-  const faA=Array(12).fill(0),fa1=Array(12).fill(0),caA=Array(12).fill(0),ca1=Array(12).fill(0);
-  aa.forEach(r=>{if(r.fechaFactura)faA[r.fechaFactura.getMonth()]+=toMXN(r,'monto');});
-  aa1.forEach(r=>{if(r.fechaFactura)fa1[r.fechaFactura.getMonth()]+=toMXN(r,'monto');});
-  paid(aa).forEach(r=>{if(r.fechaPago)caA[r.fechaPago.getMonth()]+=toMXN(r,'pagado');});
-  paid(aa1).forEach(r=>{if(r.fechaPago)ca1[r.fechaPago.getMonth()]+=toMXN(r,'pagado');});
+// ═══════════════════════════════════════════════════════
+//  CHARTS
+// ═══════════════════════════════════════════════════════
+const TEAL_PALETTE = ['#00897B','#4DB6AC','#26A69A','#80CBC4','#00695C','#B2DFDB','#004D40','#1DE9B6'];
 
-  const lo={...copts(true),plugins:{...copts(true).plugins,legend:{display:true,labels:{color:'#8b92a5',font:{family:'DM Mono',size:10}}}}};
-  dc('chartCompFact');
-  charts['chartCompFact']=new Chart(document.getElementById('chartCompFact'),{type:'bar',data:{labels:MN,datasets:[
-    {label:''+y,data:faA,backgroundColor:'#e8c96a44',borderColor:'#e8c96a',borderWidth:2,borderRadius:3},
-    {label:''+(y-1),data:fa1,backgroundColor:'#60a5fa33',borderColor:'#60a5fa',borderWidth:2,borderRadius:3}]},options:lo});
-  dc('chartCompCob');
-  charts['chartCompCob']=new Chart(document.getElementById('chartCompCob'),{type:'bar',data:{labels:MN,datasets:[
-    {label:''+y,data:caA,backgroundColor:'#4ade8033',borderColor:'#4ade80',borderWidth:2,borderRadius:3},
-    {label:''+(y-1),data:ca1,backgroundColor:'#a78bfa33',borderColor:'#a78bfa',borderWidth:2,borderRadius:3}]},options:lo});
-
-  const tbody=document.getElementById('tbodyComp'); tbody.innerHTML='';
-  allData.filter(c=>c.rows.length>0).forEach(c=>{
-    const caa=c.rows.filter(r=>r.fechaFactura&&r.fechaFactura.getFullYear()===y);
-    const ca1=c.rows.filter(r=>r.fechaFactura&&r.fechaFactura.getFullYear()===y-1);
-    const f=caa.reduce((s,r)=>s+toMXN(r,'monto'),0);
-    const f1=ca1.reduce((s,r)=>s+toMXN(r,'monto'),0);
-    const co=paid(caa).reduce((s,r)=>s+toMXN(r,'pagado'),0);
-    const pe=caa.filter(r=>r.estatus!=='PAGADO').reduce((s,r)=>s+toMXN(r,'adeudo'),0);
-    const ve=caa.filter(r=>r.estatus==='VENCIDO').reduce((s,r)=>s+toMXN(r,'adeudo'),0);
-    const vr=f1?((f-f1)/f1*100):0;
-    const pc=f?(co/f*100):0;
-    tbody.innerHTML+='<tr><td>'+c.cliente+'</td><td>'+fmt(f)+'</td><td>'+fmt(f1)+'</td>'+
-      '<td class="'+(vr>=0?'delta-pos':'delta-neg')+'">'+(vr>=0?'+':'')+vr.toFixed(1)+'%</td>'+
-      '<td style="color:var(--green)">'+fmt(co)+'</td>'+
-      '<td style="color:var(--amber)">'+fmt(pe)+'</td>'+
-      '<td style="color:'+(ve>0?'var(--red)':'var(--text3)')+'">'+fmt(ve)+'</td>'+
-      '<td style="color:'+(pc>=80?'var(--green)':pc>=50?'var(--amber)':'var(--red)')+'">'+pc.toFixed(1)+'%</td></tr>';
+function buildBarChart(id, labels, data, label) {
+  if (charts[id]) charts[id].destroy();
+  const ctx = document.getElementById(id).getContext('2d');
+  charts[id] = new Chart(ctx, {
+    type: 'bar',
+    data: { labels, datasets:[{ label, data, backgroundColor:'rgba(0,137,123,.7)', borderRadius:3 }] },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins: {
+        legend:{display:false},
+        datalabels:{
+          color:'#A0AEC0', font:{size:9,family:'IBM Plex Mono'},
+          formatter: v => fmtShort(v), anchor:'end', align:'top'
+        }
+      },
+      scales: {
+        x:{ grid:{color:'rgba(255,255,255,.04)'}, ticks:{color:'#718096',font:{size:10}} },
+        y:{ grid:{color:'rgba(255,255,255,.04)'}, ticks:{color:'#718096',font:{size:10},callback:v=>fmtShort(v)} }
+      }
+    },
+    plugins:[ChartDataLabels]
   });
 }
 
-/* ================================================
-   INGRESOS
-================================================ */
-function renderIngresos(){
-  const p=activePeriods['pgIngresos'];
-  const cli=document.getElementById('ingClienteFilter').value;
-  const mon=document.getElementById('ingMonedaFilter').value;
-  let rows=paid(allRows());
-  if(cli)rows=rows.filter(r=>r.cliente===cli);
-  if(mon)rows=rows.filter(r=>r.moneda===mon);
-  const totC=rows.reduce((s,r)=>s+(r.montoPagado||r.monto),0);
-  const prom=rows.length?totC/rows.length:0;
-  const maxP=rows.reduce((mx,r)=>Math.max(mx,r.montoPagado||r.monto),0);
-  document.getElementById('kpi-ingresos').innerHTML=
-    kpi('Total Cobrado',fmt(totC,mon||'MXN'),'green',rows.length+' pagos')+
-    kpi('Ticket Promedio',fmt(prom,mon||'MXN'),'','')+
-    kpi('Pago Mayor',fmt(maxP,mon||'MXN'),'','');
-  const byP={};
-  rows.forEach(r=>{const k=pkey(r.fechaPago,p);if(k)byP[k]=(byP[k]||0)+(r.montoPagado||r.monto);});
-  const ks=Object.keys(byP).sort();
-  dc('chartIngBar');
-  charts['chartIngBar']=new Chart(document.getElementById('chartIngBar'),{type:'bar',
-    data:{labels:ks.map(k=>plabel(k,p)),datasets:[{label:'Cobrado',data:ks.map(k=>byP[k]),backgroundColor:'#4ade8033',borderColor:'#4ade80',borderWidth:2,borderRadius:4}]},
-    options:copts(true)});
-  const tbody=document.getElementById('tbodyIngresos'); tbody.innerHTML='';
-  rows.sort((a,b)=>(b.fechaPago||0)-(a.fechaPago||0)).forEach(r=>{
-    tbody.innerHTML+='<tr><td>'+fmtD(r.fechaPago)+'</td><td>'+r.cliente+'</td>'+
-      '<td style="font-family:monospace;font-size:11px">'+(r.numFactura||'—')+'</td>'+
-      '<td>'+(r.ruta||'—')+'</td>'+
-      '<td class="num">'+fmt(r.monto,r.moneda)+'</td>'+
-      '<td class="num" style="color:var(--green)">'+fmt(r.montoPagado||r.monto,r.moneda)+'</td>'+
-      '<td><span class="badge '+(r.moneda==='USD'?'badge-partial':'badge-neutral')+'">'+r.moneda+'</span></td>'+
-      '<td class="num">'+(r.diasCredito||'—')+'</td>'+
-      '<td style="font-family:DM Mono,monospace;font-size:10px">'+(plabel(pkey(r.fechaPago,p),p)||'—')+'</td></tr>';
-  });
-  if(!rows.length)tbody.innerHTML='<tr><td colspan="9"><div class="empty-state"><div class="empty-icon">&#128235;</div><h3>Sin cobros</h3></div></td></tr>';
-}
-
-/* ================================================
-   CARTERA VIVA
-================================================ */
-function renderCartera(){
-  const cli=document.getElementById('cartClienteFilter').value;
-  const est=document.getElementById('cartEstatusFilter').value;
-  const srch=(document.getElementById('cartSearch').value||'').toLowerCase();
-  let rows=allRows().filter(r=>r.estatus!=='PAGADO');
-  if(cli)rows=rows.filter(r=>r.cliente===cli);
-  if(est)rows=rows.filter(r=>r.estatus===est);
-  if(srch)rows=rows.filter(r=>(r.numFactura||'').toLowerCase().includes(srch)||(r.ruta||'').toLowerCase().includes(srch));
-  const totP=rows.reduce((s,r)=>s+toMXN(r,'adeudo'),0);
-  const totV=rows.filter(r=>r.estatus==='VENCIDO').reduce((s,r)=>s+toMXN(r,'adeudo'),0);
-  document.getElementById('kpi-cartera').innerHTML=
-    kpi('Cartera Viva',fmt(totP),'amber',rows.length+' facturas')+
-    kpi('Cartera Vencida',fmt(totV),'red',rows.filter(r=>r.estatus==='VENCIDO').length+' facturas')+
-    kpi('Parciales',rows.filter(r=>r.estatus==='PARCIAL').length,'','facturas');
-  const bk={'0-30':0,'31-60':0,'61-90':0,'91-120':0,'>120':0};
-  rows.forEach(r=>{const d=r.diasTranscurridos,v=toMXN(r,'adeudo');
-    if(d<=30)bk['0-30']+=v;else if(d<=60)bk['31-60']+=v;else if(d<=90)bk['61-90']+=v;else if(d<=120)bk['91-120']+=v;else bk['>120']+=v;});
-  dc('chartCartAntig');
-  charts['chartCartAntig']=new Chart(document.getElementById('chartCartAntig'),{type:'bar',
-    data:{labels:Object.keys(bk).map(k=>k+' días'),datasets:[{data:Object.values(bk),backgroundColor:['#4ade8044','#e8c96a44','#fb923c44','#f8717144','#dc262644'],borderColor:['#4ade80','#e8c96a','#fb923c','#f87171','#dc2626'],borderWidth:2,borderRadius:4}]},
-    options:copts(true)});
-  const byC={};
-  rows.filter(r=>r.estatus==='VENCIDO').forEach(r=>{byC[r.cliente]=(byC[r.cliente]||0)+toMXN(r,'adeudo');});
-  const ck=Object.keys(byC).sort((a,b)=>byC[b]-byC[a]);
-  dc('chartCartVenc');
-  charts['chartCartVenc']=new Chart(document.getElementById('chartCartVenc'),{type:'bar',
-    data:{labels:ck,datasets:[{data:ck.map(k=>byC[k]),backgroundColor:'#f8717133',borderColor:'#f87171',borderWidth:2,borderRadius:4}]},
-    options:{...copts(true),indexAxis:'y'}});
-  const tbody=document.getElementById('tbodyCartera'); tbody.innerHTML='';
-  rows.sort((a,b)=>b.diasTranscurridos-a.diasTranscurridos).forEach(r=>{
-    tbody.innerHTML+='<tr><td>'+fmtD(r.fechaFactura)+'</td><td>'+r.cliente+'</td>'+
-      '<td style="font-family:monospace;font-size:11px">'+(r.numFactura||'—')+'</td>'+
-      '<td>'+(r.ruta||'—')+'</td>'+
-      '<td class="num">'+fmt(r.monto,r.moneda)+'</td>'+
-      '<td><span class="badge '+(r.moneda==='USD'?'badge-partial':'badge-neutral')+'">'+r.moneda+'</span></td>'+
-      '<td class="num">'+(r.diasCredito||'—')+'</td>'+
-      '<td class="num" style="color:'+(r.diasTranscurridos>r.diasCredito&&r.diasCredito>0?'var(--red)':'inherit')+'">'+(r.diasTranscurridos||'—')+'</td>'+
-      '<td class="num" style="color:var(--red)">'+(r.adeudo?fmt(r.adeudo,r.moneda):'—')+'</td>'+
-      '<td class="center">'+bdg(r.estatus)+'</td></tr>';
-  });
-  if(!rows.length)tbody.innerHTML='<tr><td colspan="10"><div class="empty-state"><div class="empty-icon">&#9989;</div><h3>Sin cartera pendiente</h3></div></td></tr>';
-}
-
-/* ================================================
-   POR CLIENTE
-================================================ */
-function renderClienteCards(){
-  const cont=document.getElementById('clienteCards'); cont.innerHTML='';
-  allData.forEach(c=>{
-    if(!c.rows.length)return;
-    const totF=c.rows.reduce((s,r)=>s+toMXN(r,'monto'),0);
-    const totC=paid(c.rows).reduce((s,r)=>s+toMXN(r,'pagado'),0);
-    const nV=c.rows.filter(r=>r.estatus==='VENCIDO').length;
-    const pct=totF?Math.round(totC/totF*100):0;
-    const div=document.createElement('div');
-    div.className='client-card'+(activeCliente===c.cliente?' active':'');
-    div.onclick=()=>{activeCliente=c.cliente;renderClienteCards();renderClienteDetalle(c.cliente);};
-    div.innerHTML='<div class="client-name">'+c.cliente+'</div>'+
-      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">'+
-        '<div><div style="font-size:10px;color:var(--text3);font-family:DM Mono,monospace">FACTURADO</div><div style="font-size:13px;font-weight:600">'+fmt(totF)+'</div></div>'+
-        '<div><div style="font-size:10px;color:var(--text3);font-family:DM Mono,monospace">COBRADO</div><div style="font-size:13px;font-weight:600;color:var(--green)">'+fmt(totC)+'</div></div>'+
-        '<div><div style="font-size:10px;color:var(--text3);font-family:DM Mono,monospace">FACTURAS</div><div style="font-size:13px;font-weight:600">'+c.rows.length+'</div></div>'+
-        '<div><div style="font-size:10px;color:var(--text3);font-family:DM Mono,monospace">VENCIDAS</div><div style="font-size:13px;font-weight:600;color:'+(nV>0?'var(--red)':'var(--text3)')+'">'+nV+'</div></div>'+
-      '</div>'+
-      '<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text3);font-family:DM Mono,monospace;margin-bottom:4px"><span>COBRADO '+pct+'%</span></div>'+
-      '<div class="progress-bar"><div class="progress-fill '+(pct>=80?'green':pct<50?'red':'')+'" style="width:'+pct+'%"></div></div>';
-    cont.appendChild(div);
-  });
-  if(!cont.children.length)cont.innerHTML='<div class="empty-state"><div class="empty-icon">&#128452;</div><h3>Cargando clientes...</h3></div>';
-}
-
-function renderClienteDetalle(nombre){
-  const p=activePeriods['pgClientes'];
-  const c=allData.find(x=>x.cliente===nombre); if(!c)return;
-  document.getElementById('panelClienteDet').style.display='block';
-  document.getElementById('clienteDetTitle').textContent='Estado de Cuenta — '+nombre;
-  document.getElementById('btnPDFCliente').onclick=()=>openPDFModal(nombre);
-  const byP={};
-  paid(c.rows).forEach(r=>{const k=pkey(r.fechaPago,p);if(k)byP[k]=(byP[k]||0)+(r.montoPagado||r.monto);});
-  const ks=Object.keys(byP).sort();
-  dc('chartClientePer');
-  charts['chartClientePer']=new Chart(document.getElementById('chartClientePer'),{type:'bar',
-    data:{labels:ks.map(k=>plabel(k,p)),datasets:[{label:'Cobrado',data:ks.map(k=>byP[k]),backgroundColor:'#e8c96a33',borderColor:'#e8c96a',borderWidth:2,borderRadius:4}]},
-    options:copts(true)});
-  const ec={};
-  c.rows.forEach(r=>{ec[r.estatus]=(ec[r.estatus]||0)+1;});
-  const eC={PAGADO:'#4ade80',PENDIENTE:'#fbbf24',VENCIDO:'#f87171',PARCIAL:'#60a5fa'};
-  dc('chartClienteEst');
-  charts['chartClienteEst']=new Chart(document.getElementById('chartClienteEst'),{type:'doughnut',
-    data:{labels:Object.keys(ec),datasets:[{data:Object.values(ec),backgroundColor:Object.keys(ec).map(k=>eC[k]||'#555'),borderWidth:0}]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:'#8b92a5',font:{family:'DM Mono',size:10},boxWidth:10}}}}});
-  const tbody=document.getElementById('tbodyClienteDet'); tbody.innerHTML='';
-  c.rows.sort((a,b)=>(b.fechaFactura||0)-(a.fechaFactura||0)).forEach(r=>{
-    tbody.innerHTML+='<tr><td>'+fmtD(r.fechaFactura)+'</td>'+
-      '<td style="font-family:monospace;font-size:11px">'+(r.numFactura||'—')+'</td>'+
-      '<td>'+(r.ruta||'—')+'</td>'+
-      '<td class="num">'+fmt(r.monto,r.moneda)+'</td>'+
-      '<td>'+r.moneda+'</td>'+
-      '<td class="num">'+(r.diasCredito||'—')+'</td>'+
-      '<td class="num" style="color:'+(r.diasTranscurridos>r.diasCredito&&r.diasCredito>0&&r.estatus!=='PAGADO'?'var(--red)':'inherit')+'">'+(r.diasTranscurridos||'—')+'</td>'+
-      '<td class="num" style="color:var(--red)">'+(r.adeudo?fmt(r.adeudo,r.moneda):'—')+'</td>'+
-      '<td class="center">'+bdg(r.estatus)+'</td>'+
-      '<td>'+fmtD(r.fechaPago)+'</td></tr>';
+function buildLineChart(id, labels, data) {
+  if (charts[id]) charts[id].destroy();
+  const ctx = document.getElementById(id).getContext('2d');
+  charts[id] = new Chart(ctx, {
+    type:'line',
+    data:{labels, datasets:[{
+      label:'Monto', data, borderColor:'#00897B', backgroundColor:'rgba(0,137,123,.1)',
+      fill:true, tension:.35, pointRadius:4, pointBackgroundColor:'#4DB6AC'
+    }]},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{display:false},
+        datalabels:{ color:'#A0AEC0', font:{size:9}, formatter:v=>fmtShort(v), align:'top' }
+      },
+      scales:{
+        x:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#718096',font:{size:10}}},
+        y:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#718096',font:{size:10},callback:v=>fmtShort(v)}}
+      }
+    },
+    plugins:[ChartDataLabels]
   });
 }
 
-/* ================================================
-   ESTADOS DE CUENTA
-================================================ */
-function renderEstados(){
-  const cont=document.getElementById('estadosGrid'); cont.innerHTML='';
-  allData.forEach(c=>{
-    if(!c.rows.length&&!c.error)return;
-    const totF=c.rows.reduce((s,r)=>s+toMXN(r,'monto'),0);
-    const totC=paid(c.rows).reduce((s,r)=>s+toMXN(r,'pagado'),0);
-    const totP=c.rows.filter(r=>r.estatus!=='PAGADO').reduce((s,r)=>s+toMXN(r,'adeudo'),0);
-    const totV=c.rows.filter(r=>r.estatus==='VENCIDO').reduce((s,r)=>s+toMXN(r,'adeudo'),0);
-    const div=document.createElement('div'); div.className='client-card';
-    const n=c.cliente;
-    div.innerHTML='<div class="client-name">'+n+'</div>'+
-      (c.error?'<p style="color:var(--red);font-size:11px;margin-bottom:10px">&#9888; '+c.error+'</p>':
-        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px">'+
-          '<div><div style="font-size:10px;color:var(--text3);font-family:DM Mono,monospace">FACTURADO</div><div style="font-size:12px;font-weight:600">'+fmt(totF)+'</div></div>'+
-          '<div><div style="font-size:10px;color:var(--text3);font-family:DM Mono,monospace">COBRADO</div><div style="font-size:12px;font-weight:600;color:var(--green)">'+fmt(totC)+'</div></div>'+
-          '<div><div style="font-size:10px;color:var(--text3);font-family:DM Mono,monospace">PENDIENTE</div><div style="font-size:12px;font-weight:600;color:var(--amber)">'+fmt(totP)+'</div></div>'+
-          '<div><div style="font-size:10px;color:var(--text3);font-family:DM Mono,monospace">VENCIDO</div><div style="font-size:12px;font-weight:600;color:'+(totV>0?'var(--red)':'var(--text3)')+'">'+fmt(totV)+'</div></div>'+
-        '</div><div style="font-size:11px;color:var(--text3);margin-bottom:12px">'+c.rows.length+' registros</div>')+
-      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'+
-        '<button class="pdf-btn" style="justify-content:center;width:100%" onclick="openPDFModal(\''+n+'\')">&#128196; PDF</button>'+
-        '<button class="download-btn" style="justify-content:center;width:100%" onclick="doCSV((allData.find(x=>x.cliente===\''+n+'\')||{rows:[]}).rows,\'EC_'+n+'\')">&#8595; CSV</button>'+
-      '</div>';
-    cont.appendChild(div);
+function buildHBarChart(id, labels, data) {
+  if (charts[id]) charts[id].destroy();
+  const ctx = document.getElementById(id).getContext('2d');
+  charts[id] = new Chart(ctx, {
+    type:'bar',
+    data:{labels, datasets:[{
+      label:'Monto', data,
+      backgroundColor: labels.map((_,i) => TEAL_PALETTE[i%TEAL_PALETTE.length]),
+      borderRadius:3
+    }]},
+    options:{
+      indexAxis:'y',
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{display:false},
+        datalabels:{color:'#A0AEC0',font:{size:9},formatter:v=>fmtShort(v),align:'right'}
+      },
+      scales:{
+        x:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#718096',font:{size:10},callback:v=>fmtShort(v)}},
+        y:{grid:{display:false},ticks:{color:'#A0AEC0',font:{size:11}}}
+      }
+    },
+    plugins:[ChartDataLabels]
   });
 }
 
-/* ================================================
-   PDF
-================================================ */
-function openPDFModal(n){
-  pdfClienteActivo=n;
-  document.getElementById('pdfRazon').value=n;
-  document.getElementById('pdfRFC').value='';
-  document.getElementById('pdfNotas').value='Favor de liquidar los saldos vencidos a la brevedad.';
-  const hoy=new Date();
-  document.getElementById('pdfDesde').value=new Date(hoy.getFullYear(),hoy.getMonth()-1,1).toISOString().slice(0,10);
-  document.getElementById('pdfHasta').value=hoy.toISOString().slice(0,10);
-  document.getElementById('pdfModal').classList.add('open');
-}
-function closePDFModal(){ document.getElementById('pdfModal').classList.remove('open'); pdfClienteActivo=null; }
-
-function generarPDF(){
-  const n=pdfClienteActivo;
-  const c=allData.find(x=>x.cliente===n);
-  if(!c||!c.rows.length){showToast('Sin datos','error');return;}
-  const rfc=document.getElementById('pdfRFC').value.trim()||'—';
-  const razon=document.getElementById('pdfRazon').value.trim()||n;
-  const desde=document.getElementById('pdfDesde').value;
-  const hasta=document.getElementById('pdfHasta').value;
-  const notas=document.getElementById('pdfNotas').value.trim();
-  let rows=c.rows.slice();
-  if(desde)rows=rows.filter(r=>r.fechaFactura&&r.fechaFactura>=new Date(desde));
-  if(hasta)rows=rows.filter(r=>r.fechaFactura&&r.fechaFactura<=new Date(hasta+'T23:59:59'));
-  rows.sort((a,b)=>(a.fechaFactura||0)-(b.fechaFactura||0));
-  const totF=rows.reduce((s,r)=>s+toMXN(r,'monto'),0);
-  const totC=paid(rows).reduce((s,r)=>s+toMXN(r,'pagado'),0);
-  const totP=rows.filter(r=>r.estatus!=='PAGADO').reduce((s,r)=>s+toMXN(r,'adeudo'),0);
-  const totV=rows.filter(r=>r.estatus==='VENCIDO').reduce((s,r)=>s+toMXN(r,'adeudo'),0);
-  const fc=new Date().toLocaleDateString('es-MX',{day:'2-digit',month:'long',year:'numeric'});
-  const per=desde||hasta?((desde?new Date(desde).toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'}):'—')+' al '+(hasta?new Date(hasta).toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'}):'—')):'Historial completo';
-  const sc={PAGADO:'background:#d1fae5;color:#065f46',VENCIDO:'background:#fee2e2;color:#991b1b',PENDIENTE:'background:#fef3c7;color:#92400e',PARCIAL:'background:#dbeafe;color:#1e40af'};
-  const filas=rows.map(r=>'<tr><td>'+fmtD(r.fechaFactura)+'</td><td style="font-family:monospace;font-size:11px">'+(r.numFactura||'—')+'</td><td>'+(r.ruta||'—')+'</td><td style="text-align:right">'+fmt(r.monto,r.moneda)+'</td><td style="text-align:center">'+r.moneda+'</td><td style="text-align:center">'+(r.diasCredito||'—')+'</td><td style="text-align:center;color:'+(r.diasTranscurridos>r.diasCredito&&r.estatus!=='PAGADO'?'#dc2626':'inherit')+'">'+(r.diasTranscurridos||'—')+'</td><td style="text-align:right;color:#dc2626;font-weight:600">'+(r.adeudo?fmt(r.adeudo,r.moneda):'—')+'</td><td style="text-align:center"><span style="'+( sc[r.estatus]||'background:#f3f4f6;color:#374151')+';padding:2px 7px;border-radius:3px;font-size:10px;font-weight:600">'+r.estatus+'</span></td><td>'+fmtD(r.fechaPago)+'</td></tr>').join('');
-  const w=window.open('','_blank');
-  if(!w){showToast('Permite ventanas emergentes','error');return;}
-  w.document.write('<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Estado de Cuenta - '+razon+'</title><style>@import url(\'https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500&family=DM+Mono:wght@400&display=swap\');*{box-sizing:border-box;margin:0;padding:0}body{font-family:DM Sans,sans-serif;background:#fff;color:#1a1a2e;font-size:12px}.page{max-width:900px;margin:0 auto;padding:36px 40px}.hbar{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:28px;padding-bottom:20px;border-bottom:3px solid #1a1a2e}.logo{display:flex;align-items:center;gap:14px}.losq{width:52px;height:52px;background:#1a1a2e;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#e8c96a;font-family:Syne,sans-serif;font-weight:800;font-size:18px}.brand{font-family:Syne,sans-serif;font-size:20px;font-weight:800}.bsub{font-family:DM Mono,monospace;font-size:10px;color:#888;letter-spacing:1.5px;margin-top:3px}.dinfo{text-align:right}.dtitle{font-family:Syne,sans-serif;font-size:22px;font-weight:800}.ddate{font-family:DM Mono,monospace;font-size:11px;color:#888;margin-top:3px}.cblock{background:#f8f9fa;border-left:4px solid #e8c96a;padding:16px 20px;border-radius:0 6px 6px 0;margin-bottom:22px;display:grid;grid-template-columns:1fr 1fr;gap:10px}.il{font-family:DM Mono,monospace;font-size:9px;color:#888;text-transform:uppercase;letter-spacing:1px;margin-bottom:2px}.iv{font-family:Syne,sans-serif;font-size:14px;font-weight:700}.kstrip{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:22px}.kp{border:1px solid #e5e7eb;border-radius:8px;padding:14px 16px}.kl{font-family:DM Mono,monospace;font-size:9px;color:#888;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}.kv{font-family:Syne,sans-serif;font-size:16px;font-weight:800}.st{font-family:Syne,sans-serif;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #e5e7eb}table{width:100%;border-collapse:collapse;font-size:11px}thead tr{background:#1a1a2e;color:#e8c96a}thead th{padding:9px 10px;text-align:left;font-family:DM Mono,monospace;font-size:9px;letter-spacing:.8px;text-transform:uppercase;white-space:nowrap}tbody tr:nth-child(even){background:#f9fafb}tbody td{padding:7px 10px;border-bottom:1px solid #f0f0f0;color:#374151;vertical-align:middle}.foot{margin-top:28px;padding-top:16px;border-top:2px solid #1a1a2e;display:flex;justify-content:space-between;align-items:flex-end}.fnl{font-family:DM Mono,monospace;font-size:9px;color:#888;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}.fln{width:180px;border-top:1px solid #1a1a2e;margin-bottom:4px;margin-left:auto}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}.page{padding:20px}}</style></head><body><div class="page"><div class="hbar"><div class="logo"><div class="losq">LU</div><div><div class="brand">Logistics Ultra</div><div class="bsub">ESTADO DE CUENTA</div></div></div><div class="dinfo"><div class="dtitle">Estado de Cuenta</div><div class="ddate">Fecha de corte: '+fc+'</div><div class="ddate">Per\u00edodo: '+per+'</div></div></div><div class="cblock"><div><div class="il">Raz\u00f3n Social</div><div class="iv">'+razon+'</div></div><div><div class="il">RFC</div><div class="iv">'+rfc+'</div></div><div><div class="il">Cliente</div><div class="iv">'+n+'</div></div><div><div class="il">No. Facturas</div><div class="iv">'+rows.length+'</div></div></div><div class="kstrip"><div class="kp"><div class="kl">Total Facturado</div><div class="kv" style="color:#1a1a2e">'+fmt(totF)+'</div></div><div class="kp"><div class="kl">Total Cobrado</div><div class="kv" style="color:#065f46">'+fmt(totC)+'</div></div><div class="kp"><div class="kl">Saldo Pendiente</div><div class="kv" style="color:#92400e">'+fmt(totP)+'</div></div><div class="kp"><div class="kl">Saldo Vencido</div><div class="kv" style="color:#991b1b">'+fmt(totV)+'</div></div></div><div class="st">Detalle de Facturas</div><table><thead><tr><th>Fecha</th><th>No. Factura</th><th>Ruta / Servicio</th><th>Monto</th><th>Moneda</th><th>Cr\u00e9d.</th><th>D\u00edas</th><th>Adeudo</th><th>Estatus</th><th>Fecha Pago</th></tr></thead><tbody>'+filas+'</tbody></table><div class="foot"><div>'+(notas?'<div class="fnl">Observaciones</div><p style="font-size:11px;color:#555;max-width:480px;line-height:1.5">'+notas+'</p>':'')+'<p style="font-size:10px;color:#aaa;margin-top:8px">Documento generado el '+fc+' \u00b7 Logistics Ultra</p></div><div><div class="fln"></div><div class="fnl" style="text-align:right">Autorizado por</div></div></div></div><script>window.onload=function(){window.print();}<\/script></body></html>');
-  w.document.close();
-  closePDFModal();
-  showToast('PDF generado para '+n,'success');
-}
-
-/* ================================================
-   CSV
-================================================ */
-function doCSV(rows,filename){
-  const h=['Cliente','Fecha Factura','No. Factura','Ruta','Monto','Moneda','Días Cred.','Días Trans.','Estatus','Fecha Pago','Monto Pagado','Adeudo'];
-  const d=rows.map(r=>[r.cliente,fmtD(r.fechaFactura),r.numFactura,r.ruta,r.monto,r.moneda,r.diasCredito,r.diasTranscurridos,r.estatus,fmtD(r.fechaPago),r.montoPagado||'',r.adeudo||'']);
-  const csv=[h,...d].map(r=>r.map(v=>'"'+(v||'')+'"').join(',')).join('\n');
-  const b=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8;'});
-  const u=URL.createObjectURL(b);
-  const a=document.createElement('a');
-  a.href=u;a.download=filename+'_'+new Date().toISOString().slice(0,10)+'.csv';
-  a.click();URL.revokeObjectURL(u);
-  showToast('CSV descargado','success');
-}
-
-function exportCSV(tipo){
-  if(tipo==='ingresos')doCSV(paid(allRows()),'Ingresos_LU');
-  else if(tipo==='cartera')doCSV(allRows().filter(r=>r.estatus!=='PAGADO'),'CarteraViva_LU');
-  else if(tipo==='cliente'&&activeCliente)doCSV((allData.find(c=>c.cliente===activeCliente)||{rows:[]}).rows,'EC_'+activeCliente);
-}
-
-/* ================================================
-   SORT
-================================================ */
-function sortTable(tid,col){
-  const tb=document.getElementById(tid).querySelector('tbody');
-  const rows=Array.from(tb.querySelectorAll('tr'));
-  if(!sortStates[tid])sortStates[tid]={};
-  const asc=!sortStates[tid][col]; sortStates[tid]={[col]:asc};
-  rows.sort((a,b)=>{
-    const av=(a.cells[col]&&a.cells[col].textContent.trim())||'';
-    const bv=(b.cells[col]&&b.cells[col].textContent.trim())||'';
-    const an=parseFloat(av.replace(/[^0-9.\-]/g,''));
-    const bn=parseFloat(bv.replace(/[^0-9.\-]/g,''));
-    if(!isNaN(an)&&!isNaN(bn))return asc?an-bn:bn-an;
-    return asc?av.localeCompare(bv,'es'):bv.localeCompare(av,'es');
+function buildDoughnutChart(id, labels, data) {
+  if (charts[id]) charts[id].destroy();
+  const ctx = document.getElementById(id).getContext('2d');
+  charts[id] = new Chart(ctx, {
+    type:'doughnut',
+    data:{labels, datasets:[{data, backgroundColor:TEAL_PALETTE, borderWidth:1, borderColor:'#1A202C'}]},
+    options:{
+      responsive:true, maintainAspectRatio:false, cutout:'62%',
+      plugins:{
+        legend:{position:'right', labels:{color:'#A0AEC0',font:{size:10},boxWidth:10,padding:8}},
+        datalabels:{
+          color:'#fff', font:{size:9,weight:'bold'},
+          formatter:(v,ctx) => {
+            const total = ctx.dataset.data.reduce((a,b)=>a+b,0);
+            const pct = ((v/total)*100).toFixed(0);
+            return pct > 5 ? pct+'%' : '';
+          }
+        }
+      }
+    },
+    plugins:[ChartDataLabels]
   });
-  rows.forEach(r=>tb.appendChild(r));
-  document.getElementById(tid).querySelectorAll('th').forEach((th,i)=>th.classList.toggle('sorted',i===col));
 }
 
-/* INIT */
-loadAllData();
+// ═══════════════════════════════════════════════════════
+//  TAB SWITCH
+// ═══════════════════════════════════════════════════════
+function switchTab(name) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  event.target.classList.add('active');
+  // Re-render to fix Chart.js sizing
+  if (name==='ingresos') renderIngresos();
+  if (name==='resumen')  renderResumen();
+}
+
+// ═══════════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════════
+Chart.register(ChartDataLabels);
+reloadAll();
 </script>
 </body>
 </html>
