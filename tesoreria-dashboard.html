@@ -584,6 +584,7 @@ function normMoneda(s) {
 function normEstatus(s) {
   s = (s||'').toUpperCase().trim();
   if (s.includes('PAG')||s==='COBRADO'||s==='LIQUIDADO') return 'PAGADO';
+  if (s==='POR VENCER'||s.includes('POR VENCER')) return 'POR VENCER';
   if (s.includes('VENC')) return 'VENCIDO';
   if (s.includes('PARC')) return 'PARCIAL';
   return 'PENDIENTE';
@@ -739,7 +740,7 @@ function fmtDate(d) {
 }
 
 function badge(est) {
-  const cls = {PAGADO:'badge-paid',PENDIENTE:'badge-pending',VENCIDO:'badge-overdue',PARCIAL:'badge-partial'};
+  const cls = {PAGADO:'badge-paid',PENDIENTE:'badge-pending',VENCIDO:'badge-overdue',PARCIAL:'badge-partial','POR VENCER':'badge-pending'};
   return '<span class="badge ' + (cls[est]||'badge-neutral') + '">' + (est||'—') + '</span>';
 }
 
@@ -830,8 +831,8 @@ function renderResumen() {
 
   const totFact = rows.reduce((s,r)=>s+mxn(r,'monto'),0);
   const totCob  = paid.reduce((s,r)=>s+mxn(r,'pagado'),0);
-  const totPend = rows.filter(r=>r.estatus!=='PAGADO').reduce((s,r)=>s+mxn(r,'adeudo'),0);
-  const totVenc = rows.filter(r=>r.estatus==='VENCIDO').reduce((s,r)=>s+mxn(r,'adeudo'),0);
+  const totPend = rows.filter(r=>r.estatus!=='PAGADO').reduce((s,r)=>s+mxn(r,'monto'),0);
+  const totVenc = rows.filter(r=>r.estatus==='VENCIDO'||r.estatus==='POR VENCER').reduce((s,r)=>s+mxn(r,'monto'),0);
   const nPend   = rows.filter(r=>r.estatus!=='PAGADO').length;
 
   document.getElementById('kpi-resumen').innerHTML =
@@ -1114,7 +1115,7 @@ function renderClienteCards() {
     const paid    = getPaid(c.rows);
     const totF    = c.rows.reduce((s,r)=>s+mxn(r,'monto'),0);
     const totC    = paid.reduce((s,r)=>s+mxn(r,'pagado'),0);
-    const nVenc   = c.rows.filter(r=>r.estatus==='VENCIDO').length;
+    const nVenc   = c.rows.filter(r=>r.estatus==='VENCIDO'||r.estatus==='POR VENCER').length;
     const pct     = totF ? Math.round(totC/totF*100) : 0;
     const div     = document.createElement('div');
     div.className = 'client-card' + (activeCliente===c.cliente?' active':'');
@@ -1168,7 +1169,8 @@ function renderClienteDetalle(nombre) {
 
   const tbody = document.getElementById('tbodyClienteDet');
   tbody.innerHTML = '';
-  c.rows.sort((a,b)=>(b.fechaFactura||0)-(a.fechaFactura||0)).forEach(r=>{
+  // Mostrar todas las facturas del cliente sin filtro de período
+  c.rows.slice().sort((a,b)=>(b.fechaFactura||0)-(a.fechaFactura||0)).forEach(r=>{
     tbody.innerHTML += '<tr><td>'+fmtDate(r.fechaFactura)+'</td>' +
       '<td style="font-family:monospace;font-size:11px">'+(r.numFactura||'—')+'</td>' +
       '<td>'+(r.ruta||'—')+'</td>' +
@@ -1192,8 +1194,8 @@ function renderEstados() {
     if (!c.rows.length && !c.error) return;
     const totF = c.rows.reduce((s,r)=>s+mxn(r,'monto'),0);
     const totC = getPaid(c.rows).reduce((s,r)=>s+mxn(r,'pagado'),0);
-    const totP = c.rows.filter(r=>r.estatus!=='PAGADO').reduce((s,r)=>s+mxn(r,'adeudo'),0);
-    const totV = c.rows.filter(r=>r.estatus==='VENCIDO').reduce((s,r)=>s+mxn(r,'adeudo'),0);
+    const totP = c.rows.filter(r=>r.estatus!=='PAGADO').reduce((s,r)=>s+mxn(r,'monto'),0);
+    const totV = c.rows.filter(r=>r.estatus==='VENCIDO'||r.estatus==='POR VENCER').reduce((s,r)=>s+mxn(r,'monto'),0);
     const div = document.createElement('div');
     div.className = 'client-card';
     const errHtml = c.error ? '<p style="color:var(--red);font-size:11px;margin-bottom:10px">&#9888; '+c.error+'</p>' : '';
@@ -1255,8 +1257,8 @@ function generarPDF() {
 
   const totF = rows.reduce((s,r)=>s+mxn(r,'monto'),0);
   const totC = getPaid(rows).reduce((s,r)=>s+mxn(r,'pagado'),0);
-  const totP = rows.filter(r=>r.estatus!=='PAGADO').reduce((s,r)=>s+mxn(r,'adeudo'),0);
-  const totV = rows.filter(r=>r.estatus==='VENCIDO').reduce((s,r)=>s+mxn(r,'adeudo'),0);
+  const totP = rows.filter(r=>r.estatus!=='PAGADO').reduce((s,r)=>s+mxn(r,'monto'),0);
+  const totV = rows.filter(r=>r.estatus==='VENCIDO'||r.estatus==='POR VENCER').reduce((s,r)=>s+mxn(r,'monto'),0);
 
   const fechaCorte = new Date().toLocaleDateString('es-MX',{day:'2-digit',month:'long',year:'numeric'});
   const perStr = desde||hasta ? (
