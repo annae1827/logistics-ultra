@@ -435,22 +435,23 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 const BASE_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ8pL24fRHM2DlVvk_UT_QgUS3mg3d7kNKK8CQmUuuZjcPZmonQLob-seBgosxLOFzCpANJUu4f_wit/pub';
 const PROXY_URL = 'https://script.google.com/macros/s/AKfycby_IBpn78jmflbttTXsBrehPAsKs3Syysy1p1GDzoKZHIOhgoTB7nKWMiDW3MD-nQ4Hfw/exec';
 
+const BASE = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ8pL24fRHM2DlVvk_UT_QgUS3mg3d7kNKK8CQmUuuZjcPZmonQLob-seBgosxLOFzCpANJUu4f_wit/pub?single=true&output=csv&gid=';
 const CLIENTES = [
-  { nombre:'ALEN',          gid:'1702462645' },
-  { nombre:'SORIANA',       gid:'923045851'  },
-  { nombre:'TML',           gid:'1040786378' },
-  { nombre:'TYT',           gid:'863648102'  },
-  { nombre:'DPG',           gid:'1576319830' },
-  { nombre:'AMA',           gid:'612210011'  },
-  { nombre:'LOYALTY',       gid:'988631002'  },
-  { nombre:'MAGUVA',        gid:'102817706'  },
-  { nombre:'CRYOGENICS FNG',gid:'793015764'  },
-  { nombre:'PADILLA',       gid:'852643806'  },
-  { nombre:'AC TRADE',      gid:'673133141'  },
-  { nombre:'EVERTIS',       gid:'619318978'  },
-  { nombre:'DG TRUKING',    gid:'76574814'   },
-  { nombre:'MEGA',          gid:'1050871788' },
-  { nombre:'TRANSP. HG',    gid:'1164973928' },
+  { nombre:'ALEN',          url: BASE+'1702462645' },
+  { nombre:'SORIANA',       url: BASE+'923045851'  },
+  { nombre:'TML',           url: BASE+'1040786378' },
+  { nombre:'TYT',           url: BASE+'863648102'  },
+  { nombre:'DPG',           url: BASE+'1576319830' },
+  { nombre:'AMA',           url: BASE+'612210011'  },
+  { nombre:'LOYALTY',       url: BASE+'988631002'  },
+  { nombre:'MAGUVA',        url: BASE+'102817706'  },
+  { nombre:'CRYOGENICS FNG',url: BASE+'793015764'  },
+  { nombre:'PADILLA',       url: BASE+'852643806'  },
+  { nombre:'AC TRADE',      url: BASE+'673133141'  },
+  { nombre:'EVERTIS',       url: BASE+'619318978'  },
+  { nombre:'DG TRUKING',    url: BASE+'76574814'   },
+  { nombre:'MEGA',          url: BASE+'1050871788' },
+  { nombre:'TRANSP. HG',    url: BASE+'1164973928' },
 ];
 
 const COL_MAP = {
@@ -607,44 +608,19 @@ function parseMoney(s) {
    FETCH — carga progresiva
 ════════════════════════════════════════ */
 function fetchCSV(url) {
-  const gidMatch = url.match(/gid=(\d+)/);
-  const gid = gidMatch ? gidMatch[1] : '0';
-  const cbName = 'cb_' + gid + '_' + Date.now();
-
-  return new Promise((resolve, reject) => {
-    const timeout = setTimeout(() => {
-      delete window[cbName];
-      const s = document.getElementById('jsonp_' + cbName);
-      if (s) s.remove();
-      reject(new Error('timeout'));
-    }, 20000);
-
-    window[cbName] = function(csv) {
-      clearTimeout(timeout);
-      delete window[cbName];
-      const s = document.getElementById('jsonp_' + cbName);
-      if (s) s.remove();
-      if (!csv || csv.trim().startsWith('<!')) {
-        reject(new Error('Hoja no publicada'));
-      } else {
-        resolve(csv);
-      }
-    };
-
-    const script = document.createElement('script');
-    script.id = 'jsonp_' + cbName;
-    script.src = PROXY_URL + '?gid=' + gid + '&callback=' + cbName;
-    script.onerror = () => {
-      clearTimeout(timeout);
-      delete window[cbName];
-      reject(new Error('Failed to fetch'));
-    };
-    document.head.appendChild(script);
-  });
+  return fetch(url)
+    .then(r => {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.text();
+    })
+    .then(text => {
+      if (!text || text.trim().startsWith('<!')) throw new Error('Hoja no publicada');
+      return text;
+    });
 }
 
 async function loadCliente(c) {
-  const url = BASE_URL + '?gid=' + c.gid + '&single=true&output=csv';
+  const url = c.url;
   try {
     const text = await fetchCSV(url);
     const rawRows = parseCSV(text);
