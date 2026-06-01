@@ -568,7 +568,7 @@ function parseMoney(s) {
 ════════════════════════════════════════ */
 function fetchCSV(url) {
   return new Promise((resolve, reject) => {
-    const timeout = setTimeout(() => reject(new Error('timeout')), 15000);
+    const timeout = setTimeout(() => reject(new Error('timeout')), 8000);
     const proxyUrl = 'https://api.allorigins.win/get?url=' + encodeURIComponent(url);
     fetch(proxyUrl)
       .then(r => {
@@ -608,27 +608,15 @@ async function loadCliente(c) {
 }
 
 async function loadAllData() {
-  setStatus('loading','Iniciando...');
+  setStatus('loading', 'Cargando ' + CLIENTES.length + ' clientes...');
   allData = CLIENTES.map(c => ({ cliente: c.nombre, rows: [], loading: true }));
   populateFilters();
   renderClienteCards();
   renderEstados();
 
-  let loaded = 0;
-  for (let i = 0; i < CLIENTES.length; i += 3) {
-    const batch = CLIENTES.slice(i, i+3);
-    const results = await Promise.all(batch.map(c => loadCliente(c)));
-    results.forEach(r => {
-      const idx = allData.findIndex(x => x.cliente === r.cliente);
-      if (idx >= 0) allData[idx] = r;
-      loaded++;
-    });
-    setStatus('loading', 'Cargando... ' + loaded + '/' + CLIENTES.length);
-    populateFilters();
-    renderResumen();
-    renderClienteCards();
-    renderEstados();
-  }
+  // Todas en paralelo — más rápido
+  const results = await Promise.all(CLIENTES.map(c => loadCliente(c)));
+  allData = results;
 
   renderResumen();
   renderComparativo();
@@ -636,18 +624,18 @@ async function loadAllData() {
   renderCartera();
   renderClienteCards();
   renderEstados();
+  populateFilters();
 
   const totalRows = allData.reduce((s,c) => s+c.rows.length, 0);
   const errores   = allData.filter(c => c.error).length;
   if (totalRows === 0) {
-    setStatus('error','Sin datos — publica cada hoja individualmente');
-    showToast('Sin datos. Verifica la publicación del Sheet.','error');
+    setStatus('error', 'Sin datos — publica cada hoja individualmente');
+    showToast('Sin datos. Verifica la publicación del Sheet.', 'error');
   } else {
     setStatus('ok', totalRows + ' registros · ' + allData.filter(c=>c.rows.length>0).length + ' clientes' + (errores?' · '+errores+' errores':''));
-    showToast('\u2713 ' + totalRows + ' registros cargados' + (errores?' · \u26a0 '+errores+' errores':''), errores?'':'success');
+    showToast('✓ ' + totalRows + ' registros cargados' + (errores?' · ⚠ '+errores+' errores':''), errores?'':'success');
   }
 }
-
 function setStatus(state, msg) {
   const dot = document.getElementById('statusDot');
   const txt = document.getElementById('statusText');
