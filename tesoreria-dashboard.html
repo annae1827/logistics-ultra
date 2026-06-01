@@ -433,6 +433,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
    CONFIGURACIÓN
 ════════════════════════════════════════ */
 const BASE_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ8pL24fRHM2DlVvk_UT_QgUS3mg3d7kNKK8CQmUuuZjcPZmonQLob-seBgosxLOFzCpANJUu4f_wit/pub';
+const PROXY_URL = 'https://script.google.com/macros/s/AKfycbzGHGZ69Qp40sH7eV10J0Bv2xkrFueMYEzjAJ5KP7wL4s6Vah15_OoUeTLzBxOX9_6S5A/exec';
 
 const CLIENTES = [
   { nombre:'ALEN',          gid:'1702462645' },
@@ -591,32 +592,22 @@ function parseMoney(s) {
    FETCH — carga progresiva
 ════════════════════════════════════════ */
 function fetchCSV(url) {
+  // Extraer gid de la URL y usar el proxy de Apps Script
+  const gidMatch = url.match(/gid=(\d+)/);
+  const proxyUrl = gidMatch
+    ? PROXY_URL + '?gid=' + gidMatch[1]
+    : PROXY_URL + '?url=' + encodeURIComponent(url);
+
   return new Promise((resolve, reject) => {
-    const timeout = setTimeout(() => reject(new Error('timeout')), 8000);
-    const proxyUrl = 'https://api.allorigins.win/get?url=' + encodeURIComponent(url);
+    const timeout = setTimeout(() => reject(new Error('timeout')), 15000);
     fetch(proxyUrl)
-      .then(r => {
-        if (!r.ok) throw new Error('HTTP ' + r.status);
-        return r.json();
-      })
-      .then(data => {
+      .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
+      .then(text => {
         clearTimeout(timeout);
-        const text = data.contents || '';
-        if (!text || text.trim().startsWith('<!')) throw new Error('Sin contenido CSV');
+        if (!text || text.trim().startsWith('<!')) throw new Error('Hoja no publicada');
         resolve(text);
       })
-      .catch(e => {
-        clearTimeout(timeout);
-        // fallback: corsproxy.io
-        const proxy2 = 'https://corsproxy.io/?' + encodeURIComponent(url);
-        fetch(proxy2)
-          .then(r => { if (!r.ok) throw new Error('HTTP '+r.status); return r.text(); })
-          .then(text => {
-            if (!text || text.trim().startsWith('<!')) throw new Error('Sin CSV');
-            resolve(text);
-          })
-          .catch(e2 => reject(e2));
-      });
+      .catch(e => { clearTimeout(timeout); reject(e); });
   });
 }
 
