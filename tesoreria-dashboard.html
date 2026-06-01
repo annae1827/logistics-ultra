@@ -665,13 +665,9 @@ async function loadAllData() {
   allData = CLIENTES.map(c => ({ cliente: c.nombre, rows: [], loading: true }));
   populateFilters();
 
-  // Load one by one — más estable, muestra progreso
-  for (let i = 0; i < CLIENTES.length; i++) {
-    const c = CLIENTES[i];
-    setStatus('loading', (i+1) + '/' + CLIENTES.length + ' — ' + c.nombre);
-    const result = await loadCliente(c);
-    allData[i] = result;
-  }
+  // Load all in parallel
+  const results = await Promise.all(CLIENTES.map(c => loadCliente(c)));
+  allData = results;
 
   // Hide overlay FIRST before renders
   const overlay = document.getElementById('loadingOverlay');
