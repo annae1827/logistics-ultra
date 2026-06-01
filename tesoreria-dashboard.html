@@ -639,15 +639,17 @@ async function loadCliente(c) {
 }
 
 async function loadAllData() {
-  setStatus('loading', 'Cargando ' + CLIENTES.length + ' clientes...');
+  setStatus('loading', 'Cargando clientes...');
   allData = CLIENTES.map(c => ({ cliente: c.nombre, rows: [], loading: true }));
   populateFilters();
-  renderClienteCards();
-  renderEstados();
 
-  // Todas en paralelo — más rápido
-  const results = await Promise.all(CLIENTES.map(c => loadCliente(c)));
-  allData = results;
+  // Load one by one — más estable, muestra progreso
+  for (let i = 0; i < CLIENTES.length; i++) {
+    const c = CLIENTES[i];
+    setStatus('loading', (i+1) + '/' + CLIENTES.length + ' — ' + c.nombre);
+    const result = await loadCliente(c);
+    allData[i] = result;
+  }
 
   renderResumen();
   renderComparativo();
@@ -660,7 +662,7 @@ async function loadAllData() {
   const totalRows = allData.reduce((s,c) => s+c.rows.length, 0);
   const errores   = allData.filter(c => c.error).length;
   if (totalRows === 0) {
-    setStatus('error', 'Sin datos — publica cada hoja individualmente');
+    setStatus('error', 'Sin datos — verifica publicación del Sheet');
     showToast('Sin datos. Verifica la publicación del Sheet.', 'error');
   } else {
     setStatus('ok', totalRows + ' registros · ' + allData.filter(c=>c.rows.length>0).length + ' clientes' + (errores?' · '+errores+' errores':''));
