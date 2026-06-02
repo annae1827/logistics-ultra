@@ -667,7 +667,8 @@ async function loadAllData() {
   populateFilters();
 
   // Load all in parallel
-  const results = await Promise.all(CLIENTES.map(c => loadCliente(c)));
+const results = [];
+for (const c of CLIENTES) { results.push(await loadCliente(c)); }
   allData = results;
 
   // Hide overlay FIRST before renders
