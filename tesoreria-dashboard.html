@@ -667,8 +667,15 @@ async function loadAllData() {
   allData = CLIENTES.map(c => ({ cliente: c.nombre, rows: [], loading: true }));
   populateFilters();
 
-  // Load all in parallel — non-blocking
-  allData = await Promise.all(CLIENTES.map(c => loadCliente(c)));
+  // Load in batches of 3 — avoids saturating JSONP proxy
+  allData = new Array(CLIENTES.length);
+  const batchSize = 3;
+  for (let i = 0; i < CLIENTES.length; i += batchSize) {
+    const batch = CLIENTES.slice(i, i + batchSize);
+    const results = await Promise.all(batch.map(c => loadCliente(c)));
+    results.forEach((r, j) => { allData[i + j] = r; });
+    await new Promise(r => setTimeout(r, 300));
+  }
 
   try { renderResumen(); } catch(e) { console.error('renderResumen error:', e); }
   try { renderComparativo(); } catch(e) { console.error('renderComparativo error:', e); }
