@@ -546,26 +546,43 @@ function calcResumen(nombre, rows, fechaCorte) {
   const nPag  = src.filter(r=>r.estatus==='PAGADO').length;
   const nVenc = src.filter(r=>r.estatus==='VENCIDO').length;
   const nPend = src.filter(r=>r.estatus==='PENDIENTE'||r.estatus==='PARCIAL').length;
-  // Próximo pago: TOTAL de todas las facturas que vencen en la fecha más próxima >= hoy
+  // Próximo pago: lógica diferente según cliente
   const hoy = new Date(); hoy.setHours(0,0,0,0);
   const cfg2 = CLIENTES.find(x=>x.n===nombre)||{};
-  const campoProx = cfg2.proxUsaFechaPago ? 'fechaPago' : 'fechaProg';
-  // Normalizar fechas a medianoche para comparación correcta
-  const pendRows = rows.filter(r=>{
-    if(r.estatus==='PAGADO'||!r[campoProx]) return false;
-    const f = new Date(r[campoProx]); f.setHours(0,0,0,0);
-    return f >= hoy;
-  });
-  pendRows.sort((a,b)=>a[campoProx]-b[campoProx]);
   let prox = null;
-  if(pendRows.length) {
-    // Fecha más próxima
-    const fechaProx = pendRows[0][campoProx];
-    const fechaProxStr = fechaProx.toDateString();
-    // Sumar todas las facturas de esa misma fecha
-    const proxGrupo = pendRows.filter(r=>r[campoProx].toDateString()===fechaProxStr);
-    const proxTotal = proxGrupo.reduce((s,r)=>s+toMXN(r.monto,r.moneda),0);
-    prox = { ...pendRows[0], montoTotal: proxTotal, count: proxGrupo.length };
+
+  if(cfg2.proxUsaFechaPago) {
+    // ALEN y SORIANA: usan fechaPago como fecha programada confirmada
+    const pendRows = src.filter(r=>{
+      if(r.estatus==='PAGADO'||!r.fechaPago) return false;
+      const f = new Date(r.fechaPago); f.setHours(0,0,0,0);
+      return f >= hoy;
+    });
+    pendRows.sort((a,b)=>a.fechaPago-b.fechaPago);
+    if(pendRows.length) {
+      const fd = pendRows[0].fechaPago.toDateString();
+      const grupo = pendRows.filter(r=>r.fechaPago&&r.fechaPago.toDateString()===fd);
+      const tot = grupo.reduce((s,r)=>s+toMXN(r.monto,r.moneda),0);
+      prox = { ...pendRows[0], montoTotal: tot, count: grupo.length, fechaDisplay: pendRows[0].fechaPago };
+    }
+  } else {
+    // Resto: usar fechaProg (días de crédito desde fecha del viaje)
+    const pendRows = src.filter(r=>{
+      if(r.estatus==='PAGADO'||!r.fechaProg) return false;
+      const f = new Date(r.fechaProg); f.setHours(0,0,0,0);
+      return f >= hoy;
+    });
+    pendRows.sort((a,b)=>a.fechaProg-b.fechaProg);
+    if(pendRows.length) {
+      const fd = pendRows[0].fechaProg.toDateString();
+      const grupo = pendRows.filter(r=>r.fechaProg&&r.fechaProg.toDateString()===fd);
+      const tot = grupo.reduce((s,r)=>s+toMXN(r.monto,r.moneda),0);
+      prox = { ...pendRows[0], montoTotal: tot, count: grupo.length, fechaDisplay: pendRows[0].fechaProg };
+    }
+    // Si no hay próximo pago futuro pero hay vencido, mostrar cartera vencida
+    if(!prox && venc > 0) {
+      prox = { montoTotal: venc, count: nVenc, esVencido: true };
+    }
   }
   RESUMEN[nombre] = { fact, cob, venc, pend, prox, total: src.length, nPag, nVenc, nPend };
 }
@@ -669,9 +686,21 @@ function renderResumen() {
   const tV = allRows.filter(r=>r.estatus==='VENCIDO').reduce((s,r)=>s+toMXN(r.saldo||0,r.moneda),0);
   const tP = allRows.filter(r=>r.estatus==='PENDIENTE'||r.estatus==='PARCIAL').reduce((s,r)=>s+toMXN(r.saldo||0,r.moneda),0);
 
-  // Próximo pago global
-  const pendAll = allRows.filter(r=>r.estatus!=='PAGADO');
-  const proxRow = pendAll.length ? pendAll.reduce((mn,r)=>r.diasT<mn.diasT?r:mn, pendAll[0]) : null;
+  // Próximo pago global: tomar el más próximo de todos los clientes via RESUMEN
+  const hoyR = new Date(); hoyR.setHours(0,0,0,0);
+  let proxDisplay = '—';
+  let proxFecha = null, proxMonto = 0;
+  const clisList = cli ? [cli] : CLIENTES.map(x=>x.n);
+  clisList.forEach(n=>{
+    const r = RESUMEN[n];
+    if(r&&r.prox&&r.prox.fechaDisplay&&!r.prox.esVencido) {
+      const f = new Date(r.prox.fechaDisplay); f.setHours(0,0,0,0);
+      if(f >= hoyR && (!proxFecha || f < proxFecha)) {
+        proxFecha = f; proxMonto = r.prox.montoTotal||0;
+      }
+    }
+  });
+  if(proxFecha) proxDisplay = fM(proxMonto) + ' · ' + fD(proxFecha);
 
   document.getElementById('kFact').textContent = fM(tF);
   document.getElementById('kCob').textContent  = fM(tC);
@@ -738,7 +767,7 @@ function renderResumen() {
       <td class="num" style="color:var(--green)">${fM(r.cob)}</td>
       <td class="num" style="color:${r.venc>0?'var(--red)':'var(--text3)'}">${fM(r.venc)}</td>
       <td class="num" style="color:var(--amber)">${fM(r.pend)}</td>
-      <td class="num">${r.prox?fM(r.prox.montoTotal||r.prox.monto,r.prox.moneda)+(r.prox.count>1?' ('+r.prox.count+')'  :''):'—'}</td>
+      <td class="num" style="color:${r.prox&&r.prox.esVencido?'var(--red)':''}">${r.prox?(fM(r.prox.montoTotal||r.prox.monto,r.prox.moneda)+(r.prox.esVencido?' ⚠':'')+(r.prox.fechaDisplay?' · '+fD(r.prox.fechaDisplay):'')):'—'}</td>
       <td class="num" style="color:${pct>=80?'var(--green)':pct>=50?'var(--amber)':'var(--red)'}">${pct}%</td>
       <td class="ctr" style="font-size:16px">${sem}</td>
     </tr>`;
