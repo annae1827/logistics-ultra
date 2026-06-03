@@ -156,6 +156,8 @@ tr:last-child td{border-bottom:none}
     <select class="fsel" id="fResC" onchange="renderResumen()">
       <option value="">Todos los clientes</option>
     </select>
+    <span class="fl">FECHA CONSULTA:</span>
+    <input type="date" class="fsel" id="fResDate" onchange="renderResumen()" style="cursor:pointer">
   </div>
 
   <!-- KPIs -->
@@ -186,13 +188,17 @@ tr:last-child td{border-bottom:none}
       <table id="tRes">
         <thead><tr>
           <th onclick="srt('tRes',0)">Cliente</th>
-          <th onclick="srt('tRes',1)" class="num">Facturado</th>
-          <th onclick="srt('tRes',2)" class="num">Cobrado</th>
-          <th onclick="srt('tRes',3)" class="num">Vencido</th>
+          <th onclick="srt('tRes',1)" class="num">Facturadas</th>
+          <th onclick="srt('tRes',2)" class="num">Pagadas</th>
+          <th onclick="srt('tRes',3)" class="num">Vencidas</th>
           <th onclick="srt('tRes',4)" class="num">Por Vencer</th>
-          <th onclick="srt('tRes',5)" class="num">Próximo Pago</th>
-          <th onclick="srt('tRes',6)" class="num">% Cobro</th>
-          <th class="ctr">Semáforo</th>
+          <th onclick="srt('tRes',5)" class="num">Facturado $</th>
+          <th onclick="srt('tRes',6)" class="num">Cobrado $</th>
+          <th onclick="srt('tRes',7)" class="num">Vencido $</th>
+          <th onclick="srt('tRes',8)" class="num">Por Vencer $</th>
+          <th onclick="srt('tRes',9)" class="num">Próximo Pago</th>
+          <th onclick="srt('tRes',10)" class="num">% Cobro</th>
+          <th class="ctr">&#128994;</th>
         </tr></thead>
         <tbody id="tbRes"></tbody>
       </table>
@@ -357,7 +363,7 @@ const PROXY = 'https://script.google.com/macros/s/AKfycbzGHGZ69Qp40sH7eV10J0Bv2x
 const TC = 19; // USD → MXN
 
 const CLIENTES = [
-  {n:'ALEN',          gid:'1702462645', hrs:true },
+  {n:'ALEN',          gid:'1702462645', hrs:true,  proxUsaFechaPago:true},
   {n:'SORIANA',       gid:'923045851',  hrs:false, proxUsaFechaPago:true},
   {n:'TML',           gid:'1040786378', hrs:false},
   {n:'TYT',           gid:'863648102',  hrs:false},
@@ -407,6 +413,8 @@ const toMXN = (v,m) => m==='USD' ? v*TC : v;
 const toEst = s => {
   if(!s) return 'PENDIENTE';
   const u=s.toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
+  // 'Próximo Pago' es PENDIENTE — verificar antes que 'PAG'
+  if(u.includes('PROXIMO')||u.includes('PRÓXIMO')||u.includes('POR VENCER')) return 'PENDIENTE';
   if(u.includes('PAG')||u==='COBRADO'||u==='LIQUIDADO') return 'PAGADO';
   if(u.includes('VENC')) return 'VENCIDO';
   if(u.includes('PARC')) return 'PARCIAL';
@@ -527,16 +535,27 @@ async function fetchCliente(nombre) {
 }
 
 // Precalcular resumen de un cliente
-function calcResumen(nombre, rows) {
-  const fact  = rows.reduce((s,r)=>s+toMXN(r.monto,r.moneda),0);
-  const cob   = rows.filter(r=>r.estatus==='PAGADO').reduce((s,r)=>s+toMXN(r.montoPagado,r.moneda),0);
-  const venc  = rows.filter(r=>r.estatus==='VENCIDO').reduce((s,r)=>s+toMXN(r.saldo||0,r.moneda),0);
-  const pend  = rows.filter(r=>r.estatus==='PENDIENTE'||r.estatus==='PARCIAL').reduce((s,r)=>s+toMXN(r.saldo||0,r.moneda),0);
+function calcResumen(nombre, rows, fechaCorte) {
+  // Filtrar por fecha de corte si se especifica
+  const fc = fechaCorte ? new Date(fechaCorte+'T23:59:59') : null;
+  const src = fc ? rows.filter(r=>!r.fechaFact||r.fechaFact<=fc) : rows;
+  const fact  = src.reduce((s,r)=>s+toMXN(r.monto,r.moneda),0);
+  const cob   = src.filter(r=>r.estatus==='PAGADO').reduce((s,r)=>s+toMXN(r.montoPagado,r.moneda),0);
+  const venc  = src.filter(r=>r.estatus==='VENCIDO').reduce((s,r)=>s+toMXN(r.saldo||0,r.moneda),0);
+  const pend  = src.filter(r=>r.estatus==='PENDIENTE'||r.estatus==='PARCIAL').reduce((s,r)=>s+toMXN(r.saldo||0,r.moneda),0);
+  const nPag  = src.filter(r=>r.estatus==='PAGADO').length;
+  const nVenc = src.filter(r=>r.estatus==='VENCIDO').length;
+  const nPend = src.filter(r=>r.estatus==='PENDIENTE'||r.estatus==='PARCIAL').length;
   // Próximo pago: TOTAL de todas las facturas que vencen en la fecha más próxima >= hoy
   const hoy = new Date(); hoy.setHours(0,0,0,0);
   const cfg2 = CLIENTES.find(x=>x.n===nombre)||{};
   const campoProx = cfg2.proxUsaFechaPago ? 'fechaPago' : 'fechaProg';
-  const pendRows = rows.filter(r=>r.estatus!=='PAGADO'&&r[campoProx]&&r[campoProx]>=hoy);
+  // Normalizar fechas a medianoche para comparación correcta
+  const pendRows = rows.filter(r=>{
+    if(r.estatus==='PAGADO'||!r[campoProx]) return false;
+    const f = new Date(r[campoProx]); f.setHours(0,0,0,0);
+    return f >= hoy;
+  });
   pendRows.sort((a,b)=>a[campoProx]-b[campoProx]);
   let prox = null;
   if(pendRows.length) {
@@ -548,7 +567,7 @@ function calcResumen(nombre, rows) {
     const proxTotal = proxGrupo.reduce((s,r)=>s+toMXN(r.monto,r.moneda),0);
     prox = { ...pendRows[0], montoTotal: proxTotal, count: proxGrupo.length };
   }
-  RESUMEN[nombre] = { fact, cob, venc, pend, prox, total: rows.length };
+  RESUMEN[nombre] = { fact, cob, venc, pend, prox, total: src.length, nPag, nVenc, nPend };
 }
 
 // ═══════════════════════════════════════════════════
@@ -573,6 +592,10 @@ async function init() {
   const total = Object.values(CACHE).reduce((s,r)=>s+r.length,0);
   setSt('ok', total+' registros · '+Object.keys(CACHE).filter(k=>CACHE[k].length>0).length+' clientes');
   toast('✓ '+total+' registros cargados','s');
+
+  // Set default date to today
+  const todayEl = document.getElementById('fResDate');
+  if(todayEl) todayEl.value = new Date().toISOString().slice(0,10);
 
   fillSelects();
   renderResumen();
@@ -623,10 +646,23 @@ function fillSelects() {
 function renderResumen() {
   const cli = document.getElementById('fResC').value;
   const p   = PER_RES;
+  const fechaCorte = document.getElementById('fResDate') ? document.getElementById('fResDate').value : '';
+
+  // Recalcular resumen con fecha de corte
+  if(fechaCorte) {
+    Object.keys(CACHE).forEach(n => calcResumen(n, CACHE[n], fechaCorte));
+  } else {
+    Object.keys(CACHE).forEach(n => calcResumen(n, CACHE[n]));
+  }
 
   // Datos según filtro
   let allRows = Object.values(CACHE).flat();
   if(cli) allRows = CACHE[cli]||[];
+  // Aplicar fecha de corte a allRows también
+  if(fechaCorte) {
+    const fc = new Date(fechaCorte+'T23:59:59');
+    allRows = allRows.filter(r=>!r.fechaFact||r.fechaFact<=fc);
+  }
 
   const tF = allRows.reduce((s,r)=>s+toMXN(r.monto,r.moneda),0);
   const tC = allRows.filter(r=>r.estatus==='PAGADO').reduce((s,r)=>s+toMXN(r.montoPagado,r.moneda),0);
@@ -641,17 +677,21 @@ function renderResumen() {
   document.getElementById('kCob').textContent  = fM(tC);
   document.getElementById('kPend').textContent = fM(tP);
   document.getElementById('kVenc').textContent = fM(tV);
-  // Agrupar por fecha más próxima para KPI global
+  // Próximo pago global: facturas pendientes con fecha >= hoy
+  const hoyR = new Date(); hoyR.setHours(0,0,0,0);
   let proxDisplay = '—';
-  if(pendAll.length) {
-    const campo = 'fechaProg';
-    const pf = pendAll.filter(r=>r[campo]).sort((a,b)=>a[campo]-b[campo]);
-    if(pf.length) {
-      const fd = pf[0][campo].toDateString();
-      const grupo = pf.filter(r=>r[campo]&&r[campo].toDateString()===fd);
-      const tot = grupo.reduce((s,r)=>s+toMXN(r.monto,r.moneda),0);
-      proxDisplay = fM(tot) + ' · ' + fD(pf[0][campo]);
-    }
+  const pendFut = pendAll.filter(r=>{
+    const f = r.fechaProg || r.fechaPago;
+    return f && f >= hoyR;
+  }).sort((a,b)=>{
+    const fa = a.fechaProg||a.fechaPago, fb = b.fechaProg||b.fechaPago;
+    return fa-fb;
+  });
+  if(pendFut.length) {
+    const fd = (pendFut[0].fechaProg||pendFut[0].fechaPago).toDateString();
+    const grupo = pendFut.filter(r=>(r.fechaProg||r.fechaPago)&&(r.fechaProg||r.fechaPago).toDateString()===fd);
+    const tot = grupo.reduce((s,r)=>s+toMXN(r.monto,r.moneda),0);
+    proxDisplay = fM(tot) + ' · ' + fD(pendFut[0].fechaProg||pendFut[0].fechaPago);
   }
   document.getElementById('kProx').textContent = proxDisplay;
 
@@ -690,11 +730,15 @@ function renderResumen() {
     const sem = r.venc>0 ? '🔴' : r.pend>0 ? '🟡' : '🟢';
     tb.innerHTML+=`<tr>
       <td><strong>${nombre}</strong></td>
+      <td class="num">${r.total}</td>
+      <td class="num" style="color:var(--green)">${r.nPag}</td>
+      <td class="num" style="color:${r.nVenc>0?'var(--red)':'var(--text3)'}">${r.nVenc}</td>
+      <td class="num" style="color:var(--amber)">${r.nPend}</td>
       <td class="num">${fM(r.fact)}</td>
       <td class="num" style="color:var(--green)">${fM(r.cob)}</td>
       <td class="num" style="color:${r.venc>0?'var(--red)':'var(--text3)'}">${fM(r.venc)}</td>
       <td class="num" style="color:var(--amber)">${fM(r.pend)}</td>
-      <td class="num">${r.prox?fM(r.prox.montoTotal||r.prox.monto,r.prox.moneda)+(r.prox.count>1?' ('+r.prox.count+' facts)':''):'—'}</td>
+      <td class="num">${r.prox?fM(r.prox.montoTotal||r.prox.monto,r.prox.moneda)+(r.prox.count>1?' ('+r.prox.count+')'  :''):'—'}</td>
       <td class="num" style="color:${pct>=80?'var(--green)':pct>=50?'var(--amber)':'var(--red)'}">${pct}%</td>
       <td class="ctr" style="font-size:16px">${sem}</td>
     </tr>`;
