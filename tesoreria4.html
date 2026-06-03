@@ -502,10 +502,14 @@ function parseSheet(text, nombre, cfg) {
     const est=toEst(g(v,iE));
     if(est===null) continue;
     if(!monto&&!g(v,iN)) continue;
-    // Si no hay saldo explícito y la factura no está pagada, saldo = monto
-    // Pero si está pagada, saldo debe ser 0
-    if(est==='PAGADO') saldo=0;
-    else if(!saldo) saldo=monto;
+    // Saldo final:
+    // - PAGADO siempre = 0
+    // - VENCIDO/PENDIENTE sin saldo explícito = monto completo
+    if(est==='PAGADO') {
+      saldo = 0;
+    } else if(!saldo || saldo <= 0) {
+      saldo = monto;
+    }
 
     const ff=$d(g(v,iF));
     let diasT=parseInt(g(v,iDT))||0;
