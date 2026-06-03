@@ -458,6 +458,7 @@ function parseSheet(text, clienteNombre, cfg) {
 
   const headers = csvSplit(lines[hi]).map(h => h.toLowerCase());
   console.log('[' + clienteNombre + '] Headers (fila ' + hi + '):', headers.slice(0,10).join(' | '));
+  console.log('[' + clienteNombre + '] Total filas a procesar:', lines.length - hi - 1);
 
   // Pre-compilar índices de columnas una sola vez (performance)
   function findIdx(...keys) {
@@ -549,6 +550,8 @@ function parseSheet(text, clienteNombre, cfg) {
 // ============================================================
 //  FETCH
 // ============================================================
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
 async function fetchCliente(cfg) {
   const url = PROXY + '?gid=' + cfg.gid;
   try {
@@ -556,7 +559,11 @@ async function fetchCliente(cfg) {
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const text = await res.text();
     if (!text || text.trim().startsWith('<!')) throw new Error('No CSV');
+    // Yield to browser before heavy parsing
+    await sleep(0);
     const rows = parseSheet(text, cfg.n, cfg);
+    // Yield again after parsing
+    await sleep(0);
     return { n: cfg.n, rows, err: null };
   } catch(e) {
     console.error('[' + cfg.n + ']', e.message);
@@ -569,7 +576,14 @@ async function init() {
   DATA = CLIENTES.map(c => ({ n: c.n, rows: [], err: null }));
   fillFilters(); rCards(); rEdos();
 
-  const results = await Promise.all(CLIENTES.map(c => fetchCliente(c)));
+  // Cargar secuencialmente para no saturar el browser
+  const results = [];
+  for (let i = 0; i < CLIENTES.length; i++) {
+    const r = await fetchCliente(CLIENTES[i]);
+    results.push(r);
+    setSt('loading', 'Procesando ' + (i+1) + '/' + CLIENTES.length + ': ' + CLIENTES[i].n);
+    await sleep(10); // dar tiempo al browser entre clientes
+  }
   DATA = results;
 
   fillFilters(); rAll();
