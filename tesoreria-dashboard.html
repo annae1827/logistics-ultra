@@ -1030,7 +1030,7 @@ function rEdos() {
           '<div><div style="font-size:10px;color:var(--text3);font-family:DM Mono,monospace">VENCIDO</div><div style="font-size:12px;font-weight:600;color:' + (tV>0?'var(--red)':'var(--text3)') + '">' + fmtM(tV) + '</div></div>' +
         '</div><div style="font-size:11px;color:var(--text3);margin-bottom:10px">' + c.rows.length + ' registros</div>') +
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:7px">' +
-        '<button class="pdfbtn" style="width:100%;justify-content:center" onclick="openPDF(\'' + n + '\')">\u{1F4C4} PDF</button>' +
+        '<button class="pdfbtn" style="width:100%;justify-content:center" onclick="openPDF(\'' + n + '\')">&#128196; PDF</button>' +
         '<button class="dbtn" style="width:100%;justify-content:center" onclick="csvCliente(\'' + n + '\')">\u2193 CSV</button>' +
       '</div>';
     cont.appendChild(div);
@@ -1128,7 +1128,7 @@ function genPDF() {
     '<div class="ft"><div>' + (notas ? '<div class="fnl">Observaciones</div><p style="font-size:11px;color:#555;max-width:440px;line-height:1.5">' + notas + '</p>' : '') +
     '<p style="font-size:10px;color:#aaa;margin-top:7px">Generado el ' + fc + ' \u00b7 Logistics Ultra</p></div>' +
     '<div><div class="fl"></div><div class="fnl" style="text-align:right">Autorizado por</div></div></div>' +
-    '</div><script>window.onload=function(){window.print();}<\/script></body></html>');
+    '</div><scr'+'ipt>window.onload=function(){window.print();}</scr'+'ipt></body></html>');
   w.document.close(); closePDF(); toast('PDF generado', 'success');
 }
 
