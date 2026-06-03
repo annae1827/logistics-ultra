@@ -459,62 +459,80 @@ function parseSheet(text, clienteNombre, cfg) {
   const headers = csvSplit(lines[hi]).map(h => h.toLowerCase());
   console.log('[' + clienteNombre + '] Headers (fila ' + hi + '):', headers.slice(0,10).join(' | '));
 
-  // Función helper para obtener valor por nombre parcial de columna
-  function get(row, ...keys) {
+  // Pre-compilar índices de columnas una sola vez (performance)
+  function findIdx(...keys) {
     for (const k of keys) {
-      const idx = headers.findIndex(h => h.includes(k.toLowerCase()));
-      if (idx >= 0 && row[idx] !== undefined) return row[idx] || '';
+      const i = headers.findIndex(h => h.includes(k.toLowerCase()));
+      if (i >= 0) return i;
     }
-    return '';
+    return -1;
   }
+  // Cache de índices
+  const IX = {
+    fechaFact:  findIdx('fecha contable', 'fecha factura'),
+    noFact:     findIdx('no. de fact', 'no. de factura', 'num. factura', 'factura', 'folio'),
+    ruta:       findIdx('concepto / ruta', 'concepto/ruta', 'concepto ruta', 'concepto', 'ruta'),
+    moneda:     findIdx('moneda', 'tipo de moneda'),
+    montoFact:  findIdx('monto factura', 'total factura'),
+    montoPago:  findIdx('monto pago', 'monto pagado'),
+    monto:      findIdx('monto', 'importe', 'total'),
+    totalFact:  findIdx('total factura'),
+    saldo:      findIdx('saldo', 'adeudo'),
+    diasT:      findIdx('dias transcurridos', 'días transcurridos'),
+    cred:       findIdx('horas de pago', 'horas de credito', 'dias de credito', 'días de crédito', 'dias credito', 'credito'),
+    estatus:    findIdx('estatus', 'status', 'estado'),
+    fechaPago:  findIdx('fecha pago', 'fecha real de pago', 'fecha cobro'),
+    fechaProg:  findIdx('fecha prog', 'fecha estimada', 'fecha vencimiento', 'fecha programada'),
+  };
+  function get(row, ix) { return ix >= 0 && row[ix] !== undefined ? row[ix] || '' : ''; }
 
   const rows = [];
   for (let i = hi + 1; i < lines.length; i++) {
     const vals = csvSplit(lines[i]);
     if (!vals.some(v => v.trim())) continue;
 
-    const fechaFact  = $d(get(vals, 'fecha contable', 'fecha factura'));
-    const noFact     = get(vals, 'no. de fact', 'no. de factura', 'num. factura', 'factura', 'folio');
-    const ruta       = get(vals, 'concepto / ruta', 'concepto/ruta', 'concepto ruta', 'concepto', 'ruta');
-    const moneda     = toMon(get(vals, 'moneda', 'tipo de moneda'));
+    const fechaFact  = $d(get(vals, IX.fechaFact));
+    const noFact     = get(vals, IX.noFact);
+    const ruta       = get(vals, IX.ruta);
+    const moneda     = toMon(get(vals, IX.moneda));
 
     // ---- MONTO PAGO / MONTO FACTURA / SALDO según cliente ----
     let monto = 0, montoPagado = 0, saldo = 0;
 
     if (clienteNombre === 'LOYALTY') {
       // LOYALTY: total factura=monto, monto pago=cobrado, saldo=adeudo
-      monto      = $n(get(vals, 'total factura'));
-      montoPagado= $n(get(vals, 'monto pago'));
-      saldo      = $n(get(vals, 'saldo'));
+      monto      = $n(get(vals, IX.totalFact));
+      montoPagado= $n(get(vals, IX.montoPago));
+      saldo      = $n(get(vals, IX.saldo));
     } else if (['MAGUVA','DPG','SORIANA'].includes(clienteNombre)) {
       // Tienen monto factura + monto pago separados
-      const mFact = $n(get(vals, 'monto factura'));
-      const mPago = $n(get(vals, 'monto pago'));
+      const mFact = $n(get(vals, IX.montoFact));
+      const mPago = $n(get(vals, IX.montoPago));
       monto       = mFact > 0 ? mFact : mPago;
       montoPagado = mPago > 0 ? mPago : monto;
-      saldo       = $n(get(vals, 'saldo'));
+      saldo       = $n(get(vals, IX.saldo));
       if (!saldo && monto > montoPagado && montoPagado > 0) saldo = monto - montoPagado;
     } else {
       // Resto: solo monto pago
-      monto       = $n(get(vals, 'monto pago', 'monto factura', 'monto', 'importe', 'total'));
+      monto       = $n(get(vals, IX.montoPago) || get(vals, IX.montoFact) || get(vals, IX.monto));
       montoPagado = monto;
-      saldo       = $n(get(vals, 'saldo', 'adeudo'));
+      saldo       = $n(get(vals, IX.saldo));
     }
 
     // ---- DÍAS TRANSCURRIDOS ----
-    let diasT = parseInt(get(vals, 'dias transcurridos', 'días transcurridos')) || 0;
+    let diasT = parseInt(get(vals, IX.diasT)) || 0;
     if (!diasT && fechaFact) diasT = diasDesde(fechaFact);
 
     // ---- CRÉDITO ----
     let cred = parseFloat(
-      get(vals, 'horas de pago', 'horas de credito', 'dias de credito', 'días de crédito', 'dias credito', 'credito')
+      get(vals, IX.cred)
     ) || 0;
     if (cfg.creditoEsHoras && cred > 0) cred = Math.round(cred / 8);
     else cred = Math.round(cred);
 
-    const estatus    = toEst(get(vals, 'estatus', 'status', 'estado'));
-    const fechaPago  = $d(get(vals, 'fecha pago', 'fecha real de pago', 'fecha cobro'));
-    const fechaProg  = $d(get(vals, 'fecha prog', 'fecha estimada', 'fecha vencimiento', 'fecha programada'));
+    const estatus    = toEst(get(vals, IX.estatus));
+    const fechaPago  = $d(get(vals, IX.fechaPago));
+    const fechaProg  = $d(get(vals, IX.fechaProg));
 
     // Saltar cancelados y filas sin datos útiles
     if (estatus === 'CANCELADO') continue;
