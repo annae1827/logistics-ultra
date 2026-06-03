@@ -472,7 +472,14 @@ function parseSheet(text, nombre, cfg) {
   const iCr = fi('horas de pago','dias de credito','días de crédito','credito');
   const iE  = fi('estatus','status','estado');
   const iFP = fi('fecha pago','fecha real de pago','fecha cobro');
-  const iS  = fi('saldo','adeudo');
+  // Buscar columna saldo con match más estricto
+  const iS = (() => {
+    const exactMatch = H.findIndex(h => h.trim() === 'saldo' || h.trim() === 'adeudo' || h.trim() === 'saldo pendiente');
+    if(exactMatch >= 0) return exactMatch;
+    // Solo aceptar si la columna se llama exactamente 'saldo' o empieza con saldo
+    const partialMatch = H.findIndex(h => h.startsWith('saldo') || h.startsWith('adeudo'));
+    return partialMatch;
+  })();
   const g   = (v,i) => i>=0&&v[i]!==undefined ? v[i] : '';
 
   const rows = [];
