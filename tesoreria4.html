@@ -532,13 +532,22 @@ function calcResumen(nombre, rows) {
   const cob   = rows.filter(r=>r.estatus==='PAGADO').reduce((s,r)=>s+toMXN(r.montoPagado,r.moneda),0);
   const venc  = rows.filter(r=>r.estatus==='VENCIDO').reduce((s,r)=>s+toMXN(r.saldo||0,r.moneda),0);
   const pend  = rows.filter(r=>r.estatus==='PENDIENTE'||r.estatus==='PARCIAL').reduce((s,r)=>s+toMXN(r.saldo||0,r.moneda),0);
-  // Próximo pago: factura pendiente con fecha programada más próxima a partir de hoy
+  // Próximo pago: TOTAL de todas las facturas que vencen en la fecha más próxima >= hoy
   const hoy = new Date(); hoy.setHours(0,0,0,0);
   const cfg2 = CLIENTES.find(x=>x.n===nombre)||{};
   const campoProx = cfg2.proxUsaFechaPago ? 'fechaPago' : 'fechaProg';
   const pendRows = rows.filter(r=>r.estatus!=='PAGADO'&&r[campoProx]&&r[campoProx]>=hoy);
   pendRows.sort((a,b)=>a[campoProx]-b[campoProx]);
-  const prox = pendRows.length ? pendRows[0] : null;
+  let prox = null;
+  if(pendRows.length) {
+    // Fecha más próxima
+    const fechaProx = pendRows[0][campoProx];
+    const fechaProxStr = fechaProx.toDateString();
+    // Sumar todas las facturas de esa misma fecha
+    const proxGrupo = pendRows.filter(r=>r[campoProx].toDateString()===fechaProxStr);
+    const proxTotal = proxGrupo.reduce((s,r)=>s+toMXN(r.monto,r.moneda),0);
+    prox = { ...pendRows[0], montoTotal: proxTotal, count: proxGrupo.length };
+  }
   RESUMEN[nombre] = { fact, cob, venc, pend, prox, total: rows.length };
 }
 
@@ -622,7 +631,7 @@ function renderResumen() {
   const tF = allRows.reduce((s,r)=>s+toMXN(r.monto,r.moneda),0);
   const tC = allRows.filter(r=>r.estatus==='PAGADO').reduce((s,r)=>s+toMXN(r.montoPagado,r.moneda),0);
   const tV = allRows.filter(r=>r.estatus==='VENCIDO').reduce((s,r)=>s+toMXN(r.saldo||0,r.moneda),0);
-  const tP = allRows.filter(r=>r.estatus!=='PAGADO').reduce((s,r)=>s+toMXN(r.saldo||0,r.moneda),0);
+  const tP = allRows.filter(r=>r.estatus==='PENDIENTE'||r.estatus==='PARCIAL').reduce((s,r)=>s+toMXN(r.saldo||0,r.moneda),0);
 
   // Próximo pago global
   const pendAll = allRows.filter(r=>r.estatus!=='PAGADO');
@@ -632,7 +641,19 @@ function renderResumen() {
   document.getElementById('kCob').textContent  = fM(tC);
   document.getElementById('kPend').textContent = fM(tP);
   document.getElementById('kVenc').textContent = fM(tV);
-  document.getElementById('kProx').textContent = proxRow ? fM(proxRow.monto,proxRow.moneda)+' · '+proxRow.cliente : '—';
+  // Agrupar por fecha más próxima para KPI global
+  let proxDisplay = '—';
+  if(pendAll.length) {
+    const campo = 'fechaProg';
+    const pf = pendAll.filter(r=>r[campo]).sort((a,b)=>a[campo]-b[campo]);
+    if(pf.length) {
+      const fd = pf[0][campo].toDateString();
+      const grupo = pf.filter(r=>r[campo]&&r[campo].toDateString()===fd);
+      const tot = grupo.reduce((s,r)=>s+toMXN(r.monto,r.moneda),0);
+      proxDisplay = fM(tot) + ' · ' + fD(pf[0][campo]);
+    }
+  }
+  document.getElementById('kProx').textContent = proxDisplay;
 
   // Gráfica cobrado por período
   const cobRows = allRows.filter(r=>r.estatus==='PAGADO'&&r.fechaPago);
@@ -673,7 +694,7 @@ function renderResumen() {
       <td class="num" style="color:var(--green)">${fM(r.cob)}</td>
       <td class="num" style="color:${r.venc>0?'var(--red)':'var(--text3)'}">${fM(r.venc)}</td>
       <td class="num" style="color:var(--amber)">${fM(r.pend)}</td>
-      <td class="num">${r.prox?fM(r.prox.monto,r.prox.moneda):'—'}</td>
+      <td class="num">${r.prox?fM(r.prox.montoTotal||r.prox.monto,r.prox.moneda)+(r.prox.count>1?' ('+r.prox.count+' facts)':''):'—'}</td>
       <td class="num" style="color:${pct>=80?'var(--green)':pct>=50?'var(--amber)':'var(--red)'}">${pct}%</td>
       <td class="ctr" style="font-size:16px">${sem}</td>
     </tr>`;
