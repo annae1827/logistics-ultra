@@ -707,21 +707,6 @@ function renderResumen() {
   document.getElementById('kPend').textContent = fM(tP);
   document.getElementById('kVenc').textContent = fM(tV);
   // Próximo pago global: facturas pendientes con fecha >= hoy
-  const hoyR = new Date(); hoyR.setHours(0,0,0,0);
-  let proxDisplay = '—';
-  const pendFut = pendAll.filter(r=>{
-    const f = r.fechaProg || r.fechaPago;
-    return f && f >= hoyR;
-  }).sort((a,b)=>{
-    const fa = a.fechaProg||a.fechaPago, fb = b.fechaProg||b.fechaPago;
-    return fa-fb;
-  });
-  if(pendFut.length) {
-    const fd = (pendFut[0].fechaProg||pendFut[0].fechaPago).toDateString();
-    const grupo = pendFut.filter(r=>(r.fechaProg||r.fechaPago)&&(r.fechaProg||r.fechaPago).toDateString()===fd);
-    const tot = grupo.reduce((s,r)=>s+toMXN(r.monto,r.moneda),0);
-    proxDisplay = fM(tot) + ' · ' + fD(pendFut[0].fechaProg||pendFut[0].fechaPago);
-  }
   document.getElementById('kProx').textContent = proxDisplay;
 
   // Gráfica cobrado por período
