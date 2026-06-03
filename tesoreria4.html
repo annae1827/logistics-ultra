@@ -145,6 +145,13 @@ tr:last-child td{border-bottom:none}
 
   <!-- Filtros -->
   <div class="frow">
+    <span class="fl">AÑO:</span>
+    <div class="pg" id="pgAno">
+      <button class="pb2 on" onclick="setAno('todos',this)">Todos</button>
+      <button class="pb2" onclick="setAno('2024',this)">2024</button>
+      <button class="pb2" onclick="setAno('2025',this)">2025</button>
+      <button class="pb2" onclick="setAno('2026',this)">2026</button>
+    </div>
     <span class="fl">PERÍODO:</span>
     <div class="pg" id="pgRes">
       <button class="pb2" onclick="sp('dia','pgRes',this)">Día</button>
@@ -157,8 +164,6 @@ tr:last-child td{border-bottom:none}
     <select class="fsel" id="fResC" onchange="renderResumen()">
       <option value="">Todos los clientes</option>
     </select>
-    <span class="fl">FECHA CONSULTA:</span>
-    <input type="date" class="fsel" id="fResDate" onchange="renderResumen()" style="cursor:pointer">
   </div>
 
   <!-- Contadores de facturas -->
@@ -396,6 +401,7 @@ const CLIENTES = [
 const CACHE = {}; // { 'ALEN': [rows...], ... }
 const RESUMEN = {}; // resumen precalculado por cliente
 let PER_RES = 'mes';
+let ANO_RES = 'todos';
 let SS = {};
 let CH = {};
 let EDO_ROWS = []; // filas del estado de cuenta activo
@@ -642,10 +648,6 @@ async function init() {
   setSt('ok', total+' registros · '+Object.keys(CACHE).filter(k=>CACHE[k].length>0).length+' clientes');
   toast('✓ '+total+' registros cargados','s');
 
-  // Set default date to today
-  const todayEl = document.getElementById('fResDate');
-  if(todayEl) todayEl.value = new Date().toISOString().slice(0,10);
-
   fillSelects();
   renderResumen();
 }
@@ -692,25 +694,35 @@ function fillSelects() {
 // ═══════════════════════════════════════════════════
 //  HOJA 1: RENDERIZAR RESUMEN
 // ═══════════════════════════════════════════════════
+function setAno(ano, btn) {
+  ANO_RES = ano;
+  document.querySelectorAll('#pgAno .pb2').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+  renderResumen();
+}
+
 function renderResumen() {
   const cli = document.getElementById('fResC').value;
   const p   = PER_RES;
-  const fechaCorte = document.getElementById('fResDate') ? document.getElementById('fResDate').value : '';
+  const fechaCorte = ''; // reemplazado por botones de año
 
-  // Recalcular resumen con fecha de corte
-  if(fechaCorte) {
-    Object.keys(CACHE).forEach(n => calcResumen(n, CACHE[n], fechaCorte));
-  } else {
-    Object.keys(CACHE).forEach(n => calcResumen(n, CACHE[n]));
-  }
+  // Recalcular resumen con filtro de año
+  Object.keys(CACHE).forEach(n => {
+    let rows = CACHE[n];
+    if(ANO_RES !== 'todos') {
+      const y = parseInt(ANO_RES);
+      rows = rows.filter(r => r.fechaFact && r.fechaFact.getFullYear() === y);
+    }
+    calcResumen(n, rows);
+  });
 
   // Datos según filtro
   let allRows = Object.values(CACHE).flat();
   if(cli) allRows = CACHE[cli]||[];
-  // Aplicar fecha de corte a allRows también
-  if(fechaCorte) {
-    const fc = new Date(fechaCorte+'T23:59:59');
-    allRows = allRows.filter(r=>!r.fechaFact||r.fechaFact<=fc);
+  // Filtrar por año si está seleccionado
+  if(ANO_RES !== 'todos') {
+    const y = parseInt(ANO_RES);
+    allRows = allRows.filter(r => r.fechaFact && r.fechaFact.getFullYear() === y);
   }
 
   const tF = allRows.reduce((s,r)=>s+toMXN(r.monto,r.moneda),0);
