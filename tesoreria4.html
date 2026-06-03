@@ -358,7 +358,7 @@ const TC = 19; // USD → MXN
 
 const CLIENTES = [
   {n:'ALEN',          gid:'1702462645', hrs:true },
-  {n:'SORIANA',       gid:'923045851',  hrs:false},
+  {n:'SORIANA',       gid:'923045851',  hrs:false, proxUsaFechaPago:true},
   {n:'TML',           gid:'1040786378', hrs:false},
   {n:'TYT',           gid:'863648102',  hrs:false},
   {n:'DPG',           gid:'1576319830', hrs:false},
@@ -485,6 +485,8 @@ function parseSheet(text, nombre, cfg) {
     const est=toEst(g(v,iE));
     if(est===null) continue;
     if(!monto&&!g(v,iN)) continue;
+    // Si no hay saldo explícito y la factura no está pagada, saldo = monto
+    if(!saldo && est!=='PAGADO') saldo=monto;
 
     const ff=$d(g(v,iF));
     let diasT=parseInt(g(v,iDT))||0;
@@ -493,7 +495,8 @@ function parseSheet(text, nombre, cfg) {
     rows.push({
       cliente:nombre, fechaFact:ff, noFact:g(v,iN), ruta:g(v,iR),
       monto, montoPagado, saldo, moneda:toMon(g(v,iMon)),
-      diasT, credito:cred, estatus:est, fechaPago:$d(g(v,iFP))
+      diasT, credito:cred, estatus:est, fechaPago:$d(g(v,iFP)),
+      fechaProg:$d(g(v,fi('fecha prog','fecha programada','fecha estimada','fecha vencimiento')))
     });
   }
   console.log('['+nombre+'] '+rows.length+' registros');
@@ -529,9 +532,13 @@ function calcResumen(nombre, rows) {
   const cob   = rows.filter(r=>r.estatus==='PAGADO').reduce((s,r)=>s+toMXN(r.montoPagado,r.moneda),0);
   const venc  = rows.filter(r=>r.estatus==='VENCIDO').reduce((s,r)=>s+toMXN(r.saldo||0,r.moneda),0);
   const pend  = rows.filter(r=>r.estatus==='PENDIENTE'||r.estatus==='PARCIAL').reduce((s,r)=>s+toMXN(r.saldo||0,r.moneda),0);
-  // Próximo pago: factura pendiente con menor días transcurridos
-  const pendRows = rows.filter(r=>r.estatus!=='PAGADO'&&r.fechaPago===null);
-  const prox = pendRows.length ? pendRows.reduce((min,r)=>r.diasT<min.diasT?r:min, pendRows[0]) : null;
+  // Próximo pago: factura pendiente con fecha programada más próxima a partir de hoy
+  const hoy = new Date(); hoy.setHours(0,0,0,0);
+  const cfg2 = CLIENTES.find(x=>x.n===nombre)||{};
+  const campoProx = cfg2.proxUsaFechaPago ? 'fechaPago' : 'fechaProg';
+  const pendRows = rows.filter(r=>r.estatus!=='PAGADO'&&r[campoProx]&&r[campoProx]>=hoy);
+  pendRows.sort((a,b)=>a[campoProx]-b[campoProx]);
+  const prox = pendRows.length ? pendRows[0] : null;
   RESUMEN[nombre] = { fact, cob, venc, pend, prox, total: rows.length };
 }
 
