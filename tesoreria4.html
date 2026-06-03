@@ -488,19 +488,23 @@ function parseSheet(text, nombre, cfg) {
     if(!v.some(x=>x.trim())) continue;
 
     let monto=0, montoPagado=0, saldo=0;
+    const mp=$n(g(v,iMP)), mf=$n(g(v,iMF)), mg=$n(g(v,iMG)), sl=$n(g(v,iS));
+
     if(nombre==='LOYALTY'){
-      monto=$n(g(v,iMF))||$n(g(v,iMG));
-      montoPagado=$n(g(v,iMP));
-      saldo=$n(g(v,iS));
-    } else if(['MAGUVA','DPG','SORIANA'].includes(nombre)){
-      const mf=$n(g(v,iMF)), mp=$n(g(v,iMP));
-      monto=mf>0?mf:mp; montoPagado=mp>0?mp:monto;
-      saldo=$n(g(v,iS));
-      if(!saldo&&monto>montoPagado&&montoPagado>0) saldo=monto-montoPagado;
+      // Pagado: MONTO PAGO | Vencido/Pendiente: SALDO
+      montoPagado = mp;
+      monto       = mp; // monto de referencia es lo que pagaron
+      saldo       = sl; // saldo explícito en columna SALDO
+    } else if(['DPG','MAGUVA'].includes(nombre)){
+      // Pagado: MONTO PAGO | Vencido/Pendiente: MONTO FACTURA
+      montoPagado = mp;
+      monto       = mf > 0 ? mf : mp; // monto factura para referencia
+      saldo       = 0; // se calcula después según estatus
     } else {
-      monto=$n(g(v,iMP))||$n(g(v,iMF))||$n(g(v,iMG));
-      montoPagado=monto;
-      saldo=$n(g(v,iS));
+      // ALEN, SORIANA y resto: solo MONTO PAGO
+      montoPagado = mp || mg;
+      monto       = montoPagado;
+      saldo       = 0; // se calcula después según estatus
     }
 
     let cred=parseFloat(g(v,iCr))||0;
@@ -509,12 +513,18 @@ function parseSheet(text, nombre, cfg) {
     const est=toEst(g(v,iE));
     if(est===null) continue;
     if(!monto&&!g(v,iN)) continue;
-    // Saldo final:
-    // - PAGADO siempre = 0
-    // - VENCIDO/PENDIENTE sin saldo explícito = monto completo
+    // Saldo final según reglas por cliente:
     if(est==='PAGADO') {
       saldo = 0;
-    } else if(!saldo || saldo <= 0) {
+    } else if(nombre==='LOYALTY') {
+      // LOYALTY: saldo ya viene de columna SALDO, si vacío usar monto
+      if(!saldo || saldo <= 0) saldo = monto;
+    } else if(['DPG','MAGUVA'].includes(nombre)) {
+      // DPG/MAGUVA: saldo vencido = MONTO FACTURA
+      const mf2 = $n(g(v,iMF));
+      saldo = mf2 > 0 ? mf2 : monto;
+    } else {
+      // Resto: saldo = MONTO PAGO
       saldo = monto;
     }
 
