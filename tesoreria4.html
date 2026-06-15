@@ -263,7 +263,8 @@ tr:last-child td{border-bottom:none}
           <thead><tr>
             <th onclick="srt('tEdo',0)">Fecha Factura</th>
             <th onclick="srt('tEdo',1)">No. Factura</th>
-            <th onclick="srt('tEdo',2)">Ruta / Servicio</th>
+            <th onclick="srt('tEdo',2)">Referencia</th>
+            <th onclick="srt('tEdo',3)">Ruta / Servicio</th>
             <th onclick="srt('tEdo',3)" class="num">Monto</th>
             <th>Moneda</th>
             <th onclick="srt('tEdo',5)" class="num">Días Créd.</th>
@@ -852,16 +853,19 @@ async function loadEstadoCuenta(nombre) {
   document.getElementById('edoContent').style.display='block';
 
   // KPIs
-  const tF=rows.reduce((s,r)=>s+toMXN(r.monto,r.moneda),0);
-  const tC=rows.filter(r=>r.estatus==='PAGADO').reduce((s,r)=>s+toMXN(r.montoPagado,r.moneda),0);
-  const tV=rows.filter(r=>r.estatus==='VENCIDO').reduce((s,r)=>s+toMXN(r.saldo||0,r.moneda),0);
-  const tP=rows.filter(r=>r.estatus!=='PAGADO').reduce((s,r)=>s+toMXN(r.saldo||0,r.moneda),0);
+  const esUSD = rows.length > 0 && rows.every(r=>r.moneda==='USD');
+  const edoConv = (v,m) => esUSD ? v : toMXN(v,m);
+  const edoMon = esUSD ? 'USD' : 'MXN';
+  const tF=rows.reduce((s,r)=>s+edoConv(r.monto,r.moneda),0);
+  const tC=rows.filter(r=>r.estatus==='PAGADO').reduce((s,r)=>s+edoConv(r.montoPagado,r.moneda),0);
+  const tV=rows.filter(r=>r.estatus==='VENCIDO').reduce((s,r)=>s+edoConv(r.saldo||0,r.moneda),0);
+  const tP=rows.filter(r=>r.estatus!=='PAGADO').reduce((s,r)=>s+edoConv(r.saldo||0,r.moneda),0);
   const pct=tF>0?Math.round(tC/tF*100):0;
   document.getElementById('kgEdo').innerHTML=
-    `<div class="kc"><div class="kl">Facturado</div><div class="kv">${fM(tF)}</div><div class="ks">${rows.length} facturas</div></div>`+
-    `<div class="kc"><div class="kl">Cobrado</div><div class="kv g">${fM(tC)}</div><div class="ks">${pct}% del total</div></div>`+
-    `<div class="kc"><div class="kl">Pendiente</div><div class="kv a">${fM(tP)}</div></div>`+
-    `<div class="kc"><div class="kl">Vencido</div><div class="kv r">${fM(tV)}</div></div>`;
+    `<div class="kc"><div class="kl">Facturado</div><div class="kv">${fM(tF,edoMon)}</div><div class="ks">${rows.length} facturas</div></div>`+
+    `<div class="kc"><div class="kl">Cobrado</div><div class="kv g">${fM(tC,edoMon)}</div><div class="ks">${pct}% del total</div></div>`+
+    `<div class="kc"><div class="kl">Pendiente</div><div class="kv a">${fM(tP,edoMon)}</div></div>`+
+    `<div class="kc"><div class="kl">Vencido</div><div class="kv r">${fM(tV,edoMon)}</div></div>`;
 
   filtrarEstado();
 }
@@ -874,6 +878,7 @@ function filtrarEstado() {
     tb.innerHTML+=`<tr>
       <td>${fD(r.fechaFact)}</td>
       <td style="font-family:monospace;font-size:11px">${r.noFact||'—'}</td>
+      <td style="font-size:11px;color:var(--text3)">${r.referencia||'—'}</td>
       <td>${r.ruta||'—'}</td>
       <td class="num">${fM(r.monto,r.moneda)}</td>
       <td><span class="b ${r.moneda==='USD'?'ba':'bx'}">${r.moneda}</span></td>
