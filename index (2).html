@@ -145,6 +145,19 @@ tfoot td.r{text-align:right}.tfoot td.g{color:#6ee7b7}
 .pnl-tbl tr.r-net td:first-child{background:var(--teal2);color:#fff}
 .pnl-tbl tr.r-pct td{background:var(--s1);color:var(--t2);font-size:11px;font-style:italic}
 .pnl-tbl tr.r-pct td:first-child{background:var(--s1);padding-left:22px}
+.pnl-tbl td:last-child,.pnl-tbl th:last-child{
+  position:sticky;right:0;z-index:2;
+  background:var(--s0);border-left:2px solid var(--teal4);
+  font-weight:700;
+}
+.pnl-tbl th:last-child{background:var(--nav);color:#4DB6AC;font-size:11px}
+.pnl-tbl tr.r-ing td:last-child{background:#e0f2f1}
+.pnl-tbl tr.r-section td:last-child{background:var(--nav2)}
+.pnl-tbl tr.r-tot td:last-child{background:var(--s2)}
+.pnl-tbl tr.r-ebitda td:last-child{background:#1e2d3d;color:#4DB6AC}
+.pnl-tbl tr.r-net td:last-child{background:var(--teal2);color:#fff}
+.pnl-tbl tr.r-pct td:last-child{background:var(--s1);font-weight:600}
+.pnl-tbl tr.r-sub td:last-child{background:var(--s0)}
 .pnl-neg{color:var(--red)!important}
 .pnl-pos{color:var(--grn)!important}
 
@@ -640,6 +653,42 @@ function dGastos(){
     <td class="r re">${fmt(pM(r['Monto']))}</td>
   </tr>`).join('');
 
+  // Fijos analysis
+  const tFijos=base.filter(r=>r['Tipo']==='Fijos').reduce((s,r)=>s+pM(r['Monto']),0);
+  const tVars=base.filter(r=>r['Tipo']==='Variables').reduce((s,r)=>s+pM(r['Monto']),0);
+  const nFijos=base.filter(r=>r['Tipo']==='Fijos').length;
+
+  // Fijos por clasificacion
+  const byFijosClas={};
+  base.filter(r=>r['Tipo']==='Fijos').forEach(r=>{
+    const cl=r['Clasificacion']||r['Clasificación']||'Sin clasificar';
+    if(!byFijosClas[cl])byFijosClas[cl]={m:0,n:0};
+    byFijosClas[cl].m+=pM(r['Monto']);byFijosClas[cl].n++;
+  });
+  const fijosClasSort=Object.entries(byFijosClas).sort((a,b)=>b[1].m-a[1].m);
+  const fijosClasRows=fijosClasSort.map(([k,v])=>`<tr>
+    <td style="font-weight:500">${k}</td>
+    <td class="r y">${fmt(v.m)}</td>
+    <td class="r mu">${tFijos>0?(v.m/tFijos*100).toFixed(1):0}%</td>
+    <td class="r mu">${fmtN(v.n)}</td>
+    <td class="r mu">${fmt(Math.round(v.m/12))}</td>
+  </tr>`).join('');
+
+  // Fijos clasificacion bars
+  const mxF=fijosClasSort[0]?fijosClasSort[0][1].m:1;
+  const fijosClasBars=fijosClasSort.slice(0,10).map(([k,v])=>`
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+      <div style="font-size:12px;color:var(--t1);min-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500">${k}</div>
+      <div style="flex:1;height:13px;background:var(--s2);border-radius:3px;overflow:hidden">
+        <div style="width:${(v.m/mxF*100).toFixed(1)}%;height:100%;background:#d97706;opacity:.75;border-radius:3px"></div>
+      </div>
+      <div style="font-size:11px;min-width:72px;text-align:right;font-family:var(--mono);color:var(--ylw);font-weight:600">${fmt(v.m)}</div>
+    </div>`).join('');
+
+  // Fijos/Variables por mes
+  const sgFijosM=MES.map((_,m)=>allBase.filter(r=>mOf(r)===m&&r['Tipo']==='Fijos').reduce((s,r)=>s+pM(r['Monto']),0));
+  const sgVarsM=MES.map((_,m)=>allBase.filter(r=>mOf(r)===m&&r['Tipo']==='Variables').reduce((s,r)=>s+pM(r['Monto']),0));
+
   $('main').innerHTML=
     filterBox([
       {label:'Mes',html:selMes()},
@@ -715,6 +764,34 @@ function dGastos(){
       </div>
     </div>
 
+    <div style="background:var(--ylw2);border:1px solid #fcd34d;border-radius:var(--r);padding:14px 16px;margin-bottom:16px">
+      <div style="font-size:12px;font-weight:700;color:#92400e;text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px;display:flex;align-items:center;gap:6px">
+        <span style="width:3px;height:13px;background:#d97706;border-radius:2px;display:inline-block"></span>
+        Analisis de Gastos Fijos
+      </div>
+      <div class="krow" style="margin-bottom:12px">
+        <div class="kc"><div class="kc-hd"><div class="kl">Total fijos</div><div class="ki y"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 110 20A10 10 0 0112 2z"/></svg></div></div><div class="kv y">${fmtK(tFijos)}</div><div class="kd">${tG>0?(tFijos/tG*100).toFixed(1)+'% del total':''}</div></div>
+        <div class="kc"><div class="kc-hd"><div class="kl">Total variables</div><div class="ki b"><svg viewBox="0 0 24 24"><path d="M3.5 18.5l6-6 4 4 7-8"/></svg></div></div><div class="kv b">${fmtK(tVars)}</div><div class="kd">${tG>0?(tVars/tG*100).toFixed(1)+'% del total':''}</div></div>
+        <div class="kc"><div class="kc-hd"><div class="kl">Registros fijos</div><div class="ki p"><svg viewBox="0 0 24 24"><path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/></svg></div></div><div class="kv p">${fmtN(nFijos)}</div><div class="kd">${base.length>0?(nFijos/base.length*100).toFixed(1)+'% de registros':''}</div></div>
+        <div class="kc"><div class="kc-hd"><div class="kl">Fijo prom/mes</div><div class="ki y"><svg viewBox="0 0 24 24"><path d="M9 11H7v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2z"/></svg></div></div><div class="kv y">${fmtK(Math.round(tFijos/12))}</div><div class="kd">compromiso mensual</div></div>
+      </div>
+      <div class="g2">
+        <div class="cc"><div class="cc-t">Fijos vs Variables por mes</div>
+          <div class="lgnd"><span><span class="lsq" style="background:#d97706"></span>Fijos</span><span><span class="lsq" style="background:#2563eb"></span>Variables</span></div>
+          <div style="position:relative;height:180px"><canvas id="cGfv"></canvas></div>
+        </div>
+        <div class="cc"><div class="cc-t">Fijos por clasificacion</div>
+          ${fijosClasBars}
+        </div>
+      </div>
+      <div class="slbl">Detalle de gastos fijos por clasificacion</div>
+      <div class="tw"><table>
+        <thead><tr><th>Clasificacion</th><th class="r">Monto</th><th class="r">% del fijo</th><th class="r">Registros</th><th class="r">Prom/mes</th></tr></thead>
+        <tbody>${fijosClasRows}</tbody>
+        <tfoot><tr><td>Total Fijos</td><td class="r">${fmt(tFijos)}</td><td class="r">100%</td><td class="r">${fmtN(nFijos)}</td><td class="r">${fmt(Math.round(tFijos/12))}</td></tr></tfoot>
+      </table></div>
+    </div>
+
     <div class="slbl">Detalle de gastos${base.length>250?' (250 registros)':''}</div>
     <div class="tw"><table>
       <thead><tr><th>Fecha</th><th>Descripcion</th><th>Categoria</th><th>Clasificacion</th><th>Unidad</th><th>Operador</th><th>Ruta</th><th>Tipo</th><th class="r">Monto</th></tr></thead>
@@ -726,6 +803,15 @@ function dGastos(){
   const dsG=[{label:'g',data:sgM,backgroundColor:'rgba(220,38,38,.75)',borderRadius:4}];
   if(c)dsG.push({label:'ga',data:sgaM,backgroundColor:'rgba(220,38,38,.25)',borderRadius:4});
   mkChart('cGmes','bar',MES,dsG,mkBarOpts(false,false));
+  // Fijos vs Variables stacked
+  if($('cGfv')){
+    CH['cGfv']=new Chart($('cGfv'),{type:'bar',data:{labels:MES,datasets:[
+      {label:'Fijos',data:sgFijosM,backgroundColor:'rgba(217,119,6,.8)',borderRadius:4},
+      {label:'Variables',data:sgVarsM,backgroundColor:'rgba(37,99,235,.65)',borderRadius:4},
+    ]},options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},datalabels:{display:false},tooltip:{callbacks:{label:c=>` ${fmt(c.raw)}`}}},
+      scales:{x:{stacked:true,ticks:{color:'#94a3b8',font:{size:11}}},y:{stacked:true,ticks:{color:'#94a3b8',font:{size:11},callback:v=>fmtK(v)}}}}});
+  }
   mkChart('cGclas','bar',clasS.map(([k])=>k),[{label:'g',data:clasS.map(([,v])=>v),backgroundColor:CLRS.map(c=>`${c}cc`),borderRadius:4}],mkBarHOpts(false));
   mkChart('cGuni','bar',uniS.map(([k])=>k),[{label:'g',data:uniS.map(([,v])=>v),backgroundColor:'rgba(220,38,38,.7)',borderRadius:4}],mkBarHOpts(false));
   mkChart('cGop','bar',opS.map(([k])=>k),[{label:'g',data:opS.map(([,v])=>v),backgroundColor:'rgba(124,58,237,.7)',borderRadius:4}],mkBarHOpts(false));
@@ -1010,11 +1096,25 @@ function dPNL(){
     </table></div>`;
 
   const tGmes=MES.map((_,m)=>totalCostServe[m]+fijosM[m]+sgaM[m]);
-  mkChart('cPNL','bar',MES,[
-    {label:'Ingresos',data:sv.map(s=>s.i),backgroundColor:'rgba(5,150,105,.75)',borderRadius:4},
-    {label:'Gastos',data:tGmes,backgroundColor:'rgba(220,38,38,.75)',borderRadius:4},
-    {label:'EBITDA',data:ebitdaM,backgroundColor:'rgba(0,137,123,.75)',borderRadius:4,type:'line',borderColor:'rgba(0,137,123,.9)',pointRadius:4,fill:false},
-  ],mkBarOpts(false,false));
+  if($('cPNL')){
+    CH['cPNL']=new Chart($('cPNL'),{
+      type:'line',
+      data:{labels:MES,datasets:[
+        {label:'Ingresos',data:sv.map(s=>s.i),borderColor:'rgba(5,150,105,.9)',backgroundColor:'rgba(5,150,105,.08)',borderWidth:2.5,pointRadius:4,pointBackgroundColor:'rgba(5,150,105,.9)',fill:true,tension:.3},
+        {label:'Gastos',data:tGmes,borderColor:'rgba(220,38,38,.85)',backgroundColor:'rgba(220,38,38,.06)',borderWidth:2.5,pointRadius:4,pointBackgroundColor:'rgba(220,38,38,.85)',fill:true,tension:.3},
+        {label:'EBITDA',data:ebitdaM,borderColor:'rgba(0,137,123,.7)',backgroundColor:'transparent',borderWidth:1.5,borderDash:[4,4],pointRadius:5,pointStyle:'rectRot',pointBackgroundColor:'rgba(0,137,123,.8)',fill:false,tension:.3},
+      ]},
+      options:{responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{display:true,position:'top',labels:{font:{size:12},color:'#475569',usePointStyle:true,pointStyleWidth:10}},
+          datalabels:{display:true,align:'top',anchor:'end',color:'#475569',font:{size:10},
+            formatter:(v,ctx)=>{if(ctx.datasetIndex===2)return '';return v>=1e6?'$'+(v/1e6).toFixed(1)+'M':v>=1e3?'$'+Math.round(v/1e3)+'k':v>0?fmt(v):'';}},
+          tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${fmt(c.raw)}`}}},
+        scales:{
+          x:{ticks:{color:'#94a3b8',font:{size:11}},grid:{color:'rgba(0,0,0,.04)'}},
+          y:{ticks:{color:'#94a3b8',font:{size:11},callback:v=>fmtK(v)},grid:{color:'rgba(0,0,0,.05)'}}
+        }}
+    });
+  }
 }
 
 loadAll();
