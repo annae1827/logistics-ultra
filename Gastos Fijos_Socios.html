@@ -675,6 +675,150 @@ function dFijos(){
   mkBar('cFm',MES,[{label:'Fijos',data:totalMes,backgroundColor:'rgba(217,119,6,.75)',borderRadius:4}]);
 }
 
+
+// ── CSV PARSER ────────────────────────────────────────────────────────────
+function parseCSV(txt, hdrRow=0){
+  const lines = txt.trim().split('\n');
+  const hdr   = lines[hdrRow].split(',').map(h=>h.trim().replace(/^"|"$/g,''));
+  return lines.slice(hdrRow+1).map(l=>{
+    const vals=[]; let cur='', inQ=false;
+    for(const ch of l){
+      if(ch==='"'){inQ=!inQ;}
+      else if(ch===','&&!inQ){vals.push(cur.trim());cur='';}
+      else cur+=ch;
+    }
+    vals.push(cur.trim());
+    const o={};
+    hdr.forEach((h,i)=>{ o[h]=(vals[i]||'').replace(/^"|"$/g,''); });
+    return o;
+  });
+}
+
+// ── KEYWORD AUTO-CLASSIFIER ───────────────────────────────────────────────
+const KW_MAP=[
+  ['Pago Alen',            ['ALEN','TM LOGISTICS','TM LOGI']],
+  ['Pago TML',             ['TML','TRANS MERCA']],
+  ['Pago TYT',             ['TYT']],
+  ['Pago a Proveedores',   ['CITI MEXICO HR','RECIBIDO','DEPOSITO CLIENTE']],
+  ['Nomina',               ['NOMINA','NÓMINA','SUELDO','SEMANADA']],
+  ['Diesel',               ['DIESEL','GAS ROBLE','COMBUSTIBLE']],
+  ['Casetas',              ['CASETA','TELEVIA','IAVE']],
+  ['Mantenimiento',        ['MANTENIMIENTO','REFACCION','LLANTA','TALLER']],
+  ['IMSS',                 ['IMSS','SEGURO SOCIAL']],
+  ['Credito Konfio',       ['KONFIO']],
+  ['Gastos Operativos',    ['SPEI','BXI','ORDEN DE PAGO','TRASP FONDOS','GASTO','COMPRA','PAYPAL','AMAZON']],
+  ['Renta Camion y Caja',  ['RENTA CAMION','ARRENDAMIENTO']],
+  ['Prestamo Alma',        ['ALMA PAEZ','GAGE830714']],
+  ['Gasolina - Juan',      ['GASOLINA','GAS STATION','PEMEX']],
+  ['Maniobras',            ['MANIOBRA']],
+  ['Transpaso cuenta propia',['TRASPASO A CUENTA PROPIA','TRASPASA A CUENTA PROPIA']],
+];
+function autoClasifDesc(desc, dep, ret){
+  if(dep>0 && ret===0) return 'Ingreso';
+  const d = String(desc).toUpperCase();
+  for(const [cat,keys] of KW_MAP) if(keys.some(k=>d.includes(k))) return cat;
+  return '';
+}
+
+// ── EDO CTAS PROCESSOR ────────────────────────────────────────────────────
+function processEdoCSV(rows){
+  const out=[];
+  for(const r of rows){
+    // Get fecha - try multiple column names
+    const fechaStr = r['Fecha']||r['FECHA']||r['fecha']||'';
+    if(!fechaStr) continue;
+    let yr=0, mes=0;
+    const parts = fechaStr.split('/');
+    if(parts.length===3){
+      // dd/mm/yyyy
+      yr  = parseInt(parts[2]);
+      mes = parseInt(parts[1]);
+    } else {
+      const m = fechaStr.match(/(20\d{2})[\-\/](\d{1,2})/);
+      if(m){ yr=parseInt(m[1]); mes=parseInt(m[2]); }
+    }
+    if(!yr || !mes) continue;
+
+    const dep = parseFloat(String(r['Monto del deposito']||r['Monto del depósito']||r['Deposito']||0).replace(/[$,]/g,''))||0;
+    const ret = parseFloat(String(r['Monto del retiro']||r['Retiro']||0).replace(/[$,]/g,''))||0;
+    if(dep===0 && ret===0) continue;
+
+    const clRaw = r['Clasificacion de gastos personales']||
+                  r['Clasificación de gastos personales']||
+                  r['Clasificacion']||r['Clasificación']||'';
+    const cl = (clRaw && !clRaw.startsWith('=') && clRaw.trim())
+               ? clRaw.trim()
+               : autoClasifDesc(r['Descripcion']||r['Descripción']||'', dep, ret);
+
+    const socio = r['Socio']||'';
+    const tipo  = r['Tipo']||r['TIPO']||'';
+    const desc  = (r['Descripcion']||r['Descripción']||'').substring(0,60);
+
+    out.push([tipo, yr, mes, dep, ret, cl,
+              (!socio||socio.startsWith('='))?'':socio,
+              desc, '']);
+  }
+  return out;
+}
+
+// ── FIJOS PROCESSOR ───────────────────────────────────────────────────────
+const MF_NAMES=['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO',
+                'JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
+function processFijosCSV(rows){
+  if(!rows.length) return [];
+  const keys     = Object.keys(rows[0]);
+  const gastoKey = keys.find(k=>k.trim().toUpperCase()==='GASTO')||'GASTO';
+  const clasKey  = keys.find(k=>k.trim().toLowerCase().includes('clasif'))||keys[0];
+  const mesKeys  = MF_NAMES.map(m=>keys.find(k=>k.trim().toUpperCase()===m)||m);
+  return rows
+    .filter(r=>r[gastoKey]&&String(r[gastoKey]).trim())
+    .map(r=>[
+      String(r[clasKey]||'').trim(),
+      String(r[gastoKey]||'').trim(),
+      mesKeys.map(mk=>parseFloat(String(r[mk]||0).replace(/[$,]/g,''))||0),
+    ]);
+}
+
+// ── LOAD FROM GOOGLE SHEETS ───────────────────────────────────────────────
+async function loadFromSheets(){
+  try{
+    $('ld-msg').textContent='Cargando estado de cuentas...';
+    const rEdo = await fetch(URL_EDO);
+    if(!rEdo.ok) throw new Error('Error '+rEdo.status+' al cargar Edo Ctas');
+    const tEdo = await rEdo.text();
+    const rowsEdo = parseCSV(tEdo, 0);
+    const processed = processEdoCSV(rowsEdo);
+    RAW_DATA.length=0;
+    processed.forEach(r=>RAW_DATA.push(r));
+
+    $('ld-msg').textContent='Cargando gastos fijos...';
+    const rFij = await fetch(URL_FIJOS_CSV);
+    if(!rFij.ok) throw new Error('Error '+rFij.status+' al cargar Gastos Fijos');
+    const tFij = await rFij.text();
+    const rowsFij = parseCSV(tFij, 1); // row 1 = year labels, row 2 = headers
+    const fijProcesados = processFijosCSV(rowsFij);
+    FIJOS_DATA.length=0;
+    fijProcesados.forEach(f=>FIJOS_DATA.push(f));
+
+    const years=[...new Set(RAW_DATA.map(r=>r[1]))].sort();
+    $('sbInfo').textContent=RAW_DATA.length.toLocaleString('es-MX')+' movimientos';
+
+    $('loading').style.display='none';
+    $('app').style.display='flex';
+    render();
+  }catch(e){
+    $('ld-msg').textContent='Error al cargar datos';
+    const existing = document.querySelector('#loading .err-msg');
+    if(!existing){
+      const err=document.createElement('div');
+      err.className='err-msg';
+      err.style.cssText='background:rgba(220,38,38,.12);border:1px solid rgba(220,38,38,.3);color:#fca5a5;padding:10px 18px;border-radius:8px;font-size:12px;max-width:420px;text-align:center;margin-top:8px;line-height:1.6';
+      err.textContent=e.message+'. Asegurate de abrir desde GitHub Pages (https://), no desde tu disco (file://).';
+      $('loading').appendChild(err);
+    }
+  }
+}
+
 // ── INIT ──────────────────────────────────────────────────────────────────
 loadFromSheets();
 
