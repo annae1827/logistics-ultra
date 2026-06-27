@@ -6,7 +6,6 @@
 <title>Logistics Ultra — Finanzas UAL & JAVP</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-datalabels/2.2.0/chartjs-plugin-datalabels.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root{
@@ -141,13 +140,6 @@ tfoot td.r{text-align:right}
 .pnl-tbl tr.r-pct td:last-child{background:var(--s1)}
 .pnl-neg{color:var(--red)!important}.pnl-pos{color:var(--grn)!important}
 
-/* UPLOAD ZONE */
-.upzone{border:2px dashed var(--br2);border-radius:var(--r);padding:30px;text-align:center;color:var(--t3);cursor:pointer;transition:all .15s;margin-bottom:16px}
-.upzone:hover,.upzone.drag{border-color:var(--teal);background:var(--teal3);color:var(--teal2)}
-.upzone svg{width:32px;height:32px;fill:currentColor;margin-bottom:8px}
-.upzone p{font-size:13px;font-weight:500}
-.upzone small{font-size:11px}
-
 .bdg{display:inline-block;font-size:10px;padding:2px 7px;border-radius:99px;font-weight:600}
 .bt{background:var(--teal3);color:var(--teal2)}.bg{background:var(--s2);color:var(--t2);border:1px solid var(--br)}
 .by{background:var(--ylw2);color:#92400e}.bb{background:var(--blu2);color:#1e40af}
@@ -188,7 +180,7 @@ tfoot td.r{text-align:right}
     <div class="ni" onclick="goTab('pnl',this)"><svg viewBox="0 0 24 24"><path d="M9 11H7v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2z"/></svg>P&amp;L por Empresa</div>
     <div class="sb-sec">Archivos</div>
     <div class="ni" onclick="goTab('fijos',this)"><svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm4 18H6V4h7v5h5v11z"/></svg>Gastos Fijos</div>
-    <div class="ni" onclick="goTab('cargar',this)"><svg viewBox="0 0 24 24"><path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/></svg>Cargar Excel</div>
+
   </nav>
   <div class="sb-foot"><b id="sbInfo">10,596 movimientos</b>2024–2026 · UAL, JAVP</div>
 </aside>
@@ -298,7 +290,7 @@ function mkLine(id,labels,datasets){
 
 // ── ROUTING ──────────────────────────────────────────────────────────────
 const TABS={resumen:'Resumen General',ual:'UAL',javpf:'JAVP Fiscal',javpnf:'JAVP No Fiscal',
-  socios:'Gastos por Socio',clasif:'Por Clasificacion',pnl:'P&L por Empresa',fijos:'Gastos Fijos',cargar:'Cargar Excel'};
+  socios:'Gastos por Socio',clasif:'Por Clasificacion',pnl:'P&L por Empresa',fijos:'Gastos Fijos'};
 function goTab(name,el){
   curTab=name;curMes=-1;curSocio='all';curCl='all';curTipo='all';
   document.querySelectorAll('.ni').forEach(n=>n.classList.remove('on'));
@@ -316,7 +308,6 @@ function render(){
   else if(curTab==='clasif')dClasif();
   else if(curTab==='pnl')dPNL();
   else if(curTab==='fijos')dFijos();
-  else if(curTab==='cargar')dCargar();
 }
 
 // ── FILTER BOX ────────────────────────────────────────────────────────────
@@ -682,240 +673,6 @@ function dFijos(){
     </table></div>`;
 
   mkBar('cFm',MES,[{label:'Fijos',data:totalMes,backgroundColor:'rgba(217,119,6,.75)',borderRadius:4}]);
-}
-
-// ── CARGAR EXCEL ──────────────────────────────────────────────────────────
-function dCargar(){
-  $('main').innerHTML=`
-    <div class="slbl">Actualizar Estado de Cuentas</div>
-    <div class="upzone" id="upEdo" onclick="$('fEdo').click()" ondragover="event.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')" ondrop="dropFile(event,'edo')">
-      <input type="file" id="fEdo" accept=".xlsx,.xls" style="display:none" onchange="loadFile(this.files[0],'edo')">
-      <svg viewBox="0 0 24 24"><path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/></svg>
-      <p>Cargar Excel — Estado de Cuentas</p>
-      <small>Hoja "Edo Ctas" — columnas: Tipo, Fecha, año, mes, dia, Descripcion, Deposito, Retiro, Saldo, Gastos personales, Clasificacion, Socio</small>
-    </div>
-
-    <div class="slbl">Actualizar Gastos Fijos</div>
-    <div class="upzone" id="upFijos" onclick="$('fFijos').click()" ondragover="event.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')" ondrop="dropFile(event,'fijos')">
-      <input type="file" id="fFijos" accept=".xlsx,.xls" style="display:none" onchange="loadFile(this.files[0],'fijos')">
-      <svg viewBox="0 0 24 24"><path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/></svg>
-      <p>Cargar Excel — Gastos Fijos</p>
-      <small>Hoja "GASTOS FIJOS A IDENTIFICAR" — Clasificacion, Gasto, meses Ene–Dic</small>
-    </div>
-    <div id="loadStatus" style="font-size:13px;color:var(--teal);margin-top:10px"></div>`;
-}
-
-function dropFile(ev,tipo){ev.preventDefault();document.getElementById(tipo==='edo'?'upEdo':'upFijos').classList.remove('drag');loadFile(ev.dataTransfer.files[0],tipo);}
-
-async function loadFile(file,tipo){
-  if(!file)return;
-  const st=$('loadStatus');
-  st.textContent='Leyendo archivo...';
-  const buf=await file.arrayBuffer();
-  const wb=XLSX.read(buf,{type:'array',cellDates:true});
-  if(tipo==='edo'){
-    const ws=wb.Sheets['Edo Ctas'];
-    if(!ws){st.textContent='No se encontro la hoja "Edo Ctas"';return;}
-    const raw=XLSX.utils.sheet_to_json(ws,{raw:false,defval:''});
-    const processed=processEdoCtas(raw);
-    // Update in memory
-    window.EDO_OVERRIDE=processed;
-    st.textContent=`Cargados ${processed.length} movimientos. Recalculando...`;
-    setTimeout(()=>{Object.assign(RAW_DATA,processed);RAW_DATA.length=processed.length;render();},100);
-  } else {
-    const ws=wb.Sheets['GASTOS FIJOS A IDENTIFICAR'];
-    if(!ws){st.textContent='No se encontro la hoja "GASTOS FIJOS A IDENTIFICAR"';return;}
-    const raw=XLSX.utils.sheet_to_json(ws,{raw:true,defval:0,range:1});
-    const processed=processFijos(raw);
-    FIJOS_DATA.length=0;processed.forEach(f=>FIJOS_DATA.push(f));
-    st.textContent=`Cargados ${processed.length} conceptos de gasto fijo.`;
-    if(curTab==='fijos')render();
-  }
-}
-
-const KEYWORDS_CL=[
-  ['Pago Alen',['ALEN','TM LOGISTICS','TM LOGI']],
-  ['Pago TML',['TML','TRANS MERCA']],
-  ['Pago TYT',['TYT']],
-  ['Nómina',['NOMINA','NÓMINA','SUELDO']],
-  ['Diesel',['DIESEL','GAS ROBLE','COMBUSTIBLE']],
-  ['Casetas',['CASETA','TELEVIA','IAVE']],
-  ['Mantenimiento',['MANTENIMIENTO','REFACCION','LLANTA','TALLER']],
-  ['IMSS',['IMSS','SEGURO SOCIAL']],
-  ['Crédito Konfío',['KONFIO','KONFÍO']],
-  ['Gastos Operativos',['SPEI','BXI','ORDEN DE PAGO','TRASP FONDOS','GASTO','COMPRA','PAYPAL','AMAZON']],
-  ['Renta Camión y Caja',['RENTA CAMION','ARRENDAMIENTO']],
-  ['Préstamo Alma',['ALMA PAEZ','GAGE830714']],
-  ['Gasolina - Juan',['GASOLINA','GAS STATION','PEMEX']],
-  ['Maniobras',['MANIOBRA']],
-];
-function autoClasif(desc,dep,ret){
-  const d=String(desc).toUpperCase();
-  if(dep>0&&ret===0)return 'Ingreso';
-  for(const[cat,keys]of KEYWORDS_CL)if(keys.some(k=>d.includes(k)))return cat;
-  return '';
-}
-function processEdoCtas(rows){
-  const MES_MAP={1:'Ene',2:'Feb',3:'Mar',4:'Abr',5:'May',6:'Jun',7:'Jul',8:'Ago',9:'Sep',10:'Oct',11:'Nov',12:'Dic'};
-  return rows.map(r=>{
-    const fecha=r['Fecha']?new Date(r['Fecha']):null;
-    if(!fecha||isNaN(fecha))return null;
-    const dep=parseFloat(String(r['Monto del deposito']||0).replace(/[$,]/g,''))||0;
-    const ret=parseFloat(String(r['Monto del retiro']||0).replace(/[$,]/g,''))||0;
-    if(dep===0&&ret===0)return null;
-    const clRaw=r['Clasificación de gastos personales']||r['Clasificacion de gastos personales']||'';
-    const cl=(clRaw&&!clRaw.startsWith('='))?clRaw:autoClasif(r['Descripción']||r['Descripcion']||'',dep,ret);
-    const socio=r['Socio']&&!String(r['Socio']).startsWith('=')?String(r['Socio']):'';
-    return [String(r['Tipo']||''),fecha.getFullYear(),fecha.getMonth()+1,dep,ret,cl,socio,(r['Descripción']||r['Descripcion']||'').substring(0,60),''];
-  }).filter(Boolean);
-}
-function processFijos(rows){
-  const MF=['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
-  return rows.filter(r=>r['GASTO']).map(r=>[
-    String(r['Clasificación']||r['Clasificacion']||''),
-    String(r['GASTO']||''),
-    MF.map(m=>parseFloat(r[m]||0)||0),
-  ]);
-}
-
-// ── CSV PARSER ────────────────────────────────────────────────────────────
-function parseCSV(txt, hdrRow=0){
-  const lines = txt.trim().split('\n');
-  const hdr   = lines[hdrRow].split(',').map(h=>h.trim().replace(/^"|"$/g,''));
-  return lines.slice(hdrRow+1).map(l=>{
-    const vals=[]; let cur='', inQ=false;
-    for(const ch of l){
-      if(ch==='"'){inQ=!inQ}
-      else if(ch===','&&!inQ){vals.push(cur.trim());cur='';}
-      else cur+=ch;
-    }
-    vals.push(cur.trim());
-    const o={};
-    hdr.forEach((h,i)=>{ o[h]=(vals[i]||'').replace(/^"|"$/g,''); });
-    return o;
-  });
-}
-
-// ── KEYWORD CLASSIFIER ────────────────────────────────────────────────────
-const KW_MAP=[
-  ['Pago Alen',        ['ALEN','TM LOGISTICS','TM LOGI']],
-  ['Pago TML',         ['TML','TRANS MERCA']],
-  ['Pago TYT',         ['TYT']],
-  ['Pago a Proveedores',['CITI MEXICO HR','RECIBIDO','DEPOSITO CLIENTE']],
-  ['Nomina',           ['NOMINA','NOMINA','SUELDO','SEMANADA']],
-  ['Diesel',           ['DIESEL','GAS ROBLE','COMBUSTIBLE']],
-  ['Casetas',          ['CASETA','TELEVIA','IAVE']],
-  ['Mantenimiento',    ['MANTENIMIENTO','REFACCION','LLANTA','TALLER','MECANICO']],
-  ['IMSS',             ['IMSS','SEGURO SOCIAL']],
-  ['Credito Konfio',   ['KONFIO']],
-  ['Gastos Operativos',['SPEI','BXI','ORDEN DE PAGO','TRASP FONDOS','GASTO','COMPRA','PAYPAL','AMAZON']],
-  ['Renta Camion y Caja',['RENTA CAMION','ARRENDAMIENTO']],
-  ['Prestamo Alma',    ['ALMA PAEZ','GAGE830714']],
-  ['Gasolina - Juan',  ['GASOLINA','GAS STATION','PEMEX']],
-  ['Maniobras',        ['MANIOBRA']],
-  ['Transpaso cuenta propia',['TRASPASO A CUENTA PROPIA','TRASPASA A CUENTA PROPIA']],
-];
-function autoClasifDesc(desc, dep, ret){
-  if(dep>0&&ret===0) return 'Ingreso';
-  const d=String(desc).toUpperCase();
-  for(const[cat,keys]of KW_MAP) if(keys.some(k=>d.includes(k))) return cat;
-  return '';
-}
-
-// ── EDO CTAS PROCESSOR ────────────────────────────────────────────────────
-function processEdoCSV(rows){
-  const out=[];
-  for(const r of rows){
-    const fechaStr = r['Fecha']||r['FECHA']||'';
-    if(!fechaStr) continue;
-    // Parse date - could be dd/mm/yyyy or yyyy-mm-dd or Excel serial
-    let yr=0, mes=0;
-    const parts = fechaStr.split('/');
-    if(parts.length===3){
-      // dd/mm/yyyy
-      yr  = parseInt(parts[2]);
-      mes = parseInt(parts[1]);
-    } else {
-      const m = fechaStr.match(/(20\d{2})[\-\/](\d{1,2})/);
-      if(m){ yr=parseInt(m[1]); mes=parseInt(m[2]); }
-    }
-    if(!yr||!mes) continue;
-
-    const dep = parseFloat(String(r['Monto del deposito']||r['Deposito']||0).replace(/[$,]/g,''))||0;
-    const ret = parseFloat(String(r['Monto del retiro']||r['Retiro']||0).replace(/[$,]/g,''))||0;
-    if(dep===0&&ret===0) continue;
-
-    // Classification - use existing or auto-classify
-    const clRaw = r['Clasificacion de gastos personales']||r['Clasificación de gastos personales']||
-                  r['Clasificacion']||r['Clasificación']||'';
-    const cl = (clRaw&&!clRaw.startsWith('=')&&clRaw.trim())
-               ? clRaw.trim()
-               : autoClasifDesc(r['Descripcion']||r['Descripción']||'', dep, ret);
-
-    const socio = r['Socio']||'';
-    const tipo  = r['Tipo']||r['TIPO']||'';
-    const desc  = (r['Descripcion']||r['Descripción']||'').substring(0,60);
-
-    out.push([tipo, yr, mes, dep, ret, cl, socio, desc, '']);
-  }
-  return out;
-}
-
-// ── FIJOS PROCESSOR ───────────────────────────────────────────────────────
-const MF_NAMES=['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
-function processFijosCSV(rows){
-  // Header row has: Clasificacion, Monto Anual, GASTO, ENERO...DICIEMBRE
-  // But first row might be year labels — skip rows without GASTO
-  return rows
-    .filter(r=>r['GASTO']&&r['GASTO'].trim())
-    .map(r=>{
-      const clas  = String(r['Clasificacion']||r['Clasificación']||'');
-      const gasto = String(r['GASTO']||'');
-      const meses = MF_NAMES.map(m=>parseFloat(String(r[m]||0).replace(/[$,]/g,''))||0);
-      return [clas, gasto, meses];
-    });
-}
-
-// ── LOAD FROM GOOGLE SHEETS ───────────────────────────────────────────────
-async function loadFromSheets(){
-  $('ld-msg').textContent='Cargando estado de cuentas...';
-  try{
-    // Edo Ctas
-    const rEdo = await fetch(URL_EDO);
-    if(!rEdo.ok) throw new Error('HTTP '+rEdo.status+' en Edo Ctas');
-    const tEdo = await rEdo.text();
-    const rowsEdo = parseCSV(tEdo, 0);
-    const processed = processEdoCSV(rowsEdo);
-    RAW_DATA.length=0;
-    processed.forEach(r=>RAW_DATA.push(r));
-
-    $('ld-msg').textContent='Cargando gastos fijos...';
-
-    // Gastos Fijos — header is on row 2 (index 1) because row 1 has year labels
-    const rFij = await fetch(URL_FIJOS_CSV);
-    if(!rFij.ok) throw new Error('HTTP '+rFij.status+' en Gastos Fijos');
-    const tFij = await rFij.text();
-    const rowsFij = parseCSV(tFij, 1); // header on row 2
-    const fijProcesados = processFijosCSV(rowsFij);
-    FIJOS_DATA.length=0;
-    fijProcesados.forEach(f=>FIJOS_DATA.push(f));
-
-    // Update sidebar info
-    const years=[...new Set(RAW_DATA.map(r=>r[1]))].sort();
-    $('sbInfo').textContent=RAW_DATA.length.toLocaleString('es-MX')+' movimientos';
-    document.querySelector('.sb-foot span:last-child')||($('sbInfo').nextSibling&&($('sbInfo').nextSibling.textContent=years[0]+'–'+years[years.length-1]+' · UAL, JAVP'));
-
-    $('loading').style.display='none';
-    $('app').style.display='flex';
-    $('dot')&&($('dot').className='dot');
-    render();
-  }catch(e){
-    $('ld-msg').textContent='Error: '+e.message;
-    const err=document.createElement('div');
-    err.style.cssText='background:rgba(220,38,38,.15);border:1px solid rgba(220,38,38,.3);color:#fca5a5;padding:10px 18px;border-radius:8px;font-size:12px;max-width:400px;text-align:center;margin-top:10px;line-height:1.5';
-    err.textContent='No se pudo conectar. Abre este archivo desde GitHub Pages (https://), no desde tu disco (file://).';
-    document.getElementById('loading').appendChild(err);
-  }
 }
 
 // ── INIT ──────────────────────────────────────────────────────────────────
