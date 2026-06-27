@@ -765,18 +765,40 @@ function processEdoCSV(rows){
 const MF_NAMES=['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO',
                 'JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
 function processFijosCSV(rows){
-  if(!rows.length) return [];
-  const keys     = Object.keys(rows[0]);
-  const gastoKey = keys.find(k=>k.trim().toUpperCase()==='GASTO')||'GASTO';
-  const clasKey  = keys.find(k=>k.trim().toLowerCase().includes('clasif'))||keys[0];
-  const mesKeys  = MF_NAMES.map(m=>keys.find(k=>k.trim().toUpperCase()===m)||m);
-  return rows
-    .filter(r=>r[gastoKey]&&String(r[gastoKey]).trim())
+  if(!rows.length){ console.warn('No fijos rows'); return []; }
+  const keys = Object.keys(rows[0]);
+  console.log('Fijos keys:', keys.slice(0,8));
+
+  // Find GASTO column
+  const gastoKey = keys.find(k=>k.trim().toUpperCase()==='GASTO') ||
+                   keys.find(k=>k.trim().toLowerCase().includes('gasto')) ||
+                   keys[2] || 'GASTO';
+
+  // Find Clasificacion column
+  const clasKey = keys.find(k=>k.trim().toLowerCase().includes('clasif')) ||
+                  keys.find(k=>k.trim().toLowerCase().includes('class')) ||
+                  keys[0];
+
+  // Find month columns - try exact match first, then partial
+  const mesKeys = MF_NAMES.map(m=>{
+    return keys.find(k=>k.trim().toUpperCase()===m) ||
+           keys.find(k=>k.trim().toUpperCase().startsWith(m.substring(0,3))) ||
+           m;
+  });
+
+  console.log('Fijos gastoKey:', gastoKey, 'clasKey:', clasKey, 'mes0:', mesKeys[0]);
+
+  const result = rows
+    .filter(r=>r[gastoKey] && String(r[gastoKey]).trim() &&
+               !String(r[gastoKey]).toUpperCase().includes('TOTAL'))
     .map(r=>[
       String(r[clasKey]||'').trim(),
       String(r[gastoKey]||'').trim(),
-      mesKeys.map(mk=>parseFloat(String(r[mk]||0).replace(/[$,]/g,''))||0),
+      mesKeys.map(mk=>parseFloat(String(r[mk]||0).replace(/[$,\s]/g,''))||0),
     ]);
+
+  console.log('Fijos processed:', result.length, 'sample:', result[0]);
+  return result;
 }
 
 // ── LOAD FROM GOOGLE SHEETS ───────────────────────────────────────────────
@@ -795,7 +817,17 @@ async function loadFromSheets(){
     const rFij = await fetch(URL_FIJOS_CSV);
     if(!rFij.ok) throw new Error('Error '+rFij.status+' al cargar Gastos Fijos');
     const tFij = await rFij.text();
-    const rowsFij = parseCSV(tFij, 1); // row 1 = year labels, row 2 = headers
+    // Auto-detect header row: find the row that contains 'GASTO' or 'Clasificacion'
+    const fijLines = tFij.trim().split('\n');
+    let fijHdrRow = 0;
+    for(let i=0;i<Math.min(5,fijLines.length);i++){
+      const l = fijLines[i].toUpperCase();
+      if(l.includes('GASTO') || l.includes('CLASIFICACI')){
+        fijHdrRow = i;
+        break;
+      }
+    }
+    const rowsFij = parseCSV(tFij, fijHdrRow);
     const fijProcesados = processFijosCSV(rowsFij);
     FIJOS_DATA.length=0;
     fijProcesados.forEach(f=>FIJOS_DATA.push(f));
@@ -805,7 +837,8 @@ async function loadFromSheets(){
 
     $('loading').style.display='none';
     $('app').style.display='flex';
-    render();
+    // Small delay to ensure Chart.js datalabels plugin is registered
+    setTimeout(()=>render(), 100);
   }catch(e){
     $('ld-msg').textContent='Error al cargar datos';
     const existing = document.querySelector('#loading .err-msg');
