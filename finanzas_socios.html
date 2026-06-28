@@ -574,6 +574,15 @@ function dClasif(){
 // ── P&L ─────────────────────────────────────────────────────────────────
 function dPNL(){
   const tipos=['UAL','JAVP_Fiscal','JAVP_No_Fiscal'];
+// Helper: normalize tipo names from raw data
+function normTipo(t){
+  if(!t) return '';
+  const u=t.trim().toUpperCase();
+  if(u.includes('NO') && u.includes('FISCAL')) return 'JAVP_No_Fiscal';
+  if(u.includes('FISCAL')) return 'JAVP_Fiscal';
+  if(u==='UAL') return 'UAL';
+  return t.trim();
+}
   const y=yr();
   function pnlForTipo(tipo){
     const d=RAW_DATA.filter(r=>r[0]===tipo&&(y==='all'||r[1]===parseInt(y)));
@@ -626,23 +635,29 @@ function dPNL(){
 // ── GASTOS FIJOS ──────────────────────────────────────────────────────────
 function dFijos(){
   const MES_FULL=['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
+  // FIJOS_DATA format: [clas, gasto_nombre, [mes1..mes12]]
   const byClasF={};
   FIJOS_DATA.forEach(f=>{
     if(!byClasF[f[0]])byClasF[f[0]]=0;
-    byClasF[f[0]]+=f[1].reduce((s,v)=>s+v,0);
+    byClasF[f[0]]+=Array.isArray(f[2])?f[2].reduce((s,v)=>s+v,0):0;
   });
   const clSort=Object.entries(byClasF).sort((a,b)=>b[1]-a[1]);
-  const totalAnual=FIJOS_DATA.reduce((s,f)=>s+f[1].reduce((a,v)=>a+v,0),0);
-  const totalMes=MES_FULL.map((_,m)=>FIJOS_DATA.reduce((s,f)=>s+(f[1][m]||0),0));
+  // f[0]=clas, f[1]=gasto nombre, f[2]=[meses array]
+  const totalAnual=FIJOS_DATA.reduce((s,f)=>s+(Array.isArray(f[2])?f[2].reduce((a,v)=>a+v,0):0),0);
+  const totalMes=MES_FULL.map((_,m)=>FIJOS_DATA.reduce((s,f)=>s+(Array.isArray(f[2])?(f[2][m]||0):0),0));
   const maxMesIdx=totalMes.indexOf(Math.max(...totalMes));
 
-  const rows=FIJOS_DATA.map(f=>`<tr>
-    <td><span class="bdg bt">${f[0]}</span></td>
-    <td style="font-weight:600">${f[2]}</td>
-    ${f[1].map(v=>`<td class="r mu">${v>0?fmt(v):'—'}</td>`).join('')}
-    <td class="r y">${fmt(f[1].reduce((s,v)=>s+v,0))}</td>
-    <td class="r mu">${fmt(f[1][0])}/mes</td>
-  </tr>`).join('');
+  const rows=FIJOS_DATA.map(f=>{
+    const meses=Array.isArray(f[2])?f[2]:[];
+    const tot=meses.reduce((s,v)=>s+v,0);
+    return `<tr>
+      <td><span class="bdg bt">${f[0]}</span></td>
+      <td style="font-weight:600">${f[1]}</td>
+      ${meses.map(v=>`<td class="r mu">${v>0?fmt(v):'—'}</td>`).join('')}
+      <td class="r y">${fmt(tot)}</td>
+      <td class="r mu">${meses[0]?fmt(meses[0]):'-'}/mes</td>
+    </tr>`;
+  }).join('');
 
   $('main').innerHTML=
     `<div class="krow">
@@ -672,7 +687,7 @@ function dFijos(){
       <tfoot><tr><td colspan="2">TOTAL</td>${totalMes.map(v=>`<td class="r y">${fmt(v)}</td>`).join('')}<td class="r y">${fmt(totalAnual)}</td><td class="r y">${fmt(Math.round(totalAnual/12))}</td></tr></tfoot>
     </table></div>`;
 
-  mkBar('cFm',MES,[{label:'Fijos',data:totalMes,backgroundColor:'rgba(217,119,6,.75)',borderRadius:4}]);
+  if($('cFm')) mkBar('cFm',MES,[ {label:'Fijos',data:totalMes.slice(0,12),backgroundColor:'rgba(217,119,6,.75)',borderRadius:4} ]);
 }
 
 
@@ -751,7 +766,15 @@ function processEdoCSV(rows){
                : autoClasifDesc(r['Descripcion']||r['Descripción']||'', dep, ret);
 
     const socio = r['Socio']||'';
-    const tipo  = r['Tipo']||r['TIPO']||'';
+    // Normalize tipo - handle spaces vs underscores
+    let tipo = r['Tipo']||r['TIPO']||'';
+    tipo = tipo.trim();
+    // Normalize: "JAVP No Fiscal" -> "JAVP_No_Fiscal", "JAVP Fiscal" -> "JAVP_Fiscal"
+    if(tipo.includes('No Fiscal') || tipo.includes('no fiscal')) tipo='JAVP_No_Fiscal';
+    else if(tipo.includes('No_Fiscal')) tipo='JAVP_No_Fiscal';
+    else if((tipo.includes('JAVP') || tipo.includes('Fiscal')) && !tipo.includes('No')) tipo='JAVP_Fiscal';
+    else if(tipo.toUpperCase()==='UAL') tipo='UAL';
+
     const desc  = (r['Descripcion']||r['Descripción']||'').substring(0,60);
 
     out.push([tipo, yr, mes, dep, ret, cl,
