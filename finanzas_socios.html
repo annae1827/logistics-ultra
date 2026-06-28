@@ -701,20 +701,37 @@ function dFijos(){
 }
 
 
-// ── CSV PARSER ────────────────────────────────────────────────────────────
+// ── CSV PARSER (robust - handles quoted fields with commas/newlines) ──────
 function parseCSV(txt, hdrRow=0){
-  const lines = txt.trim().split('\n');
-  const hdr   = lines[hdrRow].split(',').map(h=>h.trim().replace(/^"|"$/g,''));
-  return lines.slice(hdrRow+1).map(l=>{
-    const vals=[]; let cur='', inQ=false;
-    for(const ch of l){
-      if(ch==='"'){inQ=!inQ;}
-      else if(ch===','&&!inQ){vals.push(cur.trim());cur='';}
-      else cur+=ch;
+  // Tokenize entire CSV properly
+  function tokenize(str){
+    const rows=[];
+    let row=[], cur='', inQ=false, i=0;
+    while(i<str.length){
+      const ch=str[i];
+      if(ch==='"'){
+        if(inQ && str[i+1]==='"'){cur+='"';i+=2;continue;} // escaped quote
+        inQ=!inQ;i++;continue;
+      }
+      if(ch===',' && !inQ){row.push(cur);cur='';i++;continue;}
+      if((ch==='\n'||ch==='\r') && !inQ){
+        if(ch==='\r'&&str[i+1]==='\n')i++;
+        row.push(cur);cur='';
+        if(row.some(v=>v!==''||row.length>1))rows.push(row);
+        row=[];i++;continue;
+      }
+      cur+=ch;i++;
     }
-    vals.push(cur.trim());
+    if(cur||row.length){row.push(cur);if(row.some(v=>v!==''))rows.push(row);}
+    return rows;
+  }
+
+  const rows = tokenize(txt.trim());
+  if(rows.length <= hdrRow) return [];
+  const hdr = rows[hdrRow].map(h=>h.trim());
+  return rows.slice(hdrRow+1).map(row=>{
     const o={};
-    hdr.forEach((h,i)=>{ o[h]=(vals[i]||'').replace(/^"|"$/g,''); });
+    hdr.forEach((h,i)=>{ o[h]=(row[i]||'').trim(); });
     return o;
   });
 }
