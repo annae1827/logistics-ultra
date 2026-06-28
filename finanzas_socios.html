@@ -10,6 +10,888 @@
 <style>
 :root{
   --teal:#00897B;--teal2:#00796B;--teal3:#e0f2f1;--teal4:#b2dfdb;
+  --nav:#0d1b2a;--nav2:#1a2e40;--nav3:#243447;
+  --bg:#f0f4f8;--s0:#fff;--s1:#f7fafc;--s2:#edf2f7;
+  --grn:#10b981;--grn2:#d1fae5;--grn3:#065f46;
+  --red:#ef4444;--red2:#fee2e2;
+  --ylw:#f59e0b;--ylw2:#fef3c7;
+  --blu:#3b82f6;--blu2:#dbeafe;
+  --pur:#8b5cf6;--pur2:#ede9fe;
+  --pnk:#ec4899;--pnk2:#fce7f3;
+  --t0:#0f172a;--t1:#1e293b;--t2:#475569;--t3:#94a3b8;--t4:#cbd5e1;
+  --br:#e2e8f0;--br2:#cbd5e1;
+  --r:14px;--r2:10px;--r3:8px;
+  --sh:0 1px 3px rgba(0,0,0,.06),0 4px 16px rgba(0,0,0,.04);
+  --sh2:0 8px 32px rgba(0,0,0,.08);
+  --font:'DM Sans',sans-serif;--mono:'DM Mono',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;font-family:var(--font);font-size:14px;background:var(--bg);color:var(--t1)}
+
+/* LOADING */
+#loading{position:fixed;inset:0;background:linear-gradient(135deg,#0d1b2a 0%,#1a3a4a 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;gap:20px}
+.ld-icon{width:96px;height:96px;background:linear-gradient(135deg,var(--teal),#00bcd4);border-radius:28px;display:flex;align-items:center;justify-content:center;box-shadow:0 16px 48px rgba(0,137,123,.4);font-size:44px}
+.ld-title{color:#fff;font-size:26px;font-weight:800;letter-spacing:-.5px}
+.ld-title span{background:linear-gradient(90deg,#4DB6AC,#80DEEA);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+#ld-msg{color:rgba(255,255,255,.45);font-size:13px;font-family:var(--mono)}
+.ld-bar{width:220px;height:4px;background:rgba(255,255,255,.1);border-radius:99px;overflow:hidden}
+.ld-fill{height:100%;background:linear-gradient(90deg,var(--teal),#00bcd4);border-radius:99px;animation:lbar 2s ease-in-out infinite}
+@keyframes lbar{0%{width:0%}70%{width:85%}100%{width:100%}}
+#ld-err{display:none;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.3);color:#fca5a5;padding:12px 20px;border-radius:10px;font-size:12px;max-width:400px;text-align:center;line-height:1.5}
+
+/* LAYOUT */
+.app{display:flex;height:100vh;overflow:hidden}
+
+/* SIDEBAR */
+.sb{width:230px;background:var(--nav);display:flex;flex-direction:column;flex-shrink:0;border-right:1px solid rgba(255,255,255,.05)}
+.sb-brand{padding:20px 16px 16px;border-bottom:1px solid rgba(255,255,255,.06)}
+.sb-logo{display:flex;align-items:center;gap:12px}
+.sb-emoji{font-size:28px;width:44px;height:44px;background:linear-gradient(135deg,var(--teal),#00bcd4);border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.sb-n{font-size:14px;font-weight:800;color:#fff;letter-spacing:-.2px}
+.sb-s{font-size:10px;color:rgba(255,255,255,.3);margin-top:2px;text-transform:uppercase;letter-spacing:.05em}
+.sb-nav{flex:1;padding:12px 8px;overflow-y:auto}
+.sb-sec{font-size:9px;font-weight:800;color:rgba(255,255,255,.18);text-transform:uppercase;letter-spacing:.1em;padding:10px 10px 4px}
+.ni{display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:10px;cursor:pointer;color:rgba(255,255,255,.4);font-size:13px;font-weight:500;margin-bottom:2px;transition:all .15s;user-select:none}
+.ni:hover{background:rgba(255,255,255,.07);color:rgba(255,255,255,.85)}
+.ni.on{background:linear-gradient(135deg,rgba(0,137,123,.6),rgba(0,188,212,.4));color:#fff;box-shadow:0 4px 12px rgba(0,137,123,.3)}
+.ni-emoji{font-size:16px;width:22px;text-align:center}
+.sb-foot{padding:12px 14px;border-top:1px solid rgba(255,255,255,.06)}
+.sb-stat{font-size:11px;color:rgba(255,255,255,.25);line-height:1.8}
+.sb-stat b{color:rgba(255,255,255,.5);display:block;font-size:12px}
+
+/* TOPBAR */
+.cnt{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.top{background:var(--s0);border-bottom:1px solid var(--br);padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;box-shadow:0 1px 0 var(--br)}
+.top-tit{font-size:16px;font-weight:700;color:var(--t0);display:flex;align-items:center;gap:8px}
+.top-r{display:flex;align-items:center;gap:10px}
+.t-sel{background:var(--s1);border:1.5px solid var(--br2);color:var(--t1);font-size:13px;padding:7px 12px;border-radius:var(--r3);font-family:var(--font);cursor:pointer;font-weight:500}
+.t-sel:focus{outline:none;border-color:var(--teal)}
+.act-btn{background:linear-gradient(135deg,var(--teal),#00acc1);border:none;color:#fff;font-size:13px;padding:8px 16px;border-radius:var(--r3);cursor:pointer;font-family:var(--font);font-weight:700;display:flex;align-items:center;gap:6px;box-shadow:0 4px 12px rgba(0,137,123,.3);transition:all .15s}
+.act-btn:hover{transform:translateY(-1px);box-shadow:0 6px 16px rgba(0,137,123,.4)}
+.act-btn:active{transform:translateY(0)}
+
+.main{flex:1;overflow-y:auto;padding:24px;background:var(--bg)}
+
+/* FILTER BOX */
+.fbox{background:var(--s0);border:1.5px solid var(--br);border-radius:var(--r);padding:16px 20px;box-shadow:var(--sh);margin-bottom:20px;position:relative;overflow:hidden}
+.fbox::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--teal),#00bcd4)}
+.fbox-hd{font-size:11px;font-weight:700;color:var(--teal);text-transform:uppercase;letter-spacing:.08em;margin-bottom:14px;display:flex;align-items:center;gap:6px}
+.fbox-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px}
+.fg{display:flex;flex-direction:column;gap:5px}
+.fg label{font-size:10px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.06em}
+.f-sel{width:100%;background:var(--s1);border:1.5px solid var(--br2);color:var(--t1);font-size:13px;padding:7px 10px;border-radius:var(--r3);font-family:var(--font);cursor:pointer;font-weight:500}
+.f-sel:focus{outline:none;border-color:var(--teal);background:#fff}
+
+/* KPI CARDS */
+.krow{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-bottom:20px}
+.kc{background:var(--s0);border:1.5px solid var(--br);border-radius:var(--r);padding:18px;box-shadow:var(--sh);position:relative;overflow:hidden;transition:transform .15s,box-shadow .15s}
+.kc:hover{transform:translateY(-2px);box-shadow:var(--sh2)}
+.kc-accent{position:absolute;top:0;right:0;width:60px;height:60px;border-radius:0 14px 0 60px;opacity:.08}
+.kc-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.kl{font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.06em}
+.kc-ico{font-size:22px}
+.kv{font-size:24px;font-weight:800;color:var(--t0);line-height:1;letter-spacing:-.5px}
+.kv.g{color:var(--grn)}.kv.r{color:var(--red)}.kv.b{color:var(--blu)}
+.kv.y{color:var(--ylw)}.kv.p{color:var(--pur)}.kv.t{color:var(--teal)}.kv.pk{color:var(--pnk)}
+.kd{font-size:11px;color:var(--t3);margin-top:5px;line-height:1.4}
+.kd .up{color:var(--grn);font-weight:600}.kd .dn{color:var(--red);font-weight:600}
+
+/* CHART CARDS */
+.cc{background:var(--s0);border:1.5px solid var(--br);border-radius:var(--r);padding:20px;box-shadow:var(--sh);margin-bottom:18px}
+.cc-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.cc-t{font-size:12px;font-weight:700;color:var(--t1);display:flex;align-items:center;gap:7px}
+.cc-t-emoji{font-size:16px}
+.lgnd{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:12px}
+.lgnd span{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--t2);font-weight:500}
+.lsq{width:10px;height:10px;border-radius:3px;flex-shrink:0}
+.lcir{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+
+/* GRID */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px;margin-bottom:18px}
+@media(max-width:900px){.g2,.g3{grid-template-columns:1fr}}
+
+/* TABLES */
+.tw{overflow-x:auto;border-radius:var(--r);border:1.5px solid var(--br);box-shadow:var(--sh);margin-bottom:18px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{background:var(--nav);color:rgba(255,255,255,.6);padding:10px 14px;font-size:9px;font-weight:700;text-align:left;text-transform:uppercase;letter-spacing:.07em;white-space:nowrap;border-bottom:2px solid var(--teal)}
+th.r{text-align:right}
+td{padding:9px 14px;border-bottom:1px solid var(--br);color:var(--t1);white-space:nowrap;font-size:12px}
+td.r{text-align:right;font-family:var(--mono)}
+td.g{color:var(--grn);font-weight:700}.td.re{color:var(--red);font-weight:700}
+td.re{color:var(--red);font-weight:700}.td.mu{color:var(--t2)}
+td.mu{color:var(--t2)}.td.y{color:var(--ylw);font-weight:700}
+td.y{color:var(--ylw);font-weight:700}.td.t{color:var(--teal);font-weight:700}
+td.t{color:var(--teal);font-weight:700}.td.b{color:var(--blu);font-weight:700}
+td.b{color:var(--blu);font-weight:700}
+tr:hover td{background:linear-gradient(90deg,rgba(0,137,123,.04),transparent)}
+tr:last-child td{border-bottom:none}
+tfoot td{padding:10px 14px;background:var(--nav);color:rgba(255,255,255,.7);font-weight:700;border-top:2px solid var(--teal);font-family:var(--mono);font-size:12px}
+tfoot td.r{text-align:right}
+
+/* P&L TABLE */
+.pnl-wrap{overflow-x:auto;border-radius:var(--r);border:1.5px solid var(--br);box-shadow:var(--sh);margin-bottom:18px}
+.pnl-tbl{width:100%;border-collapse:collapse;font-size:12px;min-width:800px}
+.pnl-tbl th{background:var(--nav);color:rgba(255,255,255,.6);padding:9px 11px;font-size:9px;font-weight:700;text-align:right;white-space:nowrap;border-bottom:2px solid var(--teal);position:sticky;top:0;z-index:2}
+.pnl-tbl th:first-child{text-align:left;position:sticky;left:0;background:var(--nav);z-index:3;min-width:190px}
+.pnl-tbl th:last-child{position:sticky;right:0;background:var(--nav);color:#4DB6AC;border-left:2px solid var(--teal)}
+.pnl-tbl td{padding:7px 11px;border-bottom:1px solid var(--br);white-space:nowrap;text-align:right;font-family:var(--mono);font-size:11px}
+.pnl-tbl td:first-child{text-align:left;font-family:var(--font);font-size:12px;position:sticky;left:0;background:var(--s0);z-index:1}
+.pnl-tbl td:last-child{position:sticky;right:0;background:var(--s0);border-left:2px solid var(--teal4);font-weight:700}
+.pnl-tbl tr:hover td{background:#f0fdfb}.pnl-tbl tr:hover td:first-child,.pnl-tbl tr:hover td:last-child{background:#f0fdfb}
+.pnl-tbl tr.r-ing td{background:var(--teal3);font-weight:700;font-size:12px;color:var(--teal2)}
+.pnl-tbl tr.r-ing td:first-child,.pnl-tbl tr.r-ing td:last-child{background:var(--teal3)}
+.pnl-tbl tr.r-sub td:first-child{padding-left:24px;color:var(--t2);font-size:11px}
+.pnl-tbl tr.r-sec td{background:var(--nav2);color:rgba(255,255,255,.8);font-weight:700;font-size:10px}
+.pnl-tbl tr.r-sec td:first-child,.pnl-tbl tr.r-sec td:last-child{background:var(--nav2)}
+.pnl-tbl tr.r-tot td{background:var(--s2);font-weight:700;font-size:12px}
+.pnl-tbl tr.r-tot td:first-child,.pnl-tbl tr.r-tot td:last-child{background:var(--s2)}
+.pnl-tbl tr.r-net td{background:linear-gradient(135deg,var(--teal2),#00838f);color:#fff;font-weight:800;font-size:13px}
+.pnl-tbl tr.r-net td:first-child,.pnl-tbl tr.r-net td:last-child{background:linear-gradient(135deg,var(--teal2),#00838f)}
+.pnl-tbl tr.r-pct td{background:var(--s1);color:var(--t2);font-size:10px}
+.pnl-tbl tr.r-pct td:first-child{padding-left:24px}
+.pnl-tbl tr.r-pct td:last-child{background:var(--s1)}
+.pnl-neg{color:var(--red)!important;font-weight:700!important}
+.pnl-pos{color:var(--grn)!important;font-weight:700!important}
+
+/* BADGES */
+.bdg{display:inline-flex;align-items:center;gap:4px;font-size:11px;padding:3px 9px;border-radius:99px;font-weight:600;white-space:nowrap}
+.bt{background:var(--teal3);color:var(--teal2)}
+.bg{background:var(--s2);color:var(--t2);border:1px solid var(--br)}
+.by{background:var(--ylw2);color:#92400e}
+.bb{background:var(--blu2);color:#1e40af}
+.br_{background:var(--red2);color:var(--red)}
+.bp{background:var(--pur2);color:#5b21b6}
+.bpk{background:var(--pnk2);color:#9d174d}
+
+/* EMPRESA TAGS */
+.tag-ual{background:linear-gradient(135deg,#dbeafe,#bfdbfe);color:#1e40af;font-weight:700;padding:3px 10px;border-radius:99px;font-size:11px;display:inline-block}
+.tag-javpf{background:linear-gradient(135deg,#d1fae5,#a7f3d0);color:#065f46;font-weight:700;padding:3px 10px;border-radius:99px;font-size:11px;display:inline-block}
+.tag-javpnf{background:linear-gradient(135deg,#fef3c7,#fde68a);color:#92400e;font-weight:700;padding:3px 10px;border-radius:99px;font-size:11px;display:inline-block}
+
+/* SECTION LABEL */
+.slbl{font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.07em;margin:16px 0 10px;display:flex;align-items:center;gap:6px}
+.slbl::after{content:'';flex:1;height:1px;background:var(--br)}
+
+/* STAT ROW */
+.stat-row{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:18px}
+.stat-pill{background:var(--s0);border:1.5px solid var(--br);border-radius:99px;padding:8px 16px;font-size:13px;font-weight:600;color:var(--t1);display:flex;align-items:center;gap:6px;box-shadow:var(--sh)}
+</style>
+</head>
+<body>
+
+<div id="loading">
+  <div class="ld-icon">💰</div>
+  <div class="ld-title">Logistics Ultra — <span>Socios</span></div>
+  <div id="ld-msg">Cargando datos...</div>
+  <div class="ld-bar"><div class="ld-fill"></div></div>
+</div>
+
+<div class="app" id="app" style="display:none">
+<aside class="sb">
+  <div class="sb-brand">
+    <div class="sb-logo">
+      <div class="sb-emoji">&#x1F4B0;</div>
+      <div><div class="sb-n">Finanzas UAL</div><div class="sb-s">Dashboard Socios</div></div>
+    </div>
+  </div><div class="sb-s">Finanzas Socios</div></div>
+  </div>
+  <nav class="sb-nav">
+    <div class="sb-sec">Resumen</div>
+    <div class="ni on" onclick="goTab('resumen',this)"><span class="ni-emoji">&#x1F4CA;</span>Resumen General</div>
+    <div class="sb-sec">Por Empresa</div>
+    <div class="ni" onclick="goTab('ual',this)"><span class="ni-emoji">&#x1F69B;</span>UAL</div>
+    <div class="ni" onclick="goTab('javpf',this)"><span class="ni-emoji">&#x1F3E2;</span>JAVP Fiscal</div>
+    <div class="ni" onclick="goTab('javpnf',this)"><span class="ni-emoji">&#x1F4BC;</span>JAVP No Fiscal</div>
+    <div class="sb-sec">Analisis</div>
+    <div class="ni" onclick="goTab('socios',this)"><span class="ni-emoji">&#x1F465;</span>Gastos por Socio</div>
+    <div class="ni" onclick="goTab('clasif',this)"><span class="ni-emoji">&#x1F5C2;</span>Por Clasificacion</div>
+    <div class="ni" onclick="goTab('pnl',this)"><span class="ni-emoji">&#x1F4C8;</span>P&amp;L por Empresa</div>
+    <div class="sb-sec">Archivos</div>
+    <div class="ni" onclick="goTab('fijos',this)"><span class="ni-emoji">&#x1F4CC;</span>Gastos Fijos</div>
+  </nav>
+  <div class="sb-foot"><b id="sbInfo">10,596 movimientos</b>2024–2026 · UAL, JAVP</div>
+</aside>
+
+<div class="cnt">
+  <header class="top">
+    <div class="top-tit" id="topTit">Resumen General</div>
+    <div class="top-r">
+      <select class="t-sel" id="yrSel" onchange="render()">
+        <option value="all">Todos los anos</option>
+        <option value="2024">2024</option>
+        <option value="2025">2025</option>
+        <option value="2026" selected>2026</option>
+      </select>
+      <button class="act-btn" onclick="recargarSheets()">
+        🔄 Actualizar
+      </button>
+    </div>
+  </header>
+  <main class="main" id="main"></main>
+</div>
+</div>
+
+<script>
+Chart.register(ChartDataLabels);
+const MES=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+const $=id=>document.getElementById(id);
+const yr=()=>$('yrSel').value;
+const fmt=n=>'$'+Math.round(Math.abs(n)).toLocaleString('es-MX');
+const fmtK=n=>{const a=Math.abs(n);const s=n<0?'-':'';return s+(a>=1e6?'$'+(a/1e6).toFixed(2)+'M':a>=1e3?'$'+Math.round(a/1e3).toLocaleString('es-MX')+'k':fmt(a));}
+const fmtN=n=>Math.round(n).toLocaleString('es-MX');
+let CH={},curTab='resumen';
+let curTipo='all',curSocio='all',curCl='all',curMes=-1;
+
+// ── URLS GOOGLE SHEETS ───────────────────────────────────────────────────
+const URL_EDO   = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQJ74TLWKbQNiyCJzbUeFbcRMK_LwQsqdsomEGSoiWrtpsn2FPg4uu_BXiU0IgOvmaDTM7LK2OSBNGN/pub?gid=1477204894&single=true&output=csv';
+const URL_FIJOS_CSV = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQJ74TLWKbQNiyCJzbUeFbcRMK_LwQsqdsomEGSoiWrtpsn2FPg4uu_BXiU0IgOvmaDTM7LK2OSBNGN/pub?gid=1651919043&single=true&output=csv';
+
+// Data loaded from Google Sheets (starts empty)
+const RAW_DATA  = [];
+const FIJOS_DATA = [];
+
+// Tipos detected dynamically from data
+function getTipos(){
+  return [...new Set(RAW_DATA.map(r=>r[0]).filter(Boolean))].sort();
+}
+
+// ── FILTER & AGG ──────────────────────────────────────────────────────────
+function filtered(){
+  let d = RAW_DATA;
+  const y = yr();
+  if(y!=='all') d=d.filter(r=>r[1]===parseInt(y));
+  if(curTipo!=='all') d=d.filter(r=>r[0]===curTipo);
+  if(curSocio!=='all') d=d.filter(r=>r[6]===curSocio);
+  if(curCl!=='all') d=d.filter(r=>r[5]===curCl);
+  if(curMes>=0) d=d.filter(r=>r[2]-1===curMes);
+  return d;
+}
+function filteredByTipo(tipo){
+  const y=yr();
+  // Flexible matching
+  let d=RAW_DATA.filter(r=>{
+    if(tipo==='UAL') return r[0]==='UAL';
+    if(tipo==='JAVP_No_Fiscal') return r[0]&&r[0].includes('No');
+    if(tipo==='JAVP_Fiscal') return r[0]&&r[0].includes('Fiscal')&&!r[0].includes('No');
+    return r[0]===tipo;
+  });
+  if(y!=='all') d=d.filter(r=>r[1]===parseInt(y));
+  if(curMes>=0) d=d.filter(r=>r[2]-1===curMes);
+  if(curSocio!=='all') d=d.filter(r=>r[6]===curSocio);
+  if(curCl!=='all') d=d.filter(r=>r[5]===curCl);
+  return d;
+}
+const sumDep=arr=>arr.reduce((s,r)=>s+r[3],0);
+const sumRet=arr=>arr.reduce((s,r)=>s+r[4],0);
+const byMesDep=(arr)=>MES.map((_,m)=>arr.filter(r=>r[2]-1===m).reduce((s,r)=>s+r[3],0));
+const byMesRet=(arr)=>MES.map((_,m)=>arr.filter(r=>r[2]-1===m).reduce((s,r)=>s+r[4],0));
+const uniq=(arr,i)=>[...new Set(arr.map(r=>r[i]).filter(Boolean))].sort();
+const groupBy=(arr,i,valIdx)=>{
+  const out={};
+  arr.forEach(r=>{const k=r[i]||'Sin clasificar';if(!out[k])out[k]=0;out[k]+=r[valIdx];});
+  return Object.entries(out).sort((a,b)=>b[1]-a[1]);
+};
+
+// ── CHART HELPERS ──────────────────────────────────────────────────────────
+function mkBar(id,labels,datasets,cnt=false){
+  const el=$(id);if(!el)return;
+  CH[id]=new Chart(el,{type:'bar',data:{labels,datasets},options:{
+    responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:datasets.length>1,position:'top',labels:{font:{size:11},color:'#475569',usePointStyle:true}},
+      datalabels:{display:true,anchor:'end',align:'top',color:'#475569',font:{size:9},
+        formatter:v=>v<=0?'':cnt?fmtN(v):fmtK(v)},
+      tooltip:{callbacks:{label:c=>` ${fmtK(c.raw)}`}}},
+    scales:{x:{ticks:{color:'#94a3b8',font:{size:10}},grid:{color:'rgba(0,0,0,.04)'}},
+            y:{ticks:{color:'#94a3b8',font:{size:10},callback:v=>fmtK(v)},grid:{color:'rgba(0,0,0,.04)'}}}
+  }});
+}
+function mkBarH(id,labels,data,color='rgba(0,137,123,.75)'){
+  const el=$(id);if(!el)return;
+  CH[id]=new Chart(el,{type:'bar',data:{labels,datasets:[{data,backgroundColor:typeof color==='string'?color:color,borderRadius:4}]},options:{
+    indexAxis:'y',responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:false},datalabels:{display:true,anchor:'end',align:'right',color:'#475569',font:{size:10},formatter:v=>fmtK(v)},
+      tooltip:{callbacks:{label:c=>` ${fmtK(c.raw)}`}}},
+    scales:{x:{ticks:{color:'#94a3b8',font:{size:10},callback:v=>fmtK(v)},grid:{color:'rgba(0,0,0,.04)'}},
+            y:{ticks:{color:'#475569',font:{size:10}},grid:{display:false}}}
+  }});
+}
+function mkLine(id,labels,datasets){
+  const el=$(id);if(!el)return;
+  CH[id]=new Chart(el,{type:'line',data:{labels,datasets},options:{
+    responsive:true,maintainAspectRatio:false,tension:.3,
+    plugins:{legend:{display:true,position:'top',labels:{font:{size:11},color:'#475569',usePointStyle:true}},
+      datalabels:{display:false},tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${fmtK(c.raw)}`}}},
+    scales:{x:{ticks:{color:'#94a3b8',font:{size:10}},grid:{color:'rgba(0,0,0,.04)'}},
+            y:{ticks:{color:'#94a3b8',font:{size:10},callback:v=>fmtK(v)},grid:{color:'rgba(0,0,0,.04)'}}}
+  }});
+}
+
+// ── ROUTING ──────────────────────────────────────────────────────────────
+const TABS={resumen:'Resumen General',ual:'UAL',javpf:'JAVP Fiscal',javpnf:'JAVP No Fiscal',
+  socios:'Gastos por Socio',clasif:'Por Clasificacion',pnl:'P&L por Empresa',fijos:'Gastos Fijos'};
+function goTab(name,el){
+  curTab=name;curMes=-1;curSocio='all';curCl='all';curTipo='all';
+  document.querySelectorAll('.ni').forEach(n=>n.classList.remove('on'));
+  el.classList.add('on');
+  $('topTit').textContent=TABS[name];
+  render();
+}
+// ── INSIGHTS GENERATOR ───────────────────────────────────────────────────
+function insightBox(insights){
+  if(!insights.length) return '';
+  return `<div style="background:linear-gradient(135deg,#f0fdfb,#e6f7ff);border:1.5px solid var(--teal4);border-radius:var(--r);padding:16px 20px;margin-bottom:20px;position:relative;overflow:hidden">
+    <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--teal),#00bcd4)"></div>
+    <div style="font-size:11px;font-weight:800;color:var(--teal2);text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px;display:flex;align-items:center;gap:6px">&#x1F9E0; Insights</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px">
+      ${insights.map(i=>`<div style="background:#fff;border-radius:10px;padding:12px 14px;border:1px solid var(--br);display:flex;align-items:flex-start;gap:10px;box-shadow:0 2px 8px rgba(0,0,0,.04)">
+        <span style="font-size:20px;flex-shrink:0">${i.emoji}</span>
+        <div>
+          <div style="font-size:11px;font-weight:700;color:var(--t0);margin-bottom:2px">${i.title}</div>
+          <div style="font-size:11px;color:var(--t2);line-height:1.5">${i.text}</div>
+        </div>
+      </div>`).join('')}
+    </div>
+  </div>`;
+}
+
+function render(){
+  Object.values(CH).forEach(c=>{try{c.destroy()}catch(e){}});CH={};
+  if(curTab==='resumen')dResumen();
+  else if(curTab==='ual')dEmpresa('UAL');
+  else if(curTab==='javpf')dEmpresa('JAVP_Fiscal');
+  else if(curTab==='javpnf')dEmpresa('JAVP_No_Fiscal');
+  else if(curTab==='socios')dSocios();
+  else if(curTab==='clasif')dClasif();
+  else if(curTab==='pnl')dPNL();
+  else if(curTab==='fijos')dFijos();
+}
+
+// ── FILTER BOX ────────────────────────────────────────────────────────────
+function fbox(fields){
+  return `<div class="fbox"><div class="fbox-hd">Filtros</div><div class="fbox-grid">${
+    fields.map(f=>`<div class="fg"><label>${f.l}</label>${f.h}</div>`).join('')
+  }</div></div>`;
+}
+function selMes(){return `<select class="f-sel" onchange="curMes=parseInt(this.value);render()"><option value="-1">Todos los meses</option>${MES.map((m,i)=>`<option value="${i}" ${curMes===i?'selected':''}>${m}</option>`).join('')}</select>`;}
+function selSocio(arr){const opts=uniq(arr,6);return `<select class="f-sel" onchange="curSocio=this.value;render()"><option value="all">Todos los socios</option>${opts.map(o=>`<option value="${o}" ${curSocio===o?'selected':''}>${o}</option>`).join('')}</select>`;}
+function selCl(arr){const opts=uniq(arr,5);return `<select class="f-sel" onchange="curCl=this.value;render()"><option value="all">Todas las clasificaciones</option>${opts.map(o=>`<option value="${o}" ${curCl===o?'selected':''}>${o}</option>`).join('')}</select>`;}
+
+// ── RESUMEN ───────────────────────────────────────────────────────────────
+function dResumen(){
+  const all=filtered();
+  const allTipos=getTipos();
+  const ual=all.filter(r=>r[0]==='UAL');
+  const javpF=all.filter(r=>r[0]&&r[0].includes('Fiscal')&&!r[0].includes('No'));
+  const javpNF=all.filter(r=>r[0]&&r[0].includes('No'));
+  const tDep=sumDep(all),tRet=sumRet(all);
+  const netUAL=sumDep(ual)-sumRet(ual);
+  const netJF=sumDep(javpF)-sumRet(javpF);
+  const netJNF=sumDep(javpNF)-sumRet(javpNF);
+
+  const depM=byMesDep(all),retM=byMesRet(all);
+  const depUAL=byMesDep(ual),retUAL=byMesRet(ual);
+  const depJF=byMesDep(javpF),retJF=byMesRet(javpF);
+
+  // Top clasificaciones por retiro
+  const topCl=groupBy(all.filter(r=>r[4]>0),5,4).slice(0,8);
+
+  // Resumen insights
+  const netoTotal = tDep - tRet;
+  const margenTotal = tDep>0?((netoTotal/tDep)*100).toFixed(1):0;
+  const topClasif = groupBy(all.filter(r=>r[4]>0),5,4)[0];
+  const mesMaxDep = MES[byMesDep(all).indexOf(Math.max(...byMesDep(all)))];
+  const mesMaxRet = MES[byMesRet(all).indexOf(Math.max(...byMesRet(all)))];
+  const resInsights = [
+    {emoji:'💰',title:'Balance general',text:`Ingresos totales ${fmtK(tDep)} vs egresos ${fmtK(tRet)}. Neto: ${fmtK(netoTotal)} (${margenTotal}% margen)`},
+    {emoji:'📅',title:'Mes mas activo',text:`Mayor ingreso en <b>${mesMaxDep}</b> · Mayor egreso en <b>${mesMaxRet}</b>`},
+    {emoji:'🏆',title:'Mayor gasto',text:topClasif?`<b>${topClasif[0]}</b> es la clasificacion con mas egresos: ${fmtK(topClasif[1])}`:'Sin datos'},
+    {emoji:'🚛',title:'UAL vs JAVP',text:`UAL: ${fmtK(sumDep(ual))} ingresos · JAVP Fiscal: ${fmtK(sumDep(javpF))} · No Fiscal: ${fmtK(sumDep(javpNF))}`},
+  ];
+
+  $('main').innerHTML=
+    insightBox(resInsights)+
+    fbox([
+      {l:'Mes',h:selMes()},
+      {l:'Socio',h:selSocio(all)},
+      {l:'Clasificacion',h:selCl(all)},
+    ])+
+    `<div class="krow">
+      <div class="kc"><div class="kc-hd" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px"><div class="kl">Total ingresos</div><div class="kc-ico">&#x1F4B0;</div></div><div class="kv g">${fmtK(tDep)}</div><div class="kd">todos los movimientos</div></div>
+      <div class="kc"><div class="kc-hd" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px"><div class="kl">Total egresos</div><div class="kc-ico">&#x1F4B8;</div></div><div class="kv r">${fmtK(tRet)}</div><div class="kd">todos los movimientos</div></div>
+      <div class="kc"><div class="kc-hd" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px"><div class="kl">UAL neto</div><div class="ki ${netUAL>=0?'b':'r'}"><svg viewBox="0 0 24 24"><path d="M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4z"/></svg></div></div><div class="kv ${netUAL>=0?'b':'r'}">${fmtK(netUAL)}</div><div class="kd">Ing: ${fmtK(sumDep(ual))}</div></div>
+      <div class="kc"><div class="kc-hd" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px"><div class="kl">JAVP Fiscal neto</div><div class="ki ${netJF>=0?'g':'r'}"><svg viewBox="0 0 24 24"><path d="M12 2a5 5 0 110 10A5 5 0 0112 2zm0 12c5.33 0 8 2.67 8 4v2H4v-2c0-1.33 2.67-4 8-4z"/></svg></div></div><div class="kv ${netJF>=0?'g':'r'}">${fmtK(netJF)}</div><div class="kd">Ing: ${fmtK(sumDep(javpF))}</div></div>
+      <div class="kc"><div class="kc-hd" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px"><div class="kl">JAVP No Fiscal neto</div><div class="ki ${netJNF>=0?'y':'r'}"><svg viewBox="0 0 24 24"><path d="M12 2a5 5 0 110 10A5 5 0 0112 2zm0 12c5.33 0 8 2.67 8 4v2H4v-2c0-1.33 2.67-4 8-4z"/></svg></div></div><div class="kv ${netJNF>=0?'y':'r'}">${fmtK(netJNF)}</div><div class="kd">Ing: ${fmtK(sumDep(javpNF))}</div></div>
+      <div class="kc"><div class="kc-hd" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px"><div class="kl">Movimientos</div><div class="kc-ico">📊</div></div><div class="kv t">${fmtN(all.length)}</div><div class="kd">&nbsp;</div></div>
+    </div>
+    <div class="cc"><div class="cc-t">Ingresos vs Egresos por mes — todas las cuentas</div>
+      <div class="lgnd">
+        <span><span class="lsq" style="background:rgba(5,150,105,.75)"></span>Ingresos</span>
+        <span><span class="lsq" style="background:rgba(220,38,38,.75)"></span>Egresos</span>
+      </div>
+      <div style="position:relative;height:220px"><canvas id="cRmain"></canvas></div>
+    </div>
+    <div class="g2">
+      <div class="cc"><div class="cc-t">UAL — ingresos vs egresos mensuales</div>
+        <div style="position:relative;height:190px"><canvas id="cRual"></canvas></div>
+      </div>
+      <div class="cc"><div class="cc-t">JAVP Fiscal — ingresos vs egresos mensuales</div>
+        <div style="position:relative;height:190px"><canvas id="cRjf"></canvas></div>
+      </div>
+    </div>
+    <div class="cc"><div class="cc-t">Top clasificaciones de gasto — todas las cuentas</div>
+      <div style="position:relative;height:${Math.max(200,topCl.length*30+60)}px"><canvas id="cRcl"></canvas></div>
+    </div>`;
+
+  mkBar('cRmain',MES,[
+    {label:'Ingresos',data:depM,backgroundColor:'rgba(5,150,105,.75)',borderRadius:4},
+    {label:'Egresos',data:retM,backgroundColor:'rgba(220,38,38,.75)',borderRadius:4},
+  ]);
+  mkBar('cRual',MES,[
+    {label:'Ingresos',data:depUAL,backgroundColor:'rgba(37,99,235,.75)',borderRadius:4},
+    {label:'Egresos',data:retUAL,backgroundColor:'rgba(220,38,38,.6)',borderRadius:4},
+  ]);
+  mkBar('cRjf',MES,[
+    {label:'Ingresos',data:depJF,backgroundColor:'rgba(5,150,105,.75)',borderRadius:4},
+    {label:'Egresos',data:retJF,backgroundColor:'rgba(220,38,38,.6)',borderRadius:4},
+  ]);
+  mkBarH('cRcl',topCl.map(([k])=>k),topCl.map(([,v])=>v),'rgba(220,38,38,.7)');
+}
+
+// ── EMPRESA ───────────────────────────────────────────────────────────────
+function dEmpresa(tipo){
+  const all=filteredByTipo(tipo);
+  const ingresos=all.filter(r=>r[3]>0&&r[4]===0);
+  const egresos=all.filter(r=>r[4]>0);
+  const tDep=sumDep(all),tRet=sumRet(all),neto=tDep-tRet;
+
+  const depM=byMesDep(all),retM=byMesRet(all);
+  const topCl=groupBy(egresos,5,4).slice(0,12);
+  const topSocio=groupBy(all.filter(r=>r[6]),6,4).slice(0,8);
+
+  const clOpts=uniq(all,5);
+  const socOpts=uniq(all,6);
+  const tagCls={'UAL':'tag-ual','JAVP_Fiscal':'tag-javpf','JAVP_No_Fiscal':'tag-javpnf'};
+  const tagLbl={'UAL':'UAL','JAVP_Fiscal':'JAVP Fiscal','JAVP_No_Fiscal':'JAVP No Fiscal'};
+
+  // Empresa insights
+  const neto_e = tDep - tRet;
+  const margen_e = tDep>0?((neto_e/tDep)*100).toFixed(1):0;
+  const topCl_e = topCl[0];
+  const topSoc_e = topSocio[0];
+  const mesMax_e = MES[depM.indexOf(Math.max(...depM.filter(v=>v>0)))];
+  const empInsights = [
+    {emoji:'📊',title:'Resultado neto',text:`Ingresos ${fmtK(tDep)} − Egresos ${fmtK(tRet)} = <b>${fmtK(neto_e)}</b> (margen ${margen_e}%)`},
+    {emoji:'🔺',title:'Mayor categoria de gasto',text:topCl_e?`<b>${topCl_e[0]}</b> representa ${fmtK(topCl_e[1])} del total de egresos`:'Sin clasificacion'},
+    {emoji:'👤',title:'Socio con mas gasto',text:topSoc_e?`<b>${topSoc_e[0]}</b> acumula ${fmtK(topSoc_e[1])} en gastos asignados`:'Sin datos de socio'},
+    {emoji:'📅',title:'Mes de mayor actividad',text:mesMax_e?`<b>${mesMax_e}</b> fue el mes con mayores ingresos: ${fmtK(Math.max(...depM.filter(v=>v>0)))}`:'Sin datos'},
+  ];
+
+  const rows=all.slice(0,300).map(r=>`<tr>
+    <td class="mu">${r[1]}-${String(r[2]).padStart(2,'0')}</td>
+    <td>${r[7]||''}</td>
+    <td>${r[5]?`<span class="bdg bt">${r[5]}</span>`:''}</td>
+    <td>${r[6]?`<span class="bdg by">${r[6]}</span>`:''}</td>
+    <td class="r g">${r[3]>0?fmt(r[3]):'—'}</td>
+    <td class="r re">${r[4]>0?fmt(r[4]):'—'}</td>
+  </tr>`).join('');
+
+  $('main').innerHTML=
+    insightBox(empInsights)+
+    fbox([
+      {l:'Mes',h:selMes()},
+      {l:'Clasificacion',h:`<select class="f-sel" onchange="curCl=this.value;render()"><option value="all">Todas</option>${clOpts.map(o=>`<option value="${o}" ${curCl===o?'selected':''}>${o}</option>`).join('')}</select>`},
+      {l:'Socio',h:`<select class="f-sel" onchange="curSocio=this.value;render()"><option value="all">Todos</option>${socOpts.map(o=>`<option value="${o}" ${curSocio===o?'selected':''}>${o}</option>`).join('')}</select>`},
+    ])+
+    `<div class="krow">
+      <div class="kc"><div class="kc-hd" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px"><div class="kl">Ingresos</div><div class="kc-ico">&#x1F4B0;</div></div><div class="kv g">${fmtK(tDep)}</div><div class="kd">${fmtN(ingresos.length)} movimientos</div></div>
+      <div class="kc"><div class="kc-hd" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px"><div class="kl">Egresos</div><div class="kc-ico">&#x1F4B8;</div></div><div class="kv r">${fmtK(tRet)}</div><div class="kd">${fmtN(egresos.length)} movimientos</div></div>
+      <div class="kc"><div class="kc-hd" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px"><div class="kl">Neto</div><div class="ki ${neto>=0?'t':'r'}"><svg viewBox="0 0 24 24"><path d="M12 2v20M2 12h20"/></svg></div></div><div class="kv ${neto>=0?'t':'r'}">${fmtK(neto)}</div><div class="kd">${fmtN(all.length)} registros</div></div>
+      <div class="kc"><div class="kc-hd" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px"><div class="kl">Mes mayor ingreso</div><div class="kc-ico">💰</div></div><div class="kv g">${MES[depM.reduce((b,v,i)=>v>depM[b]?i:b,0)]}</div><div class="kd">${fmtK(Math.max(...depM))}</div></div>
+      <div class="kc"><div class="kc-hd" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px"><div class="kl">Mes mayor egreso</div><div class="kc-ico">⭐</div></div><div class="kv y">${MES[retM.reduce((b,v,i)=>v>retM[b]?i:b,0)]}</div><div class="kd">${fmtK(Math.max(...retM))}</div></div>
+    </div>
+    <div class="cc"><div class="cc-t">Ingresos vs Egresos mensuales — <span class="tag-empresa ${tagCls[tipo]}">${tagLbl[tipo]}</span></div>
+      <div class="lgnd"><span><span class="lsq" style="background:rgba(5,150,105,.75)"></span>Ingresos</span><span><span class="lsq" style="background:rgba(220,38,38,.75)"></span>Egresos</span></div>
+      <div style="position:relative;height:210px"><canvas id="cEm"></canvas></div>
+    </div>
+    <div class="g2">
+      <div class="cc"><div class="cc-t">Egresos por clasificacion — top 12</div>
+        <div style="position:relative;height:${Math.max(200,topCl.length*28+60)}px"><canvas id="cEcl"></canvas></div>
+      </div>
+      <div class="cc"><div class="cc-t">Egresos por socio</div>
+        <div style="position:relative;height:${Math.max(160,topSocio.length*28+60)}px"><canvas id="cEsoc"></canvas></div>
+      </div>
+    </div>
+    <div class="slbl">Movimientos${all.length>300?' (300)':''}</div>
+    <div class="tw"><table>
+      <thead><tr><th>Fecha</th><th>Descripcion</th><th>Clasificacion</th><th>Socio</th><th class="r">Ingreso</th><th class="r">Egreso</th></tr></thead>
+      <tbody>${rows}</tbody>
+      <tfoot><tr><td colspan="4">Total</td><td class="r g">${fmt(tDep)}</td><td class="r re">${fmt(tRet)}</td></tr></tfoot>
+    </table></div>`;
+
+  mkBar('cEm',MES,[
+    {label:'Ingresos',data:depM,backgroundColor:'rgba(5,150,105,.75)',borderRadius:4},
+    {label:'Egresos',data:retM,backgroundColor:'rgba(220,38,38,.75)',borderRadius:4},
+  ]);
+  mkBarH('cEcl',topCl.map(([k])=>k),topCl.map(([,v])=>v),'rgba(220,38,38,.7)');
+  mkBarH('cEsoc',topSocio.map(([k])=>k),topSocio.map(([,v])=>v),'rgba(217,119,6,.75)');
+}
+
+// ── SOCIOS ─────────────────────────────────────────────────────────────────
+function dSocios(){
+  const all=filtered().filter(r=>r[6]);
+  const socios=[...new Set(all.map(r=>r[6]))].sort();
+  const COLORS_SOC=['rgba(37,99,235,.75)','rgba(217,119,6,.75)','rgba(124,58,237,.75)'];
+
+  const rows=socios.flatMap(s=>{
+    const d=all.filter(r=>r[6]===s&&r[4]>0);
+    const tot=d.reduce((a,r)=>a+r[4],0);
+    const byC=groupBy(d,5,4).slice(0,8);
+    return byC.map(([cl,v])=>`<tr>
+      <td><span class="bdg by">${s}</span></td>
+      <td>${cl}</td>
+      <td class="r re">${fmt(v)}</td>
+      <td class="r mu">${tot>0?(v/tot*100).toFixed(1):0}%</td>
+    </tr>`);
+  }).join('');
+
+  const topSocD=socios.map(s=>({s,d:all.filter(r=>r[6]===s&&r[4]>0)}));
+  const maxSoc=Math.max(...topSocD.map(x=>x.d.reduce((a,r)=>a+r[4],0)),1);
+
+  // Socios insights
+  const socTotals = socios.map(s=>{const d=all.filter(r=>r[6]===s&&r[4]>0);return {s,tot:d.reduce((a,r)=>a+r[4],0),n:d.length};}).sort((a,b)=>b.tot-a.tot);
+  const topSocio0 = socTotals[0]||{s:'',tot:0};
+  const totalSocGasto = socTotals.reduce((a,x)=>a+x.tot,0);
+  const socInsights = [
+    {emoji:'👑',title:'Mayor gastador',text:`<b>${topSocio0.s}</b> acumula ${fmtK(topSocio0.tot)} (${totalSocGasto>0?(topSocio0.tot/totalSocGasto*100).toFixed(1):0}% del total de socios)`},
+    {emoji:'📊',title:'Total gastos socios',text:`${socios.length} socios con un total de ${fmtK(totalSocGasto)} en gastos identificados`},
+    {emoji:'🔍',title:'Oportunidad',text:`Revisar gastos sin socio asignado para mejorar la visibilidad del control de gastos personales`},
+  ];
+
+  $('main').innerHTML=
+    insightBox(socInsights)+
+    fbox([
+      {l:'Mes',h:selMes()},
+      {l:'Clasificacion',h:selCl(all)},
+    ])+
+    `<div class="krow">
+      ${socios.map((s,i)=>{
+        const d=all.filter(r=>r[6]===s&&r[4]>0);
+        const tot=d.reduce((a,r)=>a+r[4],0);
+        return `<div class="kc"><div class="kc-hd" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px"><div class="kl">Gasto ${s}</div><div class="kc-ico">⭐</div></div><div class="kv y">${fmtK(tot)}</div><div class="kd">${fmtN(d.length)} movimientos</div></div>`;
+      }).join('')}
+    </div>
+    <div class="cc"><div class="cc-t">Gastos por socio — mensual</div>
+      <div style="position:relative;height:220px"><canvas id="cSm"></canvas></div>
+    </div>
+    <div class="g2">
+      ${socios.map((s,i)=>{
+        const d=all.filter(r=>r[6]===s&&r[4]>0);
+        const byCl=groupBy(d,5,4).slice(0,8);
+        return `<div class="cc"><div class="cc-t">Gasto ${s} — por clasificacion</div>
+          <div style="position:relative;height:${Math.max(180,byCl.length*26+50)}px"><canvas id="cS${i}"></canvas></div>
+        </div>`;
+      }).join('')}
+    </div>
+    <div class="slbl">Detalle por socio</div>
+    <div class="tw"><table>
+      <thead><tr><th>Socio</th><th>Clasificacion</th><th class="r">Monto</th><th class="r">%</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div>`;
+
+  // Monthly stacked by socio
+  const ds=socios.map((s,i)=>({
+    label:s,
+    data:MES.map((_,m)=>all.filter(r=>r[6]===s&&r[4]>0&&r[2]-1===m).reduce((a,r)=>a+r[4],0)),
+    backgroundColor:COLORS_SOC[i]||'rgba(124,58,237,.7)',borderRadius:4,
+  }));
+  mkBar('cSm',MES,ds);
+
+  socios.forEach((s,i)=>{
+    const d=all.filter(r=>r[6]===s&&r[4]>0);
+    const byCl=groupBy(d,5,4).slice(0,8);
+    mkBarH(`cS${i}`,byCl.map(([k])=>k),byCl.map(([,v])=>v),COLORS_SOC[i]);
+  });
+}
+
+// ── CLASIFICACION ──────────────────────────────────────────────────────────
+function dClasif(){
+  const all=filtered().filter(r=>r[4]>0);
+  const byTipo={};
+  ['UAL','JAVP_Fiscal','JAVP_No_Fiscal'].forEach(t=>{
+    byTipo[t]=all.filter(r=>r[0]===t);
+  });
+  const topCl=groupBy(all,5,4).slice(0,20);
+  const allCls=[...new Set(all.map(r=>r[5]).filter(Boolean))].sort();
+  const rows=topCl.map(([cl,tot])=>{
+    const byT=['UAL','JAVP_Fiscal','JAVP_No_Fiscal'].map(t=>byTipo[t].filter(r=>r[5]===cl).reduce((a,r)=>a+r[4],0));
+    return `<tr>
+      <td style="font-weight:600">${cl}</td>
+      <td class="r b">${byT[0]?fmt(byT[0]):'—'}</td>
+      <td class="r g">${byT[1]?fmt(byT[1]):'—'}</td>
+      <td class="r y">${byT[2]?fmt(byT[2]):'—'}</td>
+      <td class="r re">${fmt(tot)}</td>
+      <td class="r mu">${all.reduce((a,r)=>a+r[4],0)>0?(tot/all.reduce((a,r)=>a+r[4],0)*100).toFixed(1):0}%</td>
+    </tr>`;
+  }).join('');
+
+  $('main').innerHTML=
+    fbox([
+      {l:'Mes',h:selMes()},
+      {l:'Socio',h:selSocio(all)},
+      {l:'Cuenta',h:`<select class="f-sel" onchange="curTipo=this.value;render()"><option value="all">Todas las cuentas</option><option value="UAL">UAL</option><option value="JAVP_Fiscal">JAVP Fiscal</option><option value="JAVP_No_Fiscal">JAVP No Fiscal</option></select>`},
+    ])+
+    `<div class="cc"><div class="cc-t">Top clasificaciones de gasto — todas las cuentas</div>
+      <div style="position:relative;height:${Math.max(240,topCl.length*28+60)}px"><canvas id="cCLbar"></canvas></div>
+    </div>
+    <div class="slbl">Detalle por clasificacion y empresa</div>
+    <div class="tw"><table>
+      <thead><tr><th>Clasificacion</th><th class="r">UAL</th><th class="r">JAVP Fiscal</th><th class="r">JAVP No Fiscal</th><th class="r">Total</th><th class="r">%</th></tr></thead>
+      <tbody>${rows}</tbody>
+      <tfoot><tr><td>Total</td><td class="r">${fmt(byTipo['UAL'].reduce((a,r)=>a+r[4],0))}</td><td class="r">${fmt(byTipo['JAVP_Fiscal'].reduce((a,r)=>a+r[4],0))}</td><td class="r">${fmt(byTipo['JAVP_No_Fiscal'].reduce((a,r)=>a+r[4],0))}</td><td class="r re">${fmt(all.reduce((a,r)=>a+r[4],0))}</td><td></td></tr></tfoot>
+    </table></div>`;
+
+  const TIPO_CLR=['rgba(37,99,235,.75)','rgba(5,150,105,.75)','rgba(217,119,6,.75)'];
+  const ds=['UAL','JAVP_Fiscal','JAVP_No_Fiscal'].map((t,i)=>({
+    label:t.replace('_',' '),
+    data:topCl.map(([cl])=>byTipo[t].filter(r=>r[5]===cl).reduce((a,r)=>a+r[4],0)),
+    backgroundColor:TIPO_CLR[i],borderRadius:4,
+  }));
+  mkBarH('cCLbar',topCl.map(([k])=>k),null);
+  // Rebuild as multi-dataset horizontal
+  Object.values(CH).forEach(c=>{try{c.destroy()}catch(e){}});CH={};
+  const el=$('cCLbar');
+  if(el)CH['cCLbar']=new Chart(el,{type:'bar',data:{labels:topCl.map(([k])=>k),datasets:ds},options:{
+    indexAxis:'y',responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{display:true,position:'top',labels:{font:{size:11}}},datalabels:{display:false},tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${fmtK(c.raw)}`}}},
+    scales:{x:{ticks:{color:'#94a3b8',font:{size:10},callback:v=>fmtK(v)},grid:{color:'rgba(0,0,0,.04)'}},y:{ticks:{color:'#475569',font:{size:10}},grid:{display:false}}}
+  }});
+}
+
+// ── P&L ─────────────────────────────────────────────────────────────────
+function dPNL(){
+  let tipos=['UAL','JAVP_Fiscal','JAVP_No_Fiscal']; // defaults, overwritten after load
+  const y=yr();
+  function pnlForTipo(tipo){
+    const d=RAW_DATA.filter(r=>r[0]===tipo&&(y==='all'||r[1]===parseInt(y)));
+    const depM=MES.map((_,m)=>d.filter(r=>r[2]-1===m).reduce((s,r)=>s+r[3],0));
+    const retM=MES.map((_,m)=>d.filter(r=>r[2]-1===m).reduce((s,r)=>s+r[4],0));
+    const netoM=MES.map((_,m)=>depM[m]-retM[m]);
+    // By clasificacion
+    const cls=[...new Set(d.filter(r=>r[4]>0&&r[5]).map(r=>r[5]))].sort();
+    const clLines=cls.map(cl=>({
+      cl,
+      mes:MES.map((_,m)=>d.filter(r=>r[5]===cl&&r[4]>0&&r[2]-1===m).reduce((s,r)=>s+r[4],0)),
+      tot:d.filter(r=>r[5]===cl&&r[4]>0).reduce((s,r)=>s+r[4],0),
+    })).sort((a,b)=>b.tot-a.tot);
+    return {depM,retM,netoM,clLines,tDep:depM.reduce((s,v)=>s+v,0),tRet:retM.reduce((s,v)=>s+v,0)};
+  }
+
+  const pnl=tipos.map(pnlForTipo);
+  const tagMap={'UAL':['tag-ual','UAL']};
+  tipos.forEach(t=>{
+    if(t==='UAL') return;
+    if(t.includes('No')) tagMap[t]=['tag-javpnf','JAVP No Fiscal'];
+    else if(t.includes('Fiscal')) tagMap[t]=['tag-javpf','JAVP Fiscal'];
+    else tagMap[t]=['tag-ual',t];
+  });
+  const tagCls=tipos.map(t=>(tagMap[t]||['bg',t])[0]);
+  const tagLbl=tipos.map(t=>(tagMap[t]||['bg',t])[1]);
+
+  function buildPNLTable(p,i){
+    const rows=[];
+    const pc=(v)=>`<td class="${v<0?'pnl-neg':v>0?'pnl-pos':''}">${v?fmt(Math.abs(v)):'$0'}</td>`;
+    const pct=(n,d)=>d?((n/d)*100).toFixed(1)+'%':'N/A';
+    rows.push(`<tr class="r-ing"><td>INGRESOS</td>${p.depM.map(v=>pc(v)).join('')}<td>${fmt(p.tDep)}</td></tr>`);
+    rows.push(`<tr class="r-sec"><td>(-) EGRESOS POR CLASIFICACION</td>${MES.map(()=>'<td></td>').join('')}<td>${fmt(p.tRet)}</td></tr>`);
+    p.clLines.forEach(cl=>{
+      if(cl.tot===0)return;
+      rows.push(`<tr class="r-sub"><td>&nbsp;&nbsp;${cl.cl}</td>${cl.mes.map(v=>`<td class="mu">${v?'('+fmt(v)+')':'—'}</td>`).join('')}<td class="re">(${fmt(cl.tot)})</td></tr>`);
+    });
+    rows.push(`<tr class="r-tot"><td>TOTAL EGRESOS</td>${p.retM.map(v=>`<td class="re">${v?'('+fmt(v)+')':'—'}</td>`).join('')}<td class="re">(${fmt(p.tRet)})</td></tr>`);
+    rows.push(`<tr class="r-net"><td>NETO</td>${p.netoM.map(v=>pc(v)).join('')}<td>${fmt(Math.abs(p.tDep-p.tRet))}</td></tr>`);
+    rows.push(`<tr class="r-pct"><td>&nbsp;&nbsp;% Margen</td>${p.netoM.map((v,m)=>`<td>${p.depM[m]?(v/p.depM[m]*100).toFixed(0)+'%':'N/A'}</td>`).join('')}<td>${p.tDep?((p.tDep-p.tRet)/p.tDep*100).toFixed(1)+'%':'N/A'}</td></tr>`);
+    return rows.join('');
+  }
+
+  $('main').innerHTML=tipos.map((t,i)=>`
+    <div class="slbl"><span class="tag-empresa ${tagCls[i]}">${tagLbl[i]}</span> — Estado de Resultados ${y==='all'?'todos los anos':y}</div>
+    <div class="krow">
+      <div class="kc"><div class="kc-hd" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px"><div class="kl">Ingresos</div><div class="ki g"></div></div><div class="kv g">${fmtK(pnl[i].tDep)}</div><div class="kd">&nbsp;</div></div>
+      <div class="kc"><div class="kc-hd" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px"><div class="kl">Egresos</div><div class="ki r"></div></div><div class="kv r">${fmtK(pnl[i].tRet)}</div><div class="kd">&nbsp;</div></div>
+      <div class="kc"><div class="kc-hd" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px"><div class="kl">Neto</div><div class="ki t"></div></div><div class="kv ${pnl[i].tDep-pnl[i].tRet>=0?'t':'r'}">${fmtK(pnl[i].tDep-pnl[i].tRet)}</div><div class="kd">${pnl[i].tDep?((pnl[i].tDep-pnl[i].tRet)/pnl[i].tDep*100).toFixed(1)+'%':''}</div></div>
+    </div>
+    <div class="pnl-wrap"><table class="pnl-tbl">
+      <thead><tr><th>${tagLbl[i]}</th>${MES.map(m=>`<th>${m}</th>`).join('')}<th>TOTAL</th></tr></thead>
+      <tbody>${buildPNLTable(pnl[i],i)}</tbody>
+    </table></div>`).join('');
+}
+
+// ── GASTOS FIJOS ──────────────────────────────────────────────────────────
+function dFijos(){
+  const MES_FULL=['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
+  // FIJOS_DATA format: [clas, gasto_nombre, [mes1..mes12]]
+  const byClasF={};
+  FIJOS_DATA.forEach(f=>{
+    if(!byClasF[f[0]])byClasF[f[0]]=0;
+    byClasF[f[0]]+=Array.isArray(f[2])?f[2].reduce((s,v)=>s+v,0):0;
+  });
+  const clSort=Object.entries(byClasF).sort((a,b)=>b[1]-a[1]);
+  // f[0]=clas, f[1]=gasto nombre, f[2]=[meses array]
+  const totalAnual=FIJOS_DATA.reduce((s,f)=>s+(Array.isArray(f[2])?f[2].reduce((a,v)=>a+v,0):0),0);
+  const totalMes=MES_FULL.map((_,m)=>FIJOS_DATA.reduce((s,f)=>s+(Array.isArray(f[2])?(f[2][m]||0):0),0));
+  const maxMesIdx=totalMes.indexOf(Math.max(...totalMes));
+
+  const rows=FIJOS_DATA.map(f=>{
+    const meses=Array.isArray(f[2])?f[2]:[];
+    const tot=meses.reduce((s,v)=>s+v,0);
+    return `<tr>
+      <td><span class="bdg bt">${f[0]}</span></td>
+      <td style="font-weight:600">${f[1]}</td>
+      ${meses.map(v=>`<td class="r mu">${v>0?fmt(v):'—'}</td>`).join('')}
+      <td class="r y">${fmt(tot)}</td>
+      <td class="r mu">${meses[0]?fmt(meses[0]):'-'}/mes</td>
+    </tr>`;
+  }).join('');
+
+  // Fijos insights
+  const top3fijos = clSort.slice(0,3);
+  const fijosInsights = [
+    {emoji:'📌',title:'Compromiso mensual fijo',text:`Cada mes se comprometen <b>${fmtK(Math.round(totalAnual/12))}</b> en gastos fijos inevitables`},
+    {emoji:'🏆',title:'Mayor gasto fijo',text:top3fijos[0]?`<b>${top3fijos[0][0]}</b>: ${fmtK(top3fijos[0][1])} al ano (${fmtK(Math.round(top3fijos[0][1]/12))}/mes)`:''},
+    {emoji:'2️⃣',title:'Segundo mayor',text:top3fijos[1]?`<b>${top3fijos[1][0]}</b>: ${fmtK(top3fijos[1][1])} al ano`:''},
+    {emoji:'📆',title:'Mes mas caro',text:`<b>${MES[maxMesIdx]}</b> es el mes con mayor carga fija: ${fmtK(totalMes[maxMesIdx])}`},
+  ];
+
+  $('main').innerHTML=
+    insightBox(fijosInsights)+
+    `<div class="krow">
+      <div class="kc"><div class="kc-hd" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px"><div class="kl">Total anual fijos</div><div class="kc-ico">⭐</div></div><div class="kv y">${fmtK(totalAnual)}</div><div class="kd">&nbsp;</div></div>
+      <div class="kc"><div class="kc-hd" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px"><div class="kl">Prom. mensual</div><div class="kc-ico">💸</div></div><div class="kv r">${fmtK(Math.round(totalAnual/12))}</div><div class="kd">compromiso mensual</div></div>
+      <div class="kc"><div class="kc-hd" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px"><div class="kl">Conceptos</div><div class="kc-ico">📊</div></div><div class="kv t">${FIJOS_DATA.length}</div><div class="kd">&nbsp;</div></div>
+      <div class="kc"><div class="kc-hd" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px"><div class="kl">Mes mas alto</div><div class="kc-ico">👥</div></div><div class="kv p">${MES[maxMesIdx]}</div><div class="kd">${fmtK(totalMes[maxMesIdx])}</div></div>
+    </div>
+    <div class="g2">
+      <div class="cc"><div class="cc-t">Total fijos por mes</div>
+        <div style="position:relative;height:200px"><canvas id="cFm"></canvas></div>
+      </div>
+      <div class="cc"><div class="cc-t">Por clasificacion</div>
+        ${clSort.map(([k,v])=>`<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+          <div style="font-size:12px;min-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${k}</div>
+          <div style="flex:1;height:12px;background:var(--s2);border-radius:3px;overflow:hidden">
+            <div style="width:${(v/(clSort[0]?clSort[0][1]:1)*100).toFixed(1)}%;height:100%;background:#d97706;opacity:.7;border-radius:3px"></div>
+          </div>
+          <div style="font-size:11px;min-width:80px;text-align:right;font-family:var(--mono);color:var(--ylw);font-weight:600">${fmt(v)}</div>
+        </div>`).join('')}
+      </div>
+    </div>
+    <div class="slbl">Detalle por concepto</div>
+    <div class="tw"><table>
+      <thead><tr><th>Clasificacion</th><th>Concepto</th>${MES.map(m=>`<th class="r">${m}</th>`).join('')}<th class="r">Total Anual</th><th class="r">Prom/Mes</th></tr></thead>
+      <tbody>${rows}</tbody>
+      <tfoot><tr><td colspan="2">TOTAL</td>${totalMes.map(v=>`<td class="r y">${fmt(v)}</td>`).join('')}<td class="r y">${fmt(totalAnual)}</td><td class="r y">${fmt(Math.round(totalAnual/12))}</td></tr></tfoot>
+    </table></div>`;
+
+  if($('cFm')) mkBar('cFm',MES,[ {label:'Fijos',data:totalMes.slice(0,12),backgroundColor:'rgba(217,119,6,.75)',borderRadius:4} ]);
+}
+
+
+// ── CSV PARSER (robust - handles quoted fields with commas/newlines) ──────
+function parseCSV(txt, hdrRow=0){
+  // Tokenize entire CSV properly
+  function tokenize(str){
+    const rows=[];
+    let row=[], cur='', inQ=false, i=0;
+    while(i<str.length){
+      const ch=str[i];
+      if(ch==='"'){
+        if(inQ && str[i+1]==='"'){cur+='"';i+=2;continue;} // escaped quote
+        inQ=!inQ;i++;continue;
+      }
+      if(ch===',' && !inQ){row.push(cur);cur='';i++;continue;}
+      if((ch==='\n'||ch==='\r') && !inQ){
+        if(ch==='\r'&&str[i+1]==='\n')i++;
+        row.push(cur);cur='';
+        if(row.some(v=>v!==''||row.length>1))rows.push(row);
+        row=[];i++;continue;
+      }
+      cur+=ch;i++;
+    }
+    if(cur||row.length){row.push(cur);if(row.some(v=>v!==''))rows.push(row);}
+    return rows;
+  }
+
+  const rows = tokenize(txt.trim());
+  if(rows.length <= hdrRow) return [];
+  const hdr = rows[hdrRow].map(h=>h.trim());
+  return rows.slice(hdrRow+1).map(row=>{
+    const o={};
+    hdr.forEach((h,i)=>{ o[h]=(row[i]||'').trim(); });
+    return o;
+  });
+}
+
+// ── KEYWORD AUTO-CLASSIFIER ───────────────────────────────────────────────
+const KW_MAP=[
+  ['Pago Alen',            ['ALEN','TM LOGISTICS','TM LOGI']],
+  ['Pago TML',             ['TML','TRANS MERCA']],
+  ['Pago TYT',             ['TYT']],
+  ['Pago a Proveedores',   ['CITI MEXICO HR','RECIBIDO','DEPOSITO CLIENTE']],
+  ['Nomina',               ['NOMINA','NÓMINA','SUELDO','SEMANADA']],
+  ['Diesel',               ['DIESEL','GAS ROBLE','COMBUSTIBLE']],
+  ['Casetas',              ['CASETA','TELEVIA','IAVE']],
+  ['Mantenimiento',        ['MANTENIMIENTO','REFACCION','LLANTA','TALLER']],
+  ['IMSS',                 ['IMSS','SEGURO SOCIAL']],
+  ['Credito Konfio',       ['KONFIO']],
+  ['Gastos Operativos',    ['SPEI','BXI','ORDEN DE PAGO','TRASP FONDOS','GASTO','COMPRA','PAYPAL','AMAZON']],
+  ['Renta Camion y Caja',  ['RENTA CAMION','ARRENDAMIENTO']],
+  ['Prestamo Alma',        ['ALMA PAEZ','GAGE830714']],
+  ['Gasolina - Juan',      ['GASOLINA','GAS STATION','PEMEX']],
+  ['Maniobras',            ['MANIOBRA']],
+  ['Transpaso cuenta propia',['TRASPASO A CUENTA PROPIA','TRASPASA A CUENTA PROPIA']],
+];
+function autoClasifDesc(desc, dep, ret){
+  if(dep>0 && ret===0) return 'Ingreso';
+  const d = String(desc).toUpperCase();
+  for(const [cat,keys] of KW_MAP) if(keys.some(k=>d.includes(k))) return cat;
+  return '';
+}
+
+// ── EDO CTAS PROCESSOR ────────────────────────────────────────────────────
+function processEdoCSV(rows){
+  const out=[];
+  // Debug: log raw tipo values
+  const rawTipos = [...new Set(rows.map(r=>(r['Tipo']||r['TIPO']||'').trim()).filter(Boolean))];
+  console.log('RAW tipos in CSV:', rawTipos);
+  console.log('Total rows to process:', rows.length);
+
+  let skippedDate=0, skippedZero=0;
+  for(const r of rows){
+    // Get fecha - try multiple column names
+    const fechaStr = r['Fecha']||r['FECHA']||r['fecha']||'';
+    if(!fechaStr) continue;
+    let yr=0, mes=0;
+    // Accept ANY date format: dd/mm/yyyy, yyyy-mm-dd, mm/dd/yyyy, d-m-yy etc
+    const dp=fechaStr.replace(/[^\d\/\-\.]/g,'').split(/[\/\-\.]/);
+    if(dp.length>=3){
+      const a=parseInt(dp[0]),b=parseInt(dp[1]),c=parseInt(dp[2]);
+      if(c>=2000){yr=c;mes=b;}        // dd/mm/yyyy or dd-mm-yyyy
+      else if(a>=2000){yr=a;mes=b;}   // yyyy/mm/dd
+      else if(c>=100){yr=2000+(c-2000<50?c-2000:c-2100);mes=b;} // dd/mm/yy
+    }
+    if(!yr){ const m=fechaStr.match(/20\d{2}/); if(m)yr=parseInt(m[0]); }
+    if(!mes||mes<1||mes>12){ const m=fechaStr.match(/[\.\/\-](\d{1,2})[\.\/\-]/); if(m)mes=parseInt(m[1]); }
+    if(!yr||!mes||mes<1||mes>12) continue;ng="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Logistics Ultra — Finanzas Socios</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-datalabels/2.2.0/chartjs-plugin-datalabels.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --teal:#00897B;--teal2:#00796B;--teal3:#e0f2f1;--teal4:#b2dfdb;
   --nav:#1e2d3d;--nav2:#253649;
   --bg:#f0f4f8;--s0:#fff;--s1:#f7fafc;--s2:#edf2f7;
   --grn:#059669;--grn2:#d1fae5;
@@ -155,8 +1037,8 @@ tfoot td.r{text-align:right}
 <body>
 
 <div id="loading">
-  <div class="ld-icon"><svg viewBox="0 0 24 24"><path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/></svg></div>
-  <div class="ld-title">Logistics Ultra — Socios</div>
+  <div class="ld-icon">💰</div>
+  <div class="ld-title">Logistics Ultra — <span>Socios</span></div>
   <div id="ld-msg">Cargando datos...</div>
   <div class="ld-bar"><div class="ld-fill"></div></div>
 </div>
@@ -195,8 +1077,8 @@ tfoot td.r{text-align:right}
         <option value="2025">2025</option>
         <option value="2026" selected>2026</option>
       </select>
-      <button class="up-btn" onclick="recargarSheets()" style="display:flex;align-items:center;gap:5px">
-        <span id="dot" class="dot"></span>Actualizar
+      <button class="act-btn" onclick="recargarSheets()">
+        🔄 Actualizar
       </button>
     </div>
   </header>
@@ -309,6 +1191,24 @@ function goTab(name,el){
   $('topTit').textContent=TABS[name];
   render();
 }
+// ── INSIGHTS GENERATOR ───────────────────────────────────────────────────
+function insightBox(insights){
+  if(!insights.length) return '';
+  return `<div style="background:linear-gradient(135deg,#f0fdfb,#e6f7ff);border:1.5px solid var(--teal4);border-radius:var(--r);padding:16px 20px;margin-bottom:20px;position:relative;overflow:hidden">
+    <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--teal),#00bcd4)"></div>
+    <div style="font-size:11px;font-weight:800;color:var(--teal2);text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px;display:flex;align-items:center;gap:6px">&#x1F9E0; Insights</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px">
+      ${insights.map(i=>`<div style="background:#fff;border-radius:10px;padding:12px 14px;border:1px solid var(--br);display:flex;align-items:flex-start;gap:10px;box-shadow:0 2px 8px rgba(0,0,0,.04)">
+        <span style="font-size:20px;flex-shrink:0">${i.emoji}</span>
+        <div>
+          <div style="font-size:11px;font-weight:700;color:var(--t0);margin-bottom:2px">${i.title}</div>
+          <div style="font-size:11px;color:var(--t2);line-height:1.5">${i.text}</div>
+        </div>
+      </div>`).join('')}
+    </div>
+  </div>`;
+}
+
 function render(){
   Object.values(CH).forEach(c=>{try{c.destroy()}catch(e){}});CH={};
   if(curTab==='resumen')dResumen();
@@ -350,19 +1250,33 @@ function dResumen(){
   // Top clasificaciones por retiro
   const topCl=groupBy(all.filter(r=>r[4]>0),5,4).slice(0,8);
 
+  // Resumen insights
+  const netoTotal = tDep - tRet;
+  const margenTotal = tDep>0?((netoTotal/tDep)*100).toFixed(1):0;
+  const topClasif = groupBy(all.filter(r=>r[4]>0),5,4)[0];
+  const mesMaxDep = MES[byMesDep(all).indexOf(Math.max(...byMesDep(all)))];
+  const mesMaxRet = MES[byMesRet(all).indexOf(Math.max(...byMesRet(all)))];
+  const resInsights = [
+    {emoji:'💰',title:'Balance general',text:`Ingresos totales ${fmtK(tDep)} vs egresos ${fmtK(tRet)}. Neto: ${fmtK(netoTotal)} (${margenTotal}% margen)`},
+    {emoji:'📅',title:'Mes mas activo',text:`Mayor ingreso en <b>${mesMaxDep}</b> · Mayor egreso en <b>${mesMaxRet}</b>`},
+    {emoji:'🏆',title:'Mayor gasto',text:topClasif?`<b>${topClasif[0]}</b> es la clasificacion con mas egresos: ${fmtK(topClasif[1])}`:'Sin datos'},
+    {emoji:'🚛',title:'UAL vs JAVP',text:`UAL: ${fmtK(sumDep(ual))} ingresos · JAVP Fiscal: ${fmtK(sumDep(javpF))} · No Fiscal: ${fmtK(sumDep(javpNF))}`},
+  ];
+
   $('main').innerHTML=
+    insightBox(resInsights)+
     fbox([
       {l:'Mes',h:selMes()},
       {l:'Socio',h:selSocio(all)},
       {l:'Clasificacion',h:selCl(all)},
     ])+
     `<div class="krow">
-      <div class="kc"><div class="kc-hd"><div class="kl">Total ingresos</div><div class="ki g"><svg viewBox="0 0 24 24"><path d="M3.5 18.5l6-6 4 4 7-8"/></svg></div></div><div class="kv g">${fmtK(tDep)}</div><div class="kd">todos los movimientos</div></div>
-      <div class="kc"><div class="kc-hd"><div class="kl">Total egresos</div><div class="ki r"><svg viewBox="0 0 24 24"><path d="M19 13H5v-2h14v2z"/></svg></div></div><div class="kv r">${fmtK(tRet)}</div><div class="kd">todos los movimientos</div></div>
-      <div class="kc"><div class="kc-hd"><div class="kl">UAL neto</div><div class="ki ${netUAL>=0?'b':'r'}"><svg viewBox="0 0 24 24"><path d="M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4z"/></svg></div></div><div class="kv ${netUAL>=0?'b':'r'}">${fmtK(netUAL)}</div><div class="kd">Ing: ${fmtK(sumDep(ual))}</div></div>
-      <div class="kc"><div class="kc-hd"><div class="kl">JAVP Fiscal neto</div><div class="ki ${netJF>=0?'g':'r'}"><svg viewBox="0 0 24 24"><path d="M12 2a5 5 0 110 10A5 5 0 0112 2zm0 12c5.33 0 8 2.67 8 4v2H4v-2c0-1.33 2.67-4 8-4z"/></svg></div></div><div class="kv ${netJF>=0?'g':'r'}">${fmtK(netJF)}</div><div class="kd">Ing: ${fmtK(sumDep(javpF))}</div></div>
-      <div class="kc"><div class="kc-hd"><div class="kl">JAVP No Fiscal neto</div><div class="ki ${netJNF>=0?'y':'r'}"><svg viewBox="0 0 24 24"><path d="M12 2a5 5 0 110 10A5 5 0 0112 2zm0 12c5.33 0 8 2.67 8 4v2H4v-2c0-1.33 2.67-4 8-4z"/></svg></div></div><div class="kv ${netJNF>=0?'y':'r'}">${fmtK(netJNF)}</div><div class="kd">Ing: ${fmtK(sumDep(javpNF))}</div></div>
-      <div class="kc"><div class="kc-hd"><div class="kl">Movimientos</div><div class="ki t"><svg viewBox="0 0 24 24"><path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/></svg></div></div><div class="kv t">${fmtN(all.length)}</div><div class="kd">&nbsp;</div></div>
+      <div class="kc"><div class="kc-hd" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px"><div class="kl">Total ingresos</div><div class="kc-ico">&#x1F4B0;</div></div><div class="kv g">${fmtK(tDep)}</div><div class="kd">todos los movimientos</div></div>
+      <div class="kc"><div class="kc-hd" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px"><div class="kl">Total egresos</div><div class="kc-ico">&#x1F4B8;</div></div><div class="kv r">${fmtK(tRet)}</div><div class="kd">todos los movimientos</div></div>
+      <div class="kc"><div class="kc-hd" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px"><div class="kl">UAL neto</div><div class="ki ${netUAL>=0?'b':'r'}"><svg viewBox="0 0 24 24"><path d="M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4z"/></svg></div></div><div class="kv ${netUAL>=0?'b':'r'}">${fmtK(netUAL)}</div><div class="kd">Ing: ${fmtK(sumDep(ual))}</div></div>
+      <div class="kc"><div class="kc-hd" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px"><div class="kl">JAVP Fiscal neto</div><div class="ki ${netJF>=0?'g':'r'}"><svg viewBox="0 0 24 24"><path d="M12 2a5 5 0 110 10A5 5 0 0112 2zm0 12c5.33 0 8 2.67 8 4v2H4v-2c0-1.33 2.67-4 8-4z"/></svg></div></div><div class="kv ${netJF>=0?'g':'r'}">${fmtK(netJF)}</div><div class="kd">Ing: ${fmtK(sumDep(javpF))}</div></div>
+      <div class="kc"><div class="kc-hd" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px"><div class="kl">JAVP No Fiscal neto</div><div class="ki ${netJNF>=0?'y':'r'}"><svg viewBox="0 0 24 24"><path d="M12 2a5 5 0 110 10A5 5 0 0112 2zm0 12c5.33 0 8 2.67 8 4v2H4v-2c0-1.33 2.67-4 8-4z"/></svg></div></div><div class="kv ${netJNF>=0?'y':'r'}">${fmtK(netJNF)}</div><div class="kd">Ing: ${fmtK(sumDep(javpNF))}</div></div>
+      <div class="kc"><div class="kc-hd" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px"><div class="kl">Movimientos</div><div class="kc-ico">📊</div></div><div class="kv t">${fmtN(all.length)}</div><div class="kd">&nbsp;</div></div>
     </div>
     <div class="cc"><div class="cc-t">Ingresos vs Egresos por mes — todas las cuentas</div>
       <div class="lgnd">
@@ -424,17 +1338,18 @@ function dEmpresa(tipo){
   </tr>`).join('');
 
   $('main').innerHTML=
+    insightBox(empInsights)+
     fbox([
       {l:'Mes',h:selMes()},
       {l:'Clasificacion',h:`<select class="f-sel" onchange="curCl=this.value;render()"><option value="all">Todas</option>${clOpts.map(o=>`<option value="${o}" ${curCl===o?'selected':''}>${o}</option>`).join('')}</select>`},
       {l:'Socio',h:`<select class="f-sel" onchange="curSocio=this.value;render()"><option value="all">Todos</option>${socOpts.map(o=>`<option value="${o}" ${curSocio===o?'selected':''}>${o}</option>`).join('')}</select>`},
     ])+
     `<div class="krow">
-      <div class="kc"><div class="kc-hd"><div class="kl">Ingresos</div><div class="ki g"><svg viewBox="0 0 24 24"><path d="M3.5 18.5l6-6 4 4 7-8"/></svg></div></div><div class="kv g">${fmtK(tDep)}</div><div class="kd">${fmtN(ingresos.length)} movimientos</div></div>
-      <div class="kc"><div class="kc-hd"><div class="kl">Egresos</div><div class="ki r"><svg viewBox="0 0 24 24"><path d="M19 13H5v-2h14v2z"/></svg></div></div><div class="kv r">${fmtK(tRet)}</div><div class="kd">${fmtN(egresos.length)} movimientos</div></div>
-      <div class="kc"><div class="kc-hd"><div class="kl">Neto</div><div class="ki ${neto>=0?'t':'r'}"><svg viewBox="0 0 24 24"><path d="M12 2v20M2 12h20"/></svg></div></div><div class="kv ${neto>=0?'t':'r'}">${fmtK(neto)}</div><div class="kd">${fmtN(all.length)} registros</div></div>
-      <div class="kc"><div class="kc-hd"><div class="kl">Mes mayor ingreso</div><div class="ki g"><svg viewBox="0 0 24 24"><path d="M12 2l3 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/></svg></div></div><div class="kv g">${MES[depM.reduce((b,v,i)=>v>depM[b]?i:b,0)]}</div><div class="kd">${fmtK(Math.max(...depM))}</div></div>
-      <div class="kc"><div class="kc-hd"><div class="kl">Mes mayor egreso</div><div class="ki y"><svg viewBox="0 0 24 24"><path d="M12 2l3 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/></svg></div></div><div class="kv y">${MES[retM.reduce((b,v,i)=>v>retM[b]?i:b,0)]}</div><div class="kd">${fmtK(Math.max(...retM))}</div></div>
+      <div class="kc"><div class="kc-hd" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px"><div class="kl">Ingresos</div><div class="kc-ico">&#x1F4B0;</div></div><div class="kv g">${fmtK(tDep)}</div><div class="kd">${fmtN(ingresos.length)} movimientos</div></div>
+      <div class="kc"><div class="kc-hd" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px"><div class="kl">Egresos</div><div class="kc-ico">&#x1F4B8;</div></div><div class="kv r">${fmtK(tRet)}</div><div class="kd">${fmtN(egresos.length)} movimientos</div></div>
+      <div class="kc"><div class="kc-hd" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px"><div class="kl">Neto</div><div class="ki ${neto>=0?'t':'r'}"><svg viewBox="0 0 24 24"><path d="M12 2v20M2 12h20"/></svg></div></div><div class="kv ${neto>=0?'t':'r'}">${fmtK(neto)}</div><div class="kd">${fmtN(all.length)} registros</div></div>
+      <div class="kc"><div class="kc-hd" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px"><div class="kl">Mes mayor ingreso</div><div class="kc-ico">💰</div></div><div class="kv g">${MES[depM.reduce((b,v,i)=>v>depM[b]?i:b,0)]}</div><div class="kd">${fmtK(Math.max(...depM))}</div></div>
+      <div class="kc"><div class="kc-hd" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px"><div class="kl">Mes mayor egreso</div><div class="kc-ico">⭐</div></div><div class="kv y">${MES[retM.reduce((b,v,i)=>v>retM[b]?i:b,0)]}</div><div class="kd">${fmtK(Math.max(...retM))}</div></div>
     </div>
     <div class="cc"><div class="cc-t">Ingresos vs Egresos mensuales — <span class="tag-empresa ${tagCls[tipo]}">${tagLbl[tipo]}</span></div>
       <div class="lgnd"><span><span class="lsq" style="background:rgba(5,150,105,.75)"></span>Ingresos</span><span><span class="lsq" style="background:rgba(220,38,38,.75)"></span>Egresos</span></div>
@@ -484,7 +1399,18 @@ function dSocios(){
   const topSocD=socios.map(s=>({s,d:all.filter(r=>r[6]===s&&r[4]>0)}));
   const maxSoc=Math.max(...topSocD.map(x=>x.d.reduce((a,r)=>a+r[4],0)),1);
 
+  // Socios insights
+  const socTotals = socios.map(s=>{const d=all.filter(r=>r[6]===s&&r[4]>0);return {s,tot:d.reduce((a,r)=>a+r[4],0),n:d.length};}).sort((a,b)=>b.tot-a.tot);
+  const topSocio0 = socTotals[0]||{s:'',tot:0};
+  const totalSocGasto = socTotals.reduce((a,x)=>a+x.tot,0);
+  const socInsights = [
+    {emoji:'👑',title:'Mayor gastador',text:`<b>${topSocio0.s}</b> acumula ${fmtK(topSocio0.tot)} (${totalSocGasto>0?(topSocio0.tot/totalSocGasto*100).toFixed(1):0}% del total de socios)`},
+    {emoji:'📊',title:'Total gastos socios',text:`${socios.length} socios con un total de ${fmtK(totalSocGasto)} en gastos identificados`},
+    {emoji:'🔍',title:'Oportunidad',text:`Revisar gastos sin socio asignado para mejorar la visibilidad del control de gastos personales`},
+  ];
+
   $('main').innerHTML=
+    insightBox(socInsights)+
     fbox([
       {l:'Mes',h:selMes()},
       {l:'Clasificacion',h:selCl(all)},
@@ -493,7 +1419,7 @@ function dSocios(){
       ${socios.map((s,i)=>{
         const d=all.filter(r=>r[6]===s&&r[4]>0);
         const tot=d.reduce((a,r)=>a+r[4],0);
-        return `<div class="kc"><div class="kc-hd"><div class="kl">Gasto ${s}</div><div class="ki y"><svg viewBox="0 0 24 24"><path d="M12 2a5 5 0 110 10A5 5 0 0112 2zm0 12c5.33 0 8 2.67 8 4v2H4v-2c0-1.33 2.67-4 8-4z"/></svg></div></div><div class="kv y">${fmtK(tot)}</div><div class="kd">${fmtN(d.length)} movimientos</div></div>`;
+        return `<div class="kc"><div class="kc-hd" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px"><div class="kl">Gasto ${s}</div><div class="kc-ico">⭐</div></div><div class="kv y">${fmtK(tot)}</div><div class="kd">${fmtN(d.length)} movimientos</div></div>`;
       }).join('')}
     </div>
     <div class="cc"><div class="cc-t">Gastos por socio — mensual</div>
@@ -632,9 +1558,9 @@ function dPNL(){
   $('main').innerHTML=tipos.map((t,i)=>`
     <div class="slbl"><span class="tag-empresa ${tagCls[i]}">${tagLbl[i]}</span> — Estado de Resultados ${y==='all'?'todos los anos':y}</div>
     <div class="krow">
-      <div class="kc"><div class="kc-hd"><div class="kl">Ingresos</div><div class="ki g"></div></div><div class="kv g">${fmtK(pnl[i].tDep)}</div><div class="kd">&nbsp;</div></div>
-      <div class="kc"><div class="kc-hd"><div class="kl">Egresos</div><div class="ki r"></div></div><div class="kv r">${fmtK(pnl[i].tRet)}</div><div class="kd">&nbsp;</div></div>
-      <div class="kc"><div class="kc-hd"><div class="kl">Neto</div><div class="ki t"></div></div><div class="kv ${pnl[i].tDep-pnl[i].tRet>=0?'t':'r'}">${fmtK(pnl[i].tDep-pnl[i].tRet)}</div><div class="kd">${pnl[i].tDep?((pnl[i].tDep-pnl[i].tRet)/pnl[i].tDep*100).toFixed(1)+'%':''}</div></div>
+      <div class="kc"><div class="kc-hd" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px"><div class="kl">Ingresos</div><div class="ki g"></div></div><div class="kv g">${fmtK(pnl[i].tDep)}</div><div class="kd">&nbsp;</div></div>
+      <div class="kc"><div class="kc-hd" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px"><div class="kl">Egresos</div><div class="ki r"></div></div><div class="kv r">${fmtK(pnl[i].tRet)}</div><div class="kd">&nbsp;</div></div>
+      <div class="kc"><div class="kc-hd" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px"><div class="kl">Neto</div><div class="ki t"></div></div><div class="kv ${pnl[i].tDep-pnl[i].tRet>=0?'t':'r'}">${fmtK(pnl[i].tDep-pnl[i].tRet)}</div><div class="kd">${pnl[i].tDep?((pnl[i].tDep-pnl[i].tRet)/pnl[i].tDep*100).toFixed(1)+'%':''}</div></div>
     </div>
     <div class="pnl-wrap"><table class="pnl-tbl">
       <thead><tr><th>${tagLbl[i]}</th>${MES.map(m=>`<th>${m}</th>`).join('')}<th>TOTAL</th></tr></thead>
@@ -671,10 +1597,10 @@ function dFijos(){
 
   $('main').innerHTML=
     `<div class="krow">
-      <div class="kc"><div class="kc-hd"><div class="kl">Total anual fijos</div><div class="ki y"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 110 20A10 10 0 0112 2z"/></svg></div></div><div class="kv y">${fmtK(totalAnual)}</div><div class="kd">&nbsp;</div></div>
-      <div class="kc"><div class="kc-hd"><div class="kl">Prom. mensual</div><div class="ki r"><svg viewBox="0 0 24 24"><path d="M19 13H5v-2h14v2z"/></svg></div></div><div class="kv r">${fmtK(Math.round(totalAnual/12))}</div><div class="kd">compromiso mensual</div></div>
-      <div class="kc"><div class="kc-hd"><div class="kl">Conceptos</div><div class="ki t"><svg viewBox="0 0 24 24"><path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z"/></svg></div></div><div class="kv t">${FIJOS_DATA.length}</div><div class="kd">&nbsp;</div></div>
-      <div class="kc"><div class="kc-hd"><div class="kl">Mes mas alto</div><div class="ki p"><svg viewBox="0 0 24 24"><path d="M12 2l3 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/></svg></div></div><div class="kv p">${MES[maxMesIdx]}</div><div class="kd">${fmtK(totalMes[maxMesIdx])}</div></div>
+      <div class="kc"><div class="kc-hd" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px"><div class="kl">Total anual fijos</div><div class="kc-ico">⭐</div></div><div class="kv y">${fmtK(totalAnual)}</div><div class="kd">&nbsp;</div></div>
+      <div class="kc"><div class="kc-hd" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px"><div class="kl">Prom. mensual</div><div class="kc-ico">💸</div></div><div class="kv r">${fmtK(Math.round(totalAnual/12))}</div><div class="kd">compromiso mensual</div></div>
+      <div class="kc"><div class="kc-hd" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px"><div class="kl">Conceptos</div><div class="kc-ico">📊</div></div><div class="kv t">${FIJOS_DATA.length}</div><div class="kd">&nbsp;</div></div>
+      <div class="kc"><div class="kc-hd" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px"><div class="kl">Mes mas alto</div><div class="kc-ico">👥</div></div><div class="kv p">${MES[maxMesIdx]}</div><div class="kd">${fmtK(totalMes[maxMesIdx])}</div></div>
     </div>
     <div class="g2">
       <div class="cc"><div class="cc-t">Total fijos por mes</div>
