@@ -191,7 +191,7 @@ const fmt=n=>'$'+Math.round(Math.abs(n)).toLocaleString('es-MX');
 const fmtK=n=>{const a=Math.abs(n),s=n<0?'-':'';return s+(a>=1e6?'$'+(a/1e6).toFixed(2)+'M':a>=1e3?'$'+Math.round(a/1e3).toLocaleString('es-MX')+'k':fmt(a));}
 const fmtN=n=>Math.round(n).toLocaleString('es-MX');
 let RAW=[],FIJOS=[],CH={};
-let curTab='resumen',curMes=-1,curCli='all',curSocio='all',curCl='all';
+let curTab='resumen',curMes=-1,curCli='all',curSocio='all',curCl='all',curTipoG='all';
 function getTipos(){return [...new Set(RAW.map(r=>r[0]).filter(Boolean))].sort();}
 function fYr(arr){const y=yr();return y==='all'?arr:arr.filter(r=>r[1]===parseInt(y));}
 function filtered(){
@@ -200,6 +200,7 @@ function filtered(){
   if(curCli!=='all') d=d.filter(r=>r[0]===curCli);
   if(curSocio!=='all') d=d.filter(r=>r[6]===curSocio);
   if(curCl!=='all') d=d.filter(r=>r[5]===curCl);
+  if(curTipoG!=='all') d=d.filter(r=>r[8]===curTipoG);
   return d;
 }
 function filtTipo(tipo){
@@ -207,6 +208,7 @@ function filtTipo(tipo){
   if(curMes>=0) d=d.filter(r=>r[2]-1===curMes);
   if(curSocio!=='all') d=d.filter(r=>r[6]===curSocio);
   if(curCl!=='all') d=d.filter(r=>r[5]===curCl);
+  if(curTipoG!=='all') d=d.filter(r=>r[8]===curTipoG);
   if(tipo==='UAL') return d.filter(r=>r[0]==='UAL');
   if(tipo==='JAVP_No_Fiscal') return d.filter(r=>r[0]&&r[0].includes('No'));
   if(tipo==='JAVP_Fiscal') return d.filter(r=>r[0]&&r[0].includes('Fiscal')&&!r[0].includes('No'));
@@ -231,26 +233,47 @@ function fbox(fields){
 function sMes(){return '<select class="f-sel" onchange="curMes=parseInt(this.value);render()"><option value="-1">Todos los meses</option>'+MES.map((m,i)=>'<option value="'+i+'"'+(curMes===i?' selected':'')+'>'+m+'</option>').join('')+'</select>';}
 function sSocio(a){const o=uniq(a,6);return '<select class="f-sel" onchange="curSocio=this.value;render()"><option value="all">Todos los socios</option>'+o.map(v=>'<option value="'+v+'"'+(curSocio===v?' selected':'')+'>'+v+'</option>').join('')+'</select>';}
 function sCl(a){const o=uniq(a,5);return '<select class="f-sel" onchange="curCl=this.value;render()"><option value="all">Todas</option>'+o.map(v=>'<option value="'+v+'"'+(curCl===v?' selected':'')+'>'+v+'</option>').join('')+'</select>';}
+function sTipo(a){
+  const o=[...new Set(a.map(r=>r[8]).filter(Boolean))].sort();
+  return '<select class="f-sel" onchange="curTipoG=this.value;render()"><option value="all">Todos los tipos</option>'+o.map(v=>'<option value="'+v+'"'+(curTipoG===v?' selected':'')+'>'+v+'</option>').join('')+'</select>';
+}
 function sCta(){return '<select class="f-sel" onchange="curCli=this.value;render()"><option value="all">Todas las cuentas</option><option value="UAL"'+(curCli==='UAL'?' selected':'')+'>UAL</option><option value="JAVP_Fiscal"'+(curCli==='JAVP_Fiscal'?' selected':'')+'>JAVP Fiscal</option><option value="JAVP_No_Fiscal"'+(curCli==='JAVP_No_Fiscal'?' selected':'')+'>JAVP No Fiscal</option></select>';}
 
 function mkBar(id,labs,datasets,hor){
   const el=$(id);if(!el)return;
   CH[id]=new Chart(el,{type:'bar',data:{labels:labs,datasets},options:{
     indexAxis:hor?'y':'x',responsive:true,maintainAspectRatio:false,
-    plugins:{legend:{display:datasets.length>1,position:'top',labels:{font:{size:11},usePointStyle:true}},
-      datalabels:{display:true,anchor:'end',align:hor?'right':'top',color:'#475569',font:{size:9},
-        formatter:v=>v>0?fmtK(v):''},
-      tooltip:{callbacks:{label:c=>' '+fmt(c.raw)}} },
+    layout:{padding:{right:hor?75:0,top:hor?0:20}},
+    plugins:{
+      legend:{display:datasets.length>1,position:'top',labels:{font:{size:11},usePointStyle:true}},
+      datalabels:{
+        display:true,anchor:'end',align:hor?'right':'top',
+        color:'#1e293b',font:{size:10,weight:'600'},
+        formatter:(v)=>v>0?fmtK(v):''
+      },
+      tooltip:{callbacks:{label:c=>' '+fmt(c.raw)}}
+    },
     scales:{
-      x:{ticks:{color:'#94a3b8',font:{size:10},callback:v=>hor?fmtK(v):fmtK(v)},grid:{color:'rgba(0,0,0,.04)'}},
-      y:{ticks:{color:hor?'#475569':'#94a3b8',font:{size:10},callback:v=>hor?v:fmtK(v)},grid:{color:hor?'none':'rgba(0,0,0,.04)'}}
+      x:{ticks:{color:'#94a3b8',font:{size:10},callback:v=>fmtK(v)},grid:{color:'rgba(0,0,0,.04)'}},
+      y:{
+        ticks:{
+          color:hor?'#1e293b':'#94a3b8',
+          font:{size:hor?11:10,weight:hor?'600':'400'},
+          callback:function(val){
+            if(!hor)return fmtK(val);
+            const l=labs[val];
+            return l&&l.length>22?l.substring(0,22)+'...':l||val;
+          }
+        },
+        grid:{color:'rgba(0,0,0,.04)'}
+      }
     }
   }});
 }
 
 const TABS={resumen:'&#x1F4CA; Resumen',ual:'&#x1F69B; UAL',javpf:'&#x1F3E2; JAVP Fiscal',javpnf:'&#x1F4BC; JAVP No Fiscal',socios:'&#x1F465; Gastos por Socio',clasif:'&#x1F5C2;&#xFE0F; Por Clasificacion',pnl:'&#x1F4C8; P&L por Empresa',fijos:'&#x1F4CC; Gastos Fijos'};
 function goTab(name,el){
-  curTab=name;curMes=-1;curSocio='all';curCl='all';curCli='all';
+  curTab=name;curMes=-1;curSocio='all';curCl='all';curCli='all';curTipoG='all';
   document.querySelectorAll('.ni').forEach(n=>n.classList.remove('on'));
   el.classList.add('on');
   $('topTit').innerHTML=TABS[name];
@@ -289,7 +312,7 @@ function dRes(){
     {e:'&#x1F69B;',t:'UAL vs JAVP',b:'UAL: '+fmtK(sumD(ual))+' | Fiscal: '+fmtK(sumD(jf))+' | No Fiscal: '+fmtK(sumD(jnf))},
   ];
   $('main').innerHTML=ibox(ins)+
-    fbox([{l:'Mes',h:sMes()},{l:'Socio',h:sSocio(all)},{l:'Clasificacion',h:sCl(all)}])+
+    fbox([{l:'Mes',h:sMes()},{l:'Tipo',h:sTipo(all)},{l:'Socio',h:sSocio(all)},{l:'Clasificacion',h:sCl(all)}])+
     '<div class="krow">'+
     kc('Total ingresos',fmtK(tD),'g','&#x1F4B0;',fmtN(all.filter(r=>r[3]>0).length)+' movimientos')+
     kc('Total egresos',fmtK(tR),'r','&#x1F4B8;',fmtN(all.filter(r=>r[4]>0).length)+' movimientos')+
@@ -327,9 +350,9 @@ function dEmp(tipo,emoji,tagCls){
     {e:'&#x1F464;',t:'Socio con mas gasto',b:topSoc[0]?'<b>'+topSoc[0][0]+'</b>: '+fmtK(topSoc[0][1]):'Sin datos'},
     {e:'&#x1F4C5;',t:'Mes de mayor ingreso',b:dM.some(v=>v>0)?'<b>'+MES[dM.indexOf(Math.max(...dM.filter(v=>v>0)))]+'</b>: '+fmtK(Math.max(...dM)):'Sin datos'},
   ];
-  const rows=all.slice(0,300).map(r=>'<tr><td class="mu">'+r[1]+'/'+String(r[2]).padStart(2,'0')+'</td><td>'+r[7]+'</td><td>'+(r[5]?'<span class="bdg bt">'+r[5]+'</span>':'')+'</td><td>'+(r[6]?'<span class="bdg by">'+r[6]+'</span>':'')+'</td><td class="r g">'+(r[3]>0?fmt(r[3]):'&mdash;')+'</td><td class="r re">'+(r[4]>0?fmt(r[4]):'&mdash;')+'</td></tr>').join('');
+  const rows=all.slice(0,300).map(r=>'<tr><td class="mu">'+r[1]+'/'+String(r[2]).padStart(2,'0')+'</td><td>'+r[7]+'</td><td>'+(r[5]?'<span class="bdg bt">'+r[5]+'</span>':'')+'</td><td>'+(r[8]?'<span class="bdg bg">'+r[8]+'</span>':'')+'</td><td>'+(r[6]?'<span class="bdg by">'+r[6]+'</span>':'')+'</td><td class="r g">'+(r[3]>0?fmt(r[3]):'&mdash;')+'</td><td class="r re">'+(r[4]>0?fmt(r[4]):'&mdash;')+'</td></tr>').join('');
   $('main').innerHTML=ibox(ins)+
-    fbox([{l:'Mes',h:sMes()},{l:'Clasificacion',h:sCls},{l:'Socio',h:sSoc}])+
+    fbox([{l:'Mes',h:sMes()},{l:'Tipo',h:sTipo(all)},{l:'Clasificacion',h:sCls},{l:'Socio',h:sSoc}])+
     '<div class="krow">'+
     kc('Ingresos',fmtK(tD),'g','&#x1F4B0;',fmtN(all.filter(r=>r[3]>0).length)+' movimientos')+
     kc('Egresos',fmtK(tR),'r','&#x1F4B8;',fmtN(all.filter(r=>r[4]>0).length)+' movimientos')+
@@ -344,7 +367,7 @@ function dEmp(tipo,emoji,tagCls){
     '<div class="cc"><div class="cc-t">&#x1F464; Egresos por socio</div><div style="position:relative;height:'+Math.max(160,topSoc.length*28+50)+'px"><canvas id="cEsoc"></canvas></div></div>'+
     '</div>'+
     '<div class="slbl">Movimientos'+(all.length>300?' (top 300)':'')+'</div>'+
-    '<div class="tw"><table><thead><tr><th>Fecha</th><th>Descripcion</th><th>Clasificacion</th><th>Socio</th><th class="r">Ingreso</th><th class="r">Egreso</th></tr></thead><tbody>'+rows+'</tbody>'+
+    '<div class="tw"><table><thead><tr><th>Fecha</th><th>Descripcion</th><th>Clasificacion</th><th>Tipo</th><th>Socio</th><th class="r">Ingreso</th><th class="r">Egreso</th></tr></thead><tbody>'+rows+'</tbody>'+
     '<tfoot><tr><td colspan="4">Total</td><td class="r g">'+fmt(tD)+'</td><td class="r re">'+fmt(tR)+'</td></tr></tfoot></table></div>';
 
   mkBar('cEm',MES,[{label:'I',data:dM,backgroundColor:'rgba(16,185,129,.75)',borderRadius:4},{label:'E',data:rM,backgroundColor:'rgba(239,68,68,.75)',borderRadius:4}]);
@@ -355,6 +378,7 @@ function dEmp(tipo,emoji,tagCls){
 function dSocios(){
   const all=filtered().filter(r=>r[6]&&r[4]>0);
   const socios=[...new Set(all.map(r=>r[6]))].sort();
+  // Also show tipo breakdown per socio
   const totS=socios.map(s=>{const d=all.filter(r=>r[6]===s);return {s,tot:d.reduce((a,r)=>a+r[4],0),n:d.length};}).sort((a,b)=>b.tot-a.tot);
   const grand=totS.reduce((a,x)=>a+x.tot,0);
   const ins=[
@@ -363,7 +387,7 @@ function dSocios(){
     {e:'&#x1F50D;',t:'Oportunidad',b:'Revisar gastos sin socio asignado para mejor control'},
   ];
   $('main').innerHTML=ibox(ins)+
-    fbox([{l:'Mes',h:sMes()},{l:'Clasificacion',h:sCl(all)}])+
+    fbox([{l:'Mes',h:sMes()},{l:'Tipo',h:sTipo(all)},{l:'Clasificacion',h:sCl(all)}])+
     '<div class="krow">'+socios.map((s,i)=>{
       const d=all.filter(r=>r[6]===s);const tot=d.reduce((a,r)=>a+r[4],0);
       return kc(s,fmtK(tot),'y',['&#x1F464;','&#x1F465;','&#x1F4BC;'][i]||'&#x1F464;',fmtN(d.length)+' movimientos');
@@ -373,8 +397,9 @@ function dSocios(){
     '<div class="g2">'+socios.map((s,i)=>{
       const d=all.filter(r=>r[6]===s);
       const byCl=grpBy(d,5,4).slice(0,8);
-      return '<div class="cc"><div class="cc-t">'+['&#x1F464;','&#x1F465;','&#x1F4BC;'][i]+'&#xFE0F; '+s+'</div>'+
-        '<div style="position:relative;height:'+Math.max(160,byCl.length*26+50)+'px"><canvas id="cSc'+i+'"></canvas></div></div>';
+      const byTG=grpBy(d,8,4).slice(0,8);
+    return '<div class="cc"><div class="cc-t">'+['&#x1F464;','&#x1F465;','&#x1F4BC;'][i]+'&#xFE0F; '+s+' &mdash; por tipo de gasto</div>'+
+        '<div style="position:relative;height:'+Math.max(160,byTG.length*26+50)+'px"><canvas id="cSc'+i+'"></canvas></div></div>';
     }).join('')+'</div>';
 
   mkBar('cSm',MES,socios.map((s,i)=>{
@@ -383,9 +408,9 @@ function dSocios(){
   }));
   socios.forEach((s,i)=>{
     const d=all.filter(r=>r[6]===s);
-    const byCl=grpBy(d,5,4).slice(0,8);
+    const byTG=grpBy(d,8,4).slice(0,8);
     const clrs=['rgba(0,137,123,.75)','rgba(59,130,246,.75)','rgba(139,92,246,.75)'];
-    mkBar('cSc'+i,byCl.map(x=>x[0]),[{label:'g',data:byCl.map(x=>x[1]),backgroundColor:clrs[i],borderRadius:4}],true);
+    mkBar('cSc'+i,byTG.map(x=>x[0]),[{label:'g',data:byTG.map(x=>x[1]),backgroundColor:clrs[i],borderRadius:4}],true);
   });
 }
 
@@ -423,16 +448,24 @@ function dPNL(){
     const d=filtTipo(tipo);
     const dM=byMD(d),rM=byMR(d);
     const tD=sumD(d),tR=sumR(d),neto=tD-tR;
-    const cls=[...new Set(d.filter(r=>r[4]>0&&r[5]).map(r=>r[5]))].sort();
+    // Group P&L by Tipo (r[8]) for better structure, fallback to clasificacion
+    const tiposG=[...new Set(d.filter(r=>r[4]>0&&r[8]).map(r=>r[8]))].sort();
+    const clsSin=d.filter(r=>r[4]>0&&!r[8]);
     const rows=[];
     rows.push('<tr class="r-ing"><td>INGRESOS</td>'+MES.map((_,m)=>'<td>'+(dM[m]?fmt(dM[m]):'$0')+'</td>').join('')+'<td>'+fmt(tD)+'</td></tr>');
-    rows.push('<tr class="r-sec"><td>(-) EGRESOS POR CLASIFICACION</td>'+MES.map(()=>'<td></td>').join('')+'<td>('+fmt(tR)+')</td></tr>');
-    cls.forEach(cl=>{
-      const meses=MES.map((_,m)=>d.filter(r=>r[5]===cl&&r[4]>0&&r[2]-1===m).reduce((a,r)=>a+r[4],0));
+    rows.push('<tr class="r-sec"><td>(-) EGRESOS POR TIPO</td>'+MES.map(()=>'<td></td>').join('')+'<td>('+fmt(tR)+')</td></tr>');
+    tiposG.forEach(tg=>{
+      const meses=MES.map((_,m)=>d.filter(r=>r[8]===tg&&r[4]>0&&r[2]-1===m).reduce((a,r)=>a+r[4],0));
       const tot=meses.reduce((a,v)=>a+v,0);
       if(tot===0) return;
-      rows.push('<tr class="r-sub"><td>&nbsp;&nbsp;'+cl+'</td>'+meses.map(v=>'<td class="mu">'+(v?'('+fmt(v)+')':'&mdash;')+'</td>').join('')+'<td class="pnl-neg">('+fmt(tot)+')</td></tr>');
+      rows.push('<tr class="r-sub"><td>&nbsp;&nbsp;'+tg+'</td>'+meses.map(v=>'<td class="mu">'+(v?'('+fmt(v)+')':'&mdash;')+'</td>').join('')+'<td class="pnl-neg">('+fmt(tot)+')</td></tr>');
     });
+    // Add rows without tipo classification
+    if(clsSin.length>0){
+      const meses=MES.map((_,m)=>clsSin.filter(r=>r[2]-1===m).reduce((a,r)=>a+r[4],0));
+      const tot=meses.reduce((a,v)=>a+v,0);
+      if(tot>0) rows.push('<tr class="r-sub"><td>&nbsp;&nbsp;Sin tipificar</td>'+meses.map(v=>'<td class="mu">'+(v?'('+fmt(v)+')':'&mdash;')+'</td>').join('')+'<td class="pnl-neg">('+fmt(tot)+')</td></tr>');
+    }
     rows.push('<tr class="r-tot"><td>TOTAL EGRESOS</td>'+rM.map(v=>'<td class="pnl-neg">'+(v?'('+fmt(v)+')':'&mdash;')+'</td>').join('')+'<td class="pnl-neg">('+fmt(tR)+')</td></tr>');
     const netoM=MES.map((_,m)=>dM[m]-rM[m]);
     rows.push('<tr class="r-net"><td>NETO</td>'+netoM.map(v=>'<td>'+(dM[netoM.indexOf(v)]||rM[netoM.indexOf(v)]?fmt(Math.abs(v)):'$0')+'</td>').join('')+'<td>'+fmt(Math.abs(neto))+'</td></tr>');
