@@ -768,26 +768,34 @@ function processEdoCSV(rows){
   // Debug: log raw tipo values
   const rawTipos = [...new Set(rows.map(r=>(r['Tipo']||r['TIPO']||'').trim()).filter(Boolean))];
   console.log('RAW tipos in CSV:', rawTipos);
+  console.log('Total rows to process:', rows.length);
 
+  let skippedDate=0, skippedZero=0;
   for(const r of rows){
     // Get fecha - try multiple column names
     const fechaStr = r['Fecha']||r['FECHA']||r['fecha']||'';
     if(!fechaStr) continue;
     let yr=0, mes=0;
-    const parts = fechaStr.split('/');
+    // Try dd/mm/yyyy or dd-mm-yyyy
+    const parts = fechaStr.split(/[\/\-]/);
     if(parts.length===3){
-      // dd/mm/yyyy
-      yr  = parseInt(parts[2]);
-      mes = parseInt(parts[1]);
-    } else {
-      const m = fechaStr.match(/(20\d{2})[\-\/](\d{1,2})/);
-      if(m){ yr=parseInt(m[1]); mes=parseInt(m[2]); }
+      const p0=parseInt(parts[0]),p1=parseInt(parts[1]),p2=parseInt(parts[2]);
+      if(p2>2000){ yr=p2; mes=p1; }       // dd/mm/yyyy
+      else if(p0>2000){ yr=p0; mes=p1; }  // yyyy/mm/dd
     }
-    if(!yr || !mes) continue;
+    // Try to extract year and month from any format
+    if(!yr){
+      const my=fechaStr.match(/20(\d{2})/);
+      const mm=fechaStr.match(/[\/-](\d{1,2})[\/-]/);
+      if(my) yr=2000+parseInt(my[1]);
+      if(mm) mes=parseInt(mm[1]);
+    }
+    if(!yr || !mes){ yr=0; mes=0; } // will be skipped below
+    if(!yr || !mes){ skippedDate++; continue; }
 
     const dep = parseFloat(String(r['Monto del deposito']||r['Monto del depósito']||r['Deposito']||0).replace(/[$,]/g,''))||0;
     const ret = parseFloat(String(r['Monto del retiro']||r['Retiro']||0).replace(/[$,]/g,''))||0;
-    if(dep===0 && ret===0) continue;
+    if(dep===0 && ret===0){ skippedZero++; continue; }
 
     const clRaw = r['Clasificacion de gastos personales']||
                   r['Clasificación de gastos personales']||
@@ -806,6 +814,8 @@ function processEdoCSV(rows){
               (!socio||socio.startsWith('='))?'':socio,
               desc, '']);
   }
+  console.log('Processed:', out.length, 'Skipped date:', skippedDate, 'Skipped zero:', skippedZero);
+  console.log('Tipos in output:', [...new Set(out.map(r=>r[0]))]);
   return out;
 }
 
