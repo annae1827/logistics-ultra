@@ -223,6 +223,11 @@ const URL_FIJOS_CSV = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQJ74TLWK
 const RAW_DATA  = [];
 const FIJOS_DATA = [];
 
+// Tipos detected dynamically from data
+function getTipos(){
+  return [...new Set(RAW_DATA.map(r=>r[0]).filter(Boolean))].sort();
+}
+
 // ── FILTER & AGG ──────────────────────────────────────────────────────────
 function filtered(){
   let d = RAW_DATA;
@@ -580,12 +585,7 @@ function dClasif(){
 
 // ── P&L ─────────────────────────────────────────────────────────────────
 function dPNL(){
-  // Tipos detected dynamically from data
-let tipos=['UAL','JAVP_Fiscal','JAVP_No_Fiscal']; // defaults, overwritten after load
-
-function getTipos(){
-  return [...new Set(RAW_DATA.map(r=>r[0]).filter(Boolean))].sort();
-}
+  let tipos=['UAL','JAVP_Fiscal','JAVP_No_Fiscal']; // defaults, overwritten after load
   const y=yr();
   function pnlForTipo(tipo){
     const d=RAW_DATA.filter(r=>r[0]===tipo&&(y==='all'||r[1]===parseInt(y)));
