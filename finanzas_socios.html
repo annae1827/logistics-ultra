@@ -236,7 +236,13 @@ function filtered(){
 }
 function filteredByTipo(tipo){
   const y=yr();
-  let d=RAW_DATA.filter(r=>r[0]===tipo);
+  // Flexible matching
+  let d=RAW_DATA.filter(r=>{
+    if(tipo==='UAL') return r[0]==='UAL';
+    if(tipo==='JAVP_No_Fiscal') return r[0]&&r[0].includes('No');
+    if(tipo==='JAVP_Fiscal') return r[0]&&r[0].includes('Fiscal')&&!r[0].includes('No');
+    return r[0]===tipo;
+  });
   if(y!=='all') d=d.filter(r=>r[1]===parseInt(y));
   if(curMes>=0) d=d.filter(r=>r[2]-1===curMes);
   if(curSocio!=='all') d=d.filter(r=>r[6]===curSocio);
@@ -323,9 +329,10 @@ function selCl(arr){const opts=uniq(arr,5);return `<select class="f-sel" onchang
 // ── RESUMEN ───────────────────────────────────────────────────────────────
 function dResumen(){
   const all=filtered();
+  const allTipos=getTipos();
   const ual=all.filter(r=>r[0]==='UAL');
-  const javpF=all.filter(r=>r[0]==='JAVP_Fiscal');
-  const javpNF=all.filter(r=>r[0]==='JAVP_No_Fiscal');
+  const javpF=all.filter(r=>r[0]&&r[0].includes('Fiscal')&&!r[0].includes('No'));
+  const javpNF=all.filter(r=>r[0]&&r[0].includes('No'));
   const tDep=sumDep(all),tRet=sumRet(all);
   const netUAL=sumDep(ual)-sumRet(ual);
   const netJF=sumDep(javpF)-sumRet(javpF);
@@ -573,15 +580,11 @@ function dClasif(){
 
 // ── P&L ─────────────────────────────────────────────────────────────────
 function dPNL(){
-  const tipos=['UAL','JAVP_Fiscal','JAVP_No_Fiscal'];
-// Helper: normalize tipo names from raw data
-function normTipo(t){
-  if(!t) return '';
-  const u=t.trim().toUpperCase();
-  if(u.includes('NO') && u.includes('FISCAL')) return 'JAVP_No_Fiscal';
-  if(u.includes('FISCAL')) return 'JAVP_Fiscal';
-  if(u==='UAL') return 'UAL';
-  return t.trim();
+  // Tipos detected dynamically from data
+let tipos=['UAL','JAVP_Fiscal','JAVP_No_Fiscal']; // defaults, overwritten after load
+
+function getTipos(){
+  return [...new Set(RAW_DATA.map(r=>r[0]).filter(Boolean))].sort();
 }
   const y=yr();
   function pnlForTipo(tipo){
@@ -600,8 +603,15 @@ function normTipo(t){
   }
 
   const pnl=tipos.map(pnlForTipo);
-  const tagCls=['tag-ual','tag-javpf','tag-javpnf'];
-  const tagLbl=['UAL','JAVP Fiscal','JAVP No Fiscal'];
+  const tagMap={'UAL':['tag-ual','UAL']};
+  tipos.forEach(t=>{
+    if(t==='UAL') return;
+    if(t.includes('No')) tagMap[t]=['tag-javpnf','JAVP No Fiscal'];
+    else if(t.includes('Fiscal')) tagMap[t]=['tag-javpf','JAVP Fiscal'];
+    else tagMap[t]=['tag-ual',t];
+  });
+  const tagCls=tipos.map(t=>(tagMap[t]||['bg',t])[0]);
+  const tagLbl=tipos.map(t=>(tagMap[t]||['bg',t])[1]);
 
   function buildPNLTable(p,i){
     const rows=[];
@@ -738,6 +748,10 @@ function autoClasifDesc(desc, dep, ret){
 // ── EDO CTAS PROCESSOR ────────────────────────────────────────────────────
 function processEdoCSV(rows){
   const out=[];
+  // Debug: log raw tipo values
+  const rawTipos = [...new Set(rows.map(r=>(r['Tipo']||r['TIPO']||'').trim()).filter(Boolean))];
+  console.log('RAW tipos in CSV:', rawTipos);
+
   for(const r of rows){
     // Get fecha - try multiple column names
     const fechaStr = r['Fecha']||r['FECHA']||r['fecha']||'';
@@ -766,14 +780,8 @@ function processEdoCSV(rows){
                : autoClasifDesc(r['Descripcion']||r['Descripción']||'', dep, ret);
 
     const socio = r['Socio']||'';
-    // Normalize tipo - handle spaces vs underscores
-    let tipo = r['Tipo']||r['TIPO']||'';
-    tipo = tipo.trim();
-    // Normalize: "JAVP No Fiscal" -> "JAVP_No_Fiscal", "JAVP Fiscal" -> "JAVP_Fiscal"
-    if(tipo.includes('No Fiscal') || tipo.includes('no fiscal')) tipo='JAVP_No_Fiscal';
-    else if(tipo.includes('No_Fiscal')) tipo='JAVP_No_Fiscal';
-    else if((tipo.includes('JAVP') || tipo.includes('Fiscal')) && !tipo.includes('No')) tipo='JAVP_Fiscal';
-    else if(tipo.toUpperCase()==='UAL') tipo='UAL';
+    // Keep tipo exactly as it comes - no normalization
+    let tipo = (r['Tipo']||r['TIPO']||'').trim();
 
     const desc  = (r['Descripcion']||r['Descripción']||'').substring(0,60);
 
@@ -858,9 +866,11 @@ async function loadFromSheets(){
     const years=[...new Set(RAW_DATA.map(r=>r[1]))].sort();
     $('sbInfo').textContent=RAW_DATA.length.toLocaleString('es-MX')+' movimientos';
 
+    // Update tipos dynamically from loaded data
+    tipos = getTipos();
+    console.log('Tipos detected:', tipos);
     $('loading').style.display='none';
     $('app').style.display='flex';
-    // Small delay to ensure Chart.js datalabels plugin is registered
     setTimeout(()=>render(), 100);
   }catch(e){
     $('ld-msg').textContent='Error al cargar datos';
