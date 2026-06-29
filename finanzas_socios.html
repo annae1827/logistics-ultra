@@ -329,10 +329,10 @@ function dRes(){
     '<div class="lgnd"><span><span class="lsq" style="background:#10b981"></span>Ingresos</span><span><span class="lsq" style="background:#ef4444"></span>Egresos</span></div>'+
     '<div style="position:relative;height:230px"><canvas id="cRm"></canvas></div></div>'+
     '<div class="g2">'+
-    '<div class="cc"><div class="cc-t">&#x1F4B8; Top egresos por clasificacion</div>'+
-    '<div style="position:relative;height:'+Math.max(200,grp(all.filter(r=>r[4]>0),5,4).slice(0,10).length*30+60)+'px"><canvas id="cRcl"></canvas></div></div>'+
-    '<div class="cc"><div class="cc-t">&#x1F3AF; Egresos por tipo de gasto</div>'+
-    '<div style="position:relative;height:'+Math.max(200,grp(all.filter(r=>r[4]>0),6,4).slice(0,10).length*30+60)+'px"><canvas id="cRtg"></canvas></div></div>'+
+    '<div class="cc"><div class="cc-t">&#x1F4B0; Ingresos por cliente</div>'+
+    '<div style="position:relative;height:'+Math.max(200,grp(all.filter(r=>r[7]==='Ingreso por ventas'&&r[3]>0),5,3).filter(x=>x[0]&&x[0]!=='S/D').slice(0,10).length*32+60)+'px"><canvas id="cRcli"></canvas></div></div>'+
+    '<div class="cc"><div class="cc-t">&#x1F4B8; Top egresos por tipo de gasto</div>'+
+    '<div style="position:relative;height:'+Math.max(200,grp(all.filter(r=>r[4]>0),6,4).filter(x=>x[0]&&x[0]!=='S/D').slice(0,10).length*32+60)+'px"><canvas id="cRtg"></canvas></div></div>'+
     '</div>';
 
   mkBar('cRm',MES,[
@@ -340,8 +340,8 @@ function dRes(){
     {label:'Egresos',data:rM,backgroundColor:'rgba(239,68,68,.75)',borderRadius:4},
   ]);
   const EXCL_LABELS=['S/D','','Sin clasificar','Sin tipificar'];
-  const tcl=grp(all.filter(r=>r[4]>0),5,4).filter(x=>!EXCL_LABELS.includes(x[0])).slice(0,10);
-  mkBar('cRcl',tcl.map(x=>x[0]),[{label:'g',data:tcl.map(x=>x[1]),backgroundColor:CLRS.map(c=>c+'cc'),borderRadius:4}],true);
+  const tcli=grp(all.filter(r=>r[7]==='Ingreso por ventas'&&r[3]>0),5,3).filter(x=>x[0]&&x[0]!=='S/D').slice(0,10);
+  mkBar('cRcli',tcli.map(x=>x[0]),[{label:'g',data:tcli.map(x=>x[1]),backgroundColor:CLRS.map(c=>c+'cc'),borderRadius:4}],true);
   const ttg=grp(all.filter(r=>r[4]>0),6,4).filter(x=>!EXCL_LABELS.includes(x[0])).slice(0,10);
   mkBar('cRtg',ttg.map(x=>x[0]),[{label:'g',data:ttg.map(x=>x[1]),backgroundColor:'rgba(139,92,246,.75)',borderRadius:4}],true);
 }
