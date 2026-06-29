@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Logistics Ultra - Nómina de Operadores</title>
+    <title>🚛 Alen IP - Dashboard Operacional</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
     <style>
         * {
@@ -19,149 +19,102 @@
         }
         
         .header {
-            background: linear-gradient(135deg, #00897B 0%, #004d40 100%);
+            background: linear-gradient(135deg, #2d5a3d 0%, #1a3a2a 100%);
             color: white;
             padding: 25px 30px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
         }
         
-        .header-left h1 {
-            font-size: 28px;
+        .header h1 {
+            font-size: 32px;
             margin-bottom: 5px;
         }
         
-        .header-left .subtitle {
-            font-size: 13px;
-            opacity: 0.9;
-        }
-        
-        .header-right {
-            text-align: right;
+        .header .subtitle {
             font-size: 14px;
+            opacity: 0.95;
         }
         
         .container {
-            max-width: 1600px;
+            max-width: 1800px;
             margin: 20px auto;
             padding: 0 20px;
         }
         
-        .controls {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
+        .tabs-nav {
+            display: flex;
+            gap: 0;
             margin-bottom: 20px;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            display: flex;
-            gap: 15px;
             flex-wrap: wrap;
-            align-items: center;
         }
         
-        .control-group {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-        }
-        
-        .control-group label {
-            font-weight: 600;
-            color: #2D3748;
-            font-size: 14px;
-        }
-        
-        input[type="text"],
-        input[type="file"] {
-            padding: 8px 12px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 14px;
-            font-family: inherit;
-        }
-        
-        input[type="text"] {
-            width: 450px;
-        }
-        
-        button {
-            padding: 8px 16px;
-            background: #00897B;
-            color: white;
+        .tab-btn {
+            flex: 1;
+            min-width: 120px;
+            padding: 15px;
+            background: #f5f5f5;
             border: none;
-            border-radius: 4px;
             cursor: pointer;
-            font-size: 14px;
             font-weight: 600;
-            transition: background 0.2s;
+            font-size: 13px;
+            color: #666;
+            transition: all 0.2s;
         }
         
-        button:hover {
-            background: #00695c;
+        .tab-btn.active {
+            background: #2d5a3d;
+            color: white;
         }
         
-        button.secondary {
-            background: #666;
+        .tab-btn:hover:not(.active) {
+            background: #e0e0e0;
         }
         
-        button.secondary:hover {
-            background: #555;
+        .tab-content {
+            display: none;
         }
         
-        .summary-cards {
+        .tab-content.active {
+            display: block;
+        }
+        
+        .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 15px;
-            margin-bottom: 20px;
+            margin-bottom: 25px;
         }
         
-        .card {
+        .stat-card {
             background: white;
-            padding: 15px;
+            padding: 20px;
             border-radius: 8px;
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            border-left: 4px solid #00897B;
+            border-left: 4px solid #2d5a3d;
         }
         
-        .card-label {
+        .stat-label {
             font-size: 12px;
             color: #999;
             font-weight: 600;
             text-transform: uppercase;
-            margin-bottom: 8px;
+            margin-bottom: 10px;
         }
         
-        .card-value {
-            font-size: 24px;
+        .stat-value {
+            font-size: 28px;
             font-weight: bold;
-            color: #00897B;
+            color: #2d5a3d;
+            margin-bottom: 5px;
         }
         
-        .message {
-            padding: 15px;
-            border-radius: 4px;
-            margin-bottom: 20px;
-            font-size: 14px;
-        }
-        
-        .message.error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-        
-        .message.success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-        
-        .message.info {
-            background: #d1ecf1;
-            color: #0c5460;
-            border: 1px solid #bee5eb;
+        .stat-subtitle {
+            font-size: 12px;
+            color: #666;
         }
         
         .table-wrapper {
@@ -169,7 +122,7 @@
             border-radius: 8px;
             overflow-x: auto;
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            margin-bottom: 30px;
+            margin-bottom: 20px;
         }
         
         table {
@@ -182,24 +135,19 @@
             background: #f5f5f5;
             position: sticky;
             top: 0;
-            z-index: 10;
         }
         
         th {
             padding: 12px 8px;
             text-align: center;
             font-weight: 600;
-            color: #2D3748;
-            border-bottom: 2px solid #00897B;
+            color: #2d5a3d;
+            border-bottom: 2px solid #2d5a3d;
             white-space: nowrap;
         }
         
         th:first-child {
             text-align: left;
-            position: sticky;
-            left: 0;
-            background: #f5f5f5;
-            z-index: 11;
         }
         
         td {
@@ -210,64 +158,85 @@
         
         td:first-child {
             text-align: left;
-            position: sticky;
-            left: 0;
-            background: white;
             font-weight: 500;
-            z-index: 9;
-        }
-        
-        tbody tr:hover td:first-child {
-            background: #f9f9f9;
         }
         
         tbody tr:hover {
             background: #f9f9f9;
         }
         
-        .data-cell {
-            background: white;
-            color: #333;
-        }
-        
-        .data-cell.zero {
-            color: #ccc;
-        }
-        
-        .total-row {
-            background: #f0f0f0;
-            font-weight: 600;
-            border-top: 2px solid #00897B;
-        }
-        
-        .total-row td {
-            padding: 12px 8px;
-        }
-        
-        .money {
-            color: #00897B;
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 3px;
+            font-size: 11px;
             font-weight: 600;
         }
         
-        .si-badge {
+        .badge-presente {
             background: #c8e6c9;
             color: #2e7d32;
-            padding: 3px 8px;
-            border-radius: 3px;
-            font-weight: 600;
-            font-size: 12px;
         }
         
-        .no-badge {
+        .badge-falta {
             background: #f8d7da;
             color: #721c24;
-            padding: 3px 8px;
-            border-radius: 3px;
-            font-weight: 600;
-            font-size: 12px;
         }
         
-        .recibo-container {
+        .badge-descanso {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .verde {
+            color: #2e7d32;
+            font-weight: 600;
+        }
+        
+        .rojo {
+            color: #c62828;
+            font-weight: 600;
+        }
+        
+        .menu-recibos {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        
+        .menu-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #2d5a3d;
+        }
+        
+        .recibo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 10px;
+        }
+        
+        .recibo-btn {
+            padding: 12px;
+            background: #2d5a3d;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        
+        .recibo-btn:hover {
+            background: #1a3a2a;
+            transform: translateY(-2px);
+        }
+        
+        .modal {
             display: none;
             position: fixed;
             top: 0;
@@ -281,96 +250,21 @@
             padding: 20px;
         }
         
-        .recibo-container.active {
+        .modal.active {
             display: flex;
         }
         
-        .recibo {
+        .modal-content {
             background: white;
-            width: 100%;
-            max-width: 600px;
             border-radius: 8px;
             padding: 40px;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+            max-width: 600px;
+            width: 100%;
             max-height: 90vh;
             overflow-y: auto;
         }
         
-        .recibo-header {
-            text-align: center;
-            margin-bottom: 30px;
-            border-bottom: 2px solid #00897B;
-            padding-bottom: 20px;
-        }
-        
-        .recibo-logo {
-            font-size: 24px;
-            font-weight: bold;
-            color: #00897B;
-            margin-bottom: 10px;
-        }
-        
-        .recibo-title {
-            font-size: 18px;
-            font-weight: 600;
-            color: #2D3748;
-            margin-bottom: 10px;
-        }
-        
-        .recibo-dates {
-            font-size: 12px;
-            color: #666;
-        }
-        
-        .recibo-body {
-            margin-bottom: 30px;
-        }
-        
-        .recibo-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 15px;
-            font-size: 14px;
-        }
-        
-        .recibo-row.header {
-            font-weight: 600;
-            color: #2D3748;
-            border-bottom: 1px solid #eee;
-            padding-bottom: 10px;
-            margin-bottom: 15px;
-        }
-        
-        .recibo-row.total {
-            font-weight: bold;
-            font-size: 16px;
-            color: #00897B;
-            border-top: 2px solid #00897B;
-            padding-top: 15px;
-            margin-top: 20px;
-        }
-        
-        .recibo-footer {
-            text-align: center;
-            font-size: 12px;
-            color: #999;
-            margin-top: 30px;
-            padding-top: 20px;
-            border-top: 1px solid #eee;
-        }
-        
-        .recibo-actions {
-            display: flex;
-            gap: 10px;
-            justify-content: center;
-            margin-top: 20px;
-        }
-        
-        .recibo-actions button {
-            padding: 10px 20px;
-        }
-        
-        .close-recibo {
+        .modal-close {
             position: absolute;
             top: 20px;
             right: 20px;
@@ -383,23 +277,39 @@
             font-size: 18px;
         }
         
-        .close-recibo:hover {
-            background: #ccc;
+        .recibo-header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #2d5a3d;
         }
         
-        @media print {
-            body {
-                background: white;
-            }
-            .controls, .summary-cards, .recibo-container, .recibo-actions, .close-recibo {
-                display: none !important;
-            }
-            .recibo {
-                box-shadow: none;
-                padding: 0;
-                max-width: 100%;
-                max-height: 100%;
-            }
+        .recibo-logo {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        
+        .recibo-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #2d5a3d;
+            margin-bottom: 10px;
+        }
+        
+        .recibo-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            font-size: 13px;
+        }
+        
+        .recibo-row.total {
+            font-weight: bold;
+            font-size: 16px;
+            color: #2d5a3d;
+            border-top: 2px solid #2d5a3d;
+            padding-top: 15px;
+            margin-top: 15px;
         }
         
         .no-data {
@@ -407,373 +317,470 @@
             padding: 40px;
             color: #999;
         }
+        
+        @media print {
+            .tabs-nav, .modal-close, .recibo-btn {
+                display: none !important;
+            }
+        }
     </style>
 </head>
 <body>
     <div class="header">
-        <div class="header-left">
-            <h1>🚚 LOGISTICS ULTRA</h1>
-            <div class="subtitle">Nómina de Operadores - Movimientos Cargados</div>
-        </div>
-        <div class="header-right">
-            <div id="periodInfo"></div>
-        </div>
+        <h1>🚛 ALEN IP - DASHBOARD OPERACIONAL</h1>
+        <div class="subtitle">📊 Análisis de Movimientos, Turnos y Operadores | 📅 <span id="periodText"></span></div>
     </div>
     
     <div class="container">
-        <div id="message"></div>
+        <!-- TABS NAVEGACIÓN -->
+        <div class="tabs-nav">
+            <button class="tab-btn active" onclick="switchTab('resumen')">📈 RESUMEN</button>
+            <button class="tab-btn" onclick="switchTab('operadores')">👥 OPERADORES</button>
+            <button class="tab-btn" onclick="switchTab('turnos')">🕐 TURNOS</button>
+            <button class="tab-btn" onclick="switchTab('dias')">📅 DÍAS</button>
+            <button class="tab-btn" onclick="switchTab('detalle')">📋 DETALLE COMPLETO</button>
+            <button class="tab-btn" onclick="switchTab('recibos')">💼 RECIBOS</button>
+        </div>
         
-        <div class="summary-cards">
-            <div class="card">
-                <div class="card-label">Total Movimientos</div>
-                <div class="card-value" id="totalMovimientos">0</div>
+        <!-- TAB: RESUMEN -->
+        <div id="resumen" class="tab-content active">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-label">📦 Movimientos Cargados</div>
+                    <div class="stat-value" id="totalCargados">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">🚫 Movimientos Vacíos</div>
+                    <div class="stat-value" id="totalVacios">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">👤 Operadores Únicos</div>
+                    <div class="stat-value" id="totalOperadores">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">✓ Asistencias</div>
+                    <div class="stat-value verde" id="totalAsistencias">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">✗ Faltas</div>
+                    <div class="stat-value rojo" id="totalFaltas">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">📊 Promedio Cargados/Día</div>
+                    <div class="stat-value" id="promedioCargados">0</div>
+                </div>
             </div>
-            <div class="card">
-                <div class="card-label">Total Nómina</div>
-                <div class="card-value money" id="totalNomina">$0.00</div>
-            </div>
-            <div class="card">
-                <div class="card-label">Total Bonos</div>
-                <div class="card-value money" id="totalBonos">$0.00</div>
-            </div>
-            <div class="card">
-                <div class="card-label">Total Complementos</div>
-                <div class="card-value money" id="totalComplementos">$0.00</div>
+            
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>📅 Fecha</th>
+                            <th>🕐 Turno</th>
+                            <th>📦 Cargados</th>
+                            <th>🚫 Vacíos</th>
+                            <th>✓ Presentes</th>
+                            <th>✗ Faltas</th>
+                            <th>💼 Total Registros</th>
+                        </tr>
+                    </thead>
+                    <tbody id="resumenTable">
+                        <tr><td colspan="7" class="no-data">Cargando datos...</td></tr>
+                    </tbody>
+                </table>
             </div>
         </div>
         
-        <div class="table-wrapper">
-            <table id="nominaTable">
-                <thead>
-                    <tr>
-                        <th style="min-width: 180px;">Operador IP</th>
-                        <th>Lun</th>
-                        <th>Mar</th>
-                        <th>Mié</th>
-                        <th>Jue</th>
-                        <th>Vie</th>
-                        <th>Sáb</th>
-                        <th>Dom</th>
-                        <th style="min-width: 70px;">Suma Total</th>
-                        <th style="min-width: 90px;">Monto Base</th>
-                        <th>Asistencia Completa</th>
-                        <th>Bono No Descanso</th>
-                        <th>Complementar</th>
-                        <th style="min-width: 90px;">Monto Complementar</th>
-                        <th style="min-width: 90px;">TOTAL NÓMINA</th>
-                        <th style="min-width: 60px;">Acción</th>
-                    </tr>
-                </thead>
-                <tbody id="nominaBody">
-                    <tr>
-                        <td colspan="16" class="no-data">Carga datos para ver nómina</td>
-                    </tr>
-                </tbody>
-            </table>
+        <!-- TAB: OPERADORES -->
+        <div id="operadores" class="tab-content">
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>👤 Operador</th>
+                            <th>📦 Cargados</th>
+                            <th>🚫 Vacíos</th>
+                            <th>✓ Asistencias</th>
+                            <th>✗ Faltas</th>
+                            <th>🕐 Turnos</th>
+                            <th>📊 Promedio Cargados</th>
+                            <th>🧵 Ver Recibo</th>
+                        </tr>
+                    </thead>
+                    <tbody id="operadoresTable">
+                        <tr><td colspan="8" class="no-data">Cargando datos...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- TAB: TURNOS -->
+        <div id="turnos" class="tab-content">
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>🕐 Turno</th>
+                            <th>📆 Días</th>
+                            <th>📦 Cargados</th>
+                            <th>🚫 Vacíos</th>
+                            <th>👥 Operadores Únicos</th>
+                            <th>✓ Presentes</th>
+                            <th>✗ Faltas</th>
+                            <th>📊 Promedio Cargados/Op</th>
+                        </tr>
+                    </thead>
+                    <tbody id="turnosTable">
+                        <tr><td colspan="8" class="no-data">Cargando datos...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- TAB: DÍAS -->
+        <div id="dias" class="tab-content">
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>📅 Fecha</th>
+                            <th>🕐 Turno</th>
+                            <th>📦 Cargados</th>
+                            <th>🚫 Vacíos</th>
+                            <th>👥 Operadores</th>
+                            <th>✓ Presentes</th>
+                            <th>✗ Faltas</th>
+                        </tr>
+                    </thead>
+                    <tbody id="diasTable">
+                        <tr><td colspan="7" class="no-data">Cargando datos...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- TAB: DETALLE -->
+        <div id="detalle" class="tab-content">
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>📅 Fecha</th>
+                            <th>🕐 Turno</th>
+                            <th>👤 Operador</th>
+                            <th>🚐 Unidad</th>
+                            <th>📦 Cargados</th>
+                            <th>🚫 Vacíos</th>
+                            <th>✓ Estado</th>
+                            <th>🕒 Entrada-Salida</th>
+                        </tr>
+                    </thead>
+                    <tbody id="detalleTable">
+                        <tr><td colspan="8" class="no-data">Cargando datos...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- TAB: RECIBOS -->
+        <div id="recibos" class="tab-content">
+            <div class="menu-recibos">
+                <div class="menu-title">💼 RECIBOS DE NÓMINA - SELECCIONA OPERADOR</div>
+                <div class="recibo-grid" id="reciboMenu">
+                    <div class="no-data">Cargando operadores...</div>
+                </div>
+            </div>
         </div>
     </div>
     
     <!-- MODAL RECIBO -->
-    <div class="recibo-container" id="reciboContainer">
-        <button class="close-recibo" onclick="closeRecibo()">✕</button>
-        <div class="recibo" id="reciboContent"></div>
+    <div class="modal" id="reciboModal">
+        <div class="modal-content" id="reciboContent"></div>
+        <button class="modal-close" onclick="closeRecibo()">✕</button>
     </div>
     
     <script>
-        // ===== CONFIGURACIÓN =====
-        const PAGO_POR_MOVIMIENTO = 200;
-        const BONO_NO_DESCANSO = 500;
-        const MONTO_COMPLEMENTO = 1000;
-        const MINIMO_MOVIMIENTOS_SIN_COMPLEMENTO = 5;
+        let datos = [];
+        let dataProcessed = {};
         
-        // URL CSV del Google Sheet publicado (CAMBIAR AQUÍ)
-        const URL_CSV_GOOGLE_SHEETS = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTE1ZJZ8PzqGMNdj0MLHbfmcFQngQlP0PQVmK_FFTfI9Kmzk3EO8EWAAb6T4d-oCTPrEThpf-g8Roq3/pub?gid=0&single=true&output=csv';
-        
-        let rawData = [];
-        let operadores = {};
-        let periodFechas = {};
-        
-        // Cargar datos automáticamente al abrir la página
+        // Cargar datos automáticamente
         window.addEventListener('load', () => {
-            loadFromGoogleSheets(URL_CSV_GOOGLE_SHEETS);
+            loadData();
         });
         
-        function showMessage(message, type = 'info') {
-            const div = document.getElementById('message');
-            div.className = `message ${type}`;
-            div.textContent = message;
-            setTimeout(() => div.textContent = '', 5000);
-        }
-        
-        function loadFromGoogleSheets(urlParam = null) {
-            const url = urlParam || document.getElementById('csvUrl').value.trim() || URL_CSV_GOOGLE_SHEETS;
-            if (!url) {
-                showMessage('Ingresa una URL válida', 'error');
-                return;
-            }
+        function loadData() {
+            // Simulamos carga de CSV - en producción leerías desde Google Sheets
+            // Por ahora usamos datos de ejemplo o cargamos desde file input
+            const exampleData = `Operación,Coordinador,Fecha,Turno,Operador,Estatus,Unidad,M Cargados,M Vacíos,Entrada,Salida,Comentario
+Alen IP,Abdiel Garcia,2026-06-12,07:00-19:00,Primitivo Zavala,asistió,11001,5,3,7:50,19:00,Se recibe 11001
+Alen IP,Abdiel Garcia,2026-06-12,07:00-19:00,Daniel Zavala,asistió,105,0,1,7:50,19:00,No hubo movimientos
+Alen IP,Abdiel Garcia,2026-06-12,07:00-19:00,Jorge Castañeda,asistió,750,2,2,8:50,19:00,Unidad 750
+Alen IP,Manolo Martínez,2026-06-12,19:00-07:00,Edgar Vargas,falta,610,0,0,,,
+Alen IP,Manolo Martínez,2026-06-12,19:00-07:00,Alejandro Casas,asistió,9002,4,4,19:20,7:00,Espera de rampa`;
             
-            showMessage('⏳ Cargando datos...', 'info');
-            
-            fetch(url)
-                .then(r => r.text())
-                .then(csv => {
-                    rawData = Papa.parse(csv).data.filter(row => row.some(cell => cell));
+            Papa.parse(exampleData, {
+                header: true,
+                skipEmptyLines: true,
+                complete: (results) => {
+                    datos = results.data;
                     processData();
-                    showMessage('✓ Datos cargados correctamente desde Google Sheets', 'success');
-                })
-                .catch(e => showMessage(`Error al cargar: ${e.message}`, 'error'));
+                }
+            });
         }
-        
-        function loadFromFile() {
-            // Función removida - no se usa
-        }
-        
         
         function processData() {
-            if (rawData.length < 2) {
-                showMessage('El archivo no tiene datos válidos', 'error');
-                return;
-            }
-            
-            operadores = {};
-            periodFechas = {};
-            
-            const headers = rawData[0].map(h => h.toString().toLowerCase().trim());
-            const operadorIdx = headers.findIndex(h => h.includes('operador'));
-            
-            if (operadorIdx === -1) {
-                showMessage('No se encontró columna de operador', 'error');
-                return;
-            }
-            
-            // Extraer fechas de headers (0-7 son fechas en formato DD/MM/YY)
-            const dateHeaders = [];
-            for (let i = 1; i < 8 && i < headers.length; i++) {
-                if (headers[i].match(/\d{1,2}\/\d{1,2}\/\d{2}/)) {
-                    dateHeaders.push(i);
+            dataProcessed = {
+                porFecha: {},
+                porOperador: {},
+                porTurno: {},
+                total: {
+                    cargados: 0,
+                    vacios: 0,
+                    asistencias: 0,
+                    faltas: 0
                 }
-            }
+            };
             
-            if (dateHeaders.length === 0) {
-                showMessage('No se encontraron columnas de fecha (DD/MM/YY)', 'error');
-                return;
-            }
-            
-            // Procesar datos
-            for (let i = 1; i < rawData.length; i++) {
-                const row = rawData[i];
-                if (!row[operadorIdx] || !row[operadorIdx].toString().trim()) continue;
+            datos.forEach(row => {
+                if (!row.Operador || !row.Fecha) return;
                 
-                const operador = row[operadorIdx].toString().trim();
-                operadores[operador] = {
-                    nombre: operador,
-                    movimientos: {}
-                };
+                const cargados = parseInt(row['M Cargados']) || 0;
+                const vacios = parseInt(row['M Vacíos']) || 0;
+                const fecha = row.Fecha;
+                const turno = row.Turno;
+                const operador = row.Operador;
+                const estatus = row.Estatus.toLowerCase();
                 
-                // Llenar movimientos por día
-                dateHeaders.forEach((idx, dayIdx) => {
-                    const valor = parseInt(row[idx]) || 0;
-                    operadores[operador].movimientos[dayIdx] = valor;
-                });
-            }
-            
-            calcularNomina();
-            renderNomina();
-        }
-        
-        function calcularNomina() {
-            Object.keys(operadores).forEach(operador => {
-                const op = operadores[operador];
-                const movs = op.movimientos;
+                dataProcessed.total.cargados += cargados;
+                dataProcessed.total.vacios += vacios;
                 
-                // Contar total de movimientos
-                const sumaTotal = Object.values(movs).reduce((a, b) => a + b, 0);
+                if (estatus.includes('asist') || estatus.includes('si')) dataProcessed.total.asistencias++;
+                if (estatus.includes('falta')) dataProcessed.total.faltas++;
                 
-                // Contar días con movimientos (asistencia)
-                const diasAsistidos = Object.values(movs).filter(m => m > 0).length;
-                const asistenciaCompleta = diasAsistidos === 7;
-                
-                // Monto base
-                const montoBase = sumaTotal * PAGO_POR_MOVIMIENTO;
-                
-                // Bono no descanso (si asiste 7 días sin descansar)
-                const bonoNoDescanso = diasAsistidos === 7 ? BONO_NO_DESCANSO : 0;
-                
-                // Complementar: días con asistencia pero <5 movimientos
-                let complementar = 0;
-                let montoComplementar = 0;
-                
-                if (asistenciaCompleta) {
-                    Object.values(movs).forEach(movs_día => {
-                        if (movs_día > 0 && movs_día < MINIMO_MOVIMIENTOS_SIN_COMPLEMENTO) {
-                            complementar++;
-                            montoComplementar += MONTO_COMPLEMENTO;
-                        }
-                    });
+                // Por fecha
+                if (!dataProcessed.porFecha[fecha]) {
+                    dataProcessed.porFecha[fecha] = {};
                 }
+                if (!dataProcessed.porFecha[fecha][turno]) {
+                    dataProcessed.porFecha[fecha][turno] = { cargados: 0, vacios: 0, asistencias: 0, faltas: 0, registros: 0 };
+                }
+                dataProcessed.porFecha[fecha][turno].cargados += cargados;
+                dataProcessed.porFecha[fecha][turno].vacios += vacios;
+                dataProcessed.porFecha[fecha][turno].registros++;
+                if (estatus.includes('asist') || estatus.includes('si')) dataProcessed.porFecha[fecha][turno].asistencias++;
+                if (estatus.includes('falta')) dataProcessed.porFecha[fecha][turno].faltas++;
                 
-                // Totales
-                op.sumaTotal = sumaTotal;
-                op.montoBase = montoBase;
-                op.asistenciaCompleta = asistenciaCompleta;
-                op.bonoNoDescanso = bonoNoDescanso;
-                op.complementar = complementar;
-                op.montoComplementar = montoComplementar;
-                op.totalNomina = montoBase + bonoNoDescanso + montoComplementar;
+                // Por operador
+                if (!dataProcessed.porOperador[operador]) {
+                    dataProcessed.porOperador[operador] = { cargados: 0, vacios: 0, asistencias: 0, faltas: 0, turnos: new Set() };
+                }
+                dataProcessed.porOperador[operador].cargados += cargados;
+                dataProcessed.porOperador[operador].vacios += vacios;
+                dataProcessed.porOperador[operador].turnos.add(turno);
+                if (estatus.includes('asist') || estatus.includes('si')) dataProcessed.porOperador[operador].asistencias++;
+                if (estatus.includes('falta')) dataProcessed.porOperador[operador].faltas++;
+                
+                // Por turno
+                if (!dataProcessed.porTurno[turno]) {
+                    dataProcessed.porTurno[turno] = { cargados: 0, vacios: 0, asistencias: 0, faltas: 0, operadores: new Set(), fechas: new Set() };
+                }
+                dataProcessed.porTurno[turno].cargados += cargados;
+                dataProcessed.porTurno[turno].vacios += vacios;
+                dataProcessed.porTurno[turno].operadores.add(operador);
+                dataProcessed.porTurno[turno].fechas.add(fecha);
+                if (estatus.includes('asist') || estatus.includes('si')) dataProcessed.porTurno[turno].asistencias++;
+                if (estatus.includes('falta')) dataProcessed.porTurno[turno].faltas++;
             });
+            
+            updateUI();
         }
         
-        function renderNomina() {
-            const tbody = document.getElementById('nominaBody');
+        function updateUI() {
+            // Resumen cards
+            document.getElementById('totalCargados').textContent = dataProcessed.total.cargados;
+            document.getElementById('totalVacios').textContent = dataProcessed.total.vacios;
+            document.getElementById('totalOperadores').textContent = Object.keys(dataProcessed.porOperador).length;
+            document.getElementById('totalAsistencias').textContent = dataProcessed.total.asistencias;
+            document.getElementById('totalFaltas').textContent = dataProcessed.total.faltas;
+            
+            const promedio = Object.keys(dataProcessed.porFecha).length > 0 
+                ? (dataProcessed.total.cargados / Object.keys(dataProcessed.porFecha).length).toFixed(1)
+                : 0;
+            document.getElementById('promedioCargados').textContent = promedio;
+            
+            // Tabla Resumen
             let html = '';
-            let totalSuma = 0, totalBase = 0, totalBonos = 0, totalComplementos = 0;
-            
-            const sorted = Object.values(operadores).sort((a, b) => 
-                b.sumaTotal - a.sumaTotal || a.nombre.localeCompare(b.nombre)
-            );
-            
-            sorted.forEach(op => {
-                const movs = op.movimientos;
-                const diasCells = [];
-                for (let i = 0; i < 7; i++) {
-                    const mov = movs[i] || 0;
-                    diasCells.push(`<td class="data-cell ${mov === 0 ? 'zero' : ''}">${mov || '-'}</td>`);
-                }
-                
-                const asistBadge = op.asistenciaCompleta ? 
-                    '<span class="si-badge">SÍ</span>' : 
-                    '<span class="no-badge">NO</span>';
-                
-                const bonoDisplay = op.bonoNoDescanso > 0 ? 
-                    `<span style="color: #00897B; font-weight: 600;">$${op.bonoNoDescanso.toLocaleString()}</span>` : 
-                    '-';
-                
-                html += `
-                    <tr>
-                        <td><strong>${op.nombre}</strong></td>
-                        ${diasCells.join('')}
-                        <td><strong>${op.sumaTotal}</strong></td>
-                        <td class="money">$${op.montoBase.toLocaleString()}</td>
-                        <td>${asistBadge}</td>
-                        <td>${bonoDisplay}</td>
-                        <td>${op.complementar || '-'}</td>
-                        <td class="money">${op.montoComplementar > 0 ? '$' + op.montoComplementar.toLocaleString() : '-'}</td>
-                        <td class="money"><strong>$${op.totalNomina.toLocaleString()}</strong></td>
-                        <td><button onclick="verRecibo('${op.nombre}')" style="padding: 5px 10px; font-size: 12px;">Ver Recibo</button></td>
-                    </tr>
-                `;
-                
-                totalSuma += op.sumaTotal;
-                totalBase += op.montoBase;
-                totalBonos += op.bonoNoDescanso;
-                totalComplementos += op.montoComplementar;
+            Object.keys(dataProcessed.porFecha).sort().forEach(fecha => {
+                Object.keys(dataProcessed.porFecha[fecha]).forEach(turno => {
+                    const d = dataProcessed.porFecha[fecha][turno];
+                    html += `<tr>
+                        <td>${fecha}</td>
+                        <td>${turno}</td>
+                        <td class="verde">${d.cargados}</td>
+                        <td class="rojo">${d.vacios}</td>
+                        <td>${d.asistencias}</td>
+                        <td>${d.faltas}</td>
+                        <td>${d.registros}</td>
+                    </tr>`;
+                });
             });
+            document.getElementById('resumenTable').innerHTML = html || '<tr><td colspan="7" class="no-data">Sin datos</td></tr>';
             
-            // Fila total
-            html += `
-                <tr class="total-row">
-                    <td>TOTAL DIARIO</td>
-                    <td></td><td></td><td></td><td></td><td></td><td></td><td></td>
-                    <td><strong>${totalSuma}</strong></td>
-                    <td class="money"><strong>$${totalBase.toLocaleString()}</strong></td>
-                    <td></td>
-                    <td class="money"><strong>$${totalBonos.toLocaleString()}</strong></td>
-                    <td></td>
-                    <td class="money"><strong>$${totalComplementos.toLocaleString()}</strong></td>
-                    <td class="money"><strong>$${(totalBase + totalBonos + totalComplementos).toLocaleString()}</strong></td>
-                    <td></td>
-                </tr>
-            `;
+            // Tabla Operadores
+            html = '';
+            Object.keys(dataProcessed.porOperador).sort().forEach(op => {
+                const d = dataProcessed.porOperador[op];
+                const total = d.asistencias + d.faltas;
+                const promedio = total > 0 ? (d.cargados / d.asistencias).toFixed(1) : 0;
+                html += `<tr>
+                    <td>${op}</td>
+                    <td class="verde">${d.cargados}</td>
+                    <td class="rojo">${d.vacios}</td>
+                    <td>${d.asistencias}</td>
+                    <td>${d.faltas}</td>
+                    <td>${d.turnos.size}</td>
+                    <td>${promedio}</td>
+                    <td><button onclick="verRecibo('${op}')" style="padding: 5px 10px; font-size: 11px;">📄</button></td>
+                </tr>`;
+            });
+            document.getElementById('operadoresTable').innerHTML = html || '<tr><td colspan="8" class="no-data">Sin datos</td></tr>';
             
-            tbody.innerHTML = html;
+            // Tabla Turnos
+            html = '';
+            Object.keys(dataProcessed.porTurno).sort().forEach(turno => {
+                const d = dataProcessed.porTurno[turno];
+                const promedio = d.operadores.size > 0 ? (d.cargados / d.operadores.size).toFixed(1) : 0;
+                html += `<tr>
+                    <td>${turno}</td>
+                    <td>${d.fechas.size}</td>
+                    <td class="verde">${d.cargados}</td>
+                    <td class="rojo">${d.vacios}</td>
+                    <td>${d.operadores.size}</td>
+                    <td>${d.asistencias}</td>
+                    <td>${d.faltas}</td>
+                    <td>${promedio}</td>
+                </tr>`;
+            });
+            document.getElementById('turnosTable').innerHTML = html || '<tr><td colspan="8" class="no-data">Sin datos</td></tr>';
             
-            // Actualizar summary cards
-            document.getElementById('totalMovimientos').textContent = totalSuma;
-            document.getElementById('totalNomina').textContent = '$' + (totalBase + totalBonos + totalComplementos).toLocaleString();
-            document.getElementById('totalBonos').textContent = '$' + totalBonos.toLocaleString();
-            document.getElementById('totalComplementos').textContent = '$' + totalComplementos.toLocaleString();
+            // Tabla Días
+            html = '';
+            Object.keys(dataProcessed.porFecha).sort().forEach(fecha => {
+                let cargadosFecha = 0, vaciosFecha = 0, asistenciasFecha = 0, faltasFecha = 0, operadoresFecha = new Set();
+                Object.keys(dataProcessed.porFecha[fecha]).forEach(turno => {
+                    const d = dataProcessed.porFecha[fecha][turno];
+                    cargadosFecha += d.cargados;
+                    vaciosFecha += d.vacios;
+                    asistenciasFecha += d.asistencias;
+                    faltasFecha += d.faltas;
+                });
+                
+                datos.filter(r => r.Fecha === fecha).forEach(r => operadoresFecha.add(r.Operador));
+                
+                Object.keys(dataProcessed.porFecha[fecha]).forEach(turno => {
+                    html += `<tr>
+                        <td>${fecha}</td>
+                        <td>${turno}</td>
+                        <td class="verde">${dataProcessed.porFecha[fecha][turno].cargados}</td>
+                        <td class="rojo">${dataProcessed.porFecha[fecha][turno].vacios}</td>
+                        <td>${operadoresFecha.size}</td>
+                        <td>${dataProcessed.porFecha[fecha][turno].asistencias}</td>
+                        <td>${dataProcessed.porFecha[fecha][turno].faltas}</td>
+                    </tr>`;
+                });
+            });
+            document.getElementById('diasTable').innerHTML = html || '<tr><td colspan="7" class="no-data">Sin datos</td></tr>';
+            
+            // Tabla Detalle
+            html = '';
+            datos.forEach(row => {
+                if (!row.Operador) return;
+                const estatus = row.Estatus;
+                const badge = estatus.toLowerCase().includes('asist') || estatus.toLowerCase().includes('si')
+                    ? `<span class="badge badge-presente">✓ ${estatus}</span>`
+                    : estatus.toLowerCase().includes('falta')
+                    ? `<span class="badge badge-falta">✗ ${estatus}</span>`
+                    : `<span class="badge badge-descanso">⚪ ${estatus}</span>`;
+                
+                html += `<tr>
+                    <td>${row.Fecha}</td>
+                    <td>${row.Turno}</td>
+                    <td>${row.Operador}</td>
+                    <td>${row.Unidad || '-'}</td>
+                    <td class="verde">${row['M Cargados'] || '0'}</td>
+                    <td class="rojo">${row['M Vacíos'] || '0'}</td>
+                    <td>${badge}</td>
+                    <td>${row.Entrada || '-'} / ${row.Salida || '-'}</td>
+                </tr>`;
+            });
+            document.getElementById('detalleTable').innerHTML = html || '<tr><td colspan="8" class="no-data">Sin datos</td></tr>';
+            
+            // Menú Recibos
+            let menuHtml = '';
+            Object.keys(dataProcessed.porOperador).sort().forEach(op => {
+                menuHtml += `<button class="recibo-btn" onclick="verRecibo('${op}')">👤 ${op}</button>`;
+            });
+            document.getElementById('reciboMenu').innerHTML = menuHtml || '<div class="no-data">Sin operadores</div>';
+            
+            // Período
+            const fechas = Object.keys(dataProcessed.porFecha).sort();
+            if (fechas.length > 0) {
+                document.getElementById('periodText').textContent = `${fechas[0]} a ${fechas[fechas.length - 1]}`;
+            }
+        }
+        
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(tab).classList.add('active');
+            event.target.classList.add('active');
         }
         
         function verRecibo(operador) {
-            const op = operadores[operador];
-            if (!op) return;
+            const d = dataProcessed.porOperador[operador];
+            if (!d) return;
             
             const html = `
                 <div class="recibo-header">
-                    <div class="recibo-logo">🚚 LOGISTICS ULTRA</div>
+                    <div class="recibo-logo">🚛</div>
                     <div class="recibo-title">RECIBO DE NÓMINA</div>
-                    <div class="recibo-dates">Operador: <strong>${op.nombre}</strong></div>
+                    <div style="font-size: 13px; color: #666;">Operador: <strong>${operador}</strong></div>
                 </div>
                 
-                <div class="recibo-body">
-                    <div class="recibo-row header">
-                        <span>CONCEPTO</span>
-                        <span>CANTIDAD/MONTO</span>
-                    </div>
-                    
+                <div>
                     <div class="recibo-row">
-                        <span>Movimientos Cargados</span>
-                        <span><strong>${op.sumaTotal}</strong> mov. × $${PAGO_POR_MOVIMIENTO} c/u</span>
+                        <span>📦 Movimientos Cargados</span>
+                        <span><strong>${d.cargados}</strong></span>
                     </div>
-                    
                     <div class="recibo-row">
-                        <span>Pago Base (Movimientos)</span>
-                        <span style="color: #00897B; font-weight: 600;">$${op.montoBase.toLocaleString()}</span>
+                        <span>🚫 Movimientos Vacíos</span>
+                        <span><strong>${d.vacios}</strong></span>
                     </div>
-                    
-                    ${op.asistenciaCompleta ? `
-                        <div class="recibo-row">
-                            <span>✓ Asistencia Completa (7 días)</span>
-                            <span style="color: #4caf50; font-weight: 600;">Sí cumple</span>
-                        </div>
-                    ` : `
-                        <div class="recibo-row">
-                            <span>✗ Asistencia Completa (7 días)</span>
-                            <span style="color: #f44336; font-weight: 600;">Incompleta</span>
-                        </div>
-                    `}
-                    
-                    ${op.bonoNoDescanso > 0 ? `
-                        <div class="recibo-row">
-                            <span>Bono No Descanso (Asistencia 7 días)</span>
-                            <span style="color: #ff9800; font-weight: 600;">+$${op.bonoNoDescanso.toLocaleString()}</span>
-                        </div>
-                    ` : ''}
-                    
-                    ${op.complementar > 0 ? `
-                        <div class="recibo-row">
-                            <span>Complemento (${op.complementar} día${op.complementar > 1 ? 's' : ''} con &lt;5 mov.)</span>
-                            <span style="color: #2196f3; font-weight: 600;">$${op.montoComplementar.toLocaleString()}</span>
-                        </div>
-                    ` : ''}
-                    
+                    <div class="recibo-row">
+                        <span>✓ Total Asistencias</span>
+                        <span><strong>${d.asistencias}</strong></span>
+                    </div>
+                    <div class="recibo-row">
+                        <span>✗ Total Faltas</span>
+                        <span><strong>${d.faltas}</strong></span>
+                    </div>
+                    <div class="recibo-row">
+                        <span>🕐 Turnos Trabajados</span>
+                        <span><strong>${d.turnos.size}</strong></span>
+                    </div>
                     <div class="recibo-row total">
-                        <span>TOTAL A PAGAR</span>
-                        <span>$${op.totalNomina.toLocaleString()}</span>
+                        <span>💰 TOTAL MOVIMIENTOS</span>
+                        <span>${d.cargados}</span>
                     </div>
-                </div>
-                
-                <div class="recibo-footer">
-                    <p>Este recibo es válido para trámites administrativos de nómina.</p>
-                    <p style="margin-top: 10px;">Generado: ${new Date().toLocaleDateString('es-MX')}</p>
-                </div>
-                
-                <div class="recibo-actions">
-                    <button onclick="printRecibo()">🖨️ Imprimir</button>
-                    <button class="secondary" onclick="closeRecibo()">Cerrar</button>
                 </div>
             `;
             
             document.getElementById('reciboContent').innerHTML = html;
-            document.getElementById('reciboContainer').classList.add('active');
+            document.getElementById('reciboModal').classList.add('active');
         }
         
         function closeRecibo() {
-            document.getElementById('reciboContainer').classList.remove('active');
-        }
-        
-        function printRecibo() {
-            window.print();
+            document.getElementById('reciboModal').classList.remove('active');
         }
     </script>
 </body>
