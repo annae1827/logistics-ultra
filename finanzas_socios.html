@@ -234,7 +234,7 @@ const sD=a=>a.reduce((s,r)=>s+r[3],0);
 const sR=a=>a.reduce((s,r)=>s+r[4],0);
 const byMD=a=>MES.map((_,m)=>a.filter(r=>r[2]-1===m).reduce((s,r)=>s+r[3],0));
 const byMR=a=>MES.map((_,m)=>a.filter(r=>r[2]-1===m).reduce((s,r)=>s+r[4],0));
-const grp=(a,i,vi)=>{const o={};a.forEach(r=>{const k=r[i]||'S/D';if(!o[k])o[k]=0;o[k]+=r[vi];});return Object.entries(o).sort((a,b)=>b[1]-a[1]);}
+const grp=(a,i,vi,excl=true)=>{const o={};a.forEach(r=>{const k=r[i]||'';if(!k&&excl)return;const kk=k||'S/D';if(!o[kk])o[kk]=0;o[kk]+=r[vi];});return Object.entries(o).sort((a,b)=>b[1]-a[1]);}
 const uniq=(a,i)=>[...new Set(a.map(r=>r[i]).filter(Boolean))].sort();
 
 // PL helpers
@@ -339,9 +339,10 @@ function dRes(){
     {label:'Ingresos',data:dM,backgroundColor:'rgba(16,185,129,.75)',borderRadius:4},
     {label:'Egresos',data:rM,backgroundColor:'rgba(239,68,68,.75)',borderRadius:4},
   ]);
-  const tcl=grp(all.filter(r=>r[4]>0),5,4).slice(0,10);
+  const EXCL_LABELS=['S/D','','Sin clasificar','Sin tipificar'];
+  const tcl=grp(all.filter(r=>r[4]>0),5,4).filter(x=>!EXCL_LABELS.includes(x[0])).slice(0,10);
   mkBar('cRcl',tcl.map(x=>x[0]),[{label:'g',data:tcl.map(x=>x[1]),backgroundColor:CLRS.map(c=>c+'cc'),borderRadius:4}],true);
-  const ttg=grp(all.filter(r=>r[4]>0),6,4).slice(0,10);
+  const ttg=grp(all.filter(r=>r[4]>0),6,4).filter(x=>!EXCL_LABELS.includes(x[0])).slice(0,10);
   mkBar('cRtg',ttg.map(x=>x[0]),[{label:'g',data:ttg.map(x=>x[1]),backgroundColor:'rgba(139,92,246,.75)',borderRadius:4}],true);
 }
 
@@ -537,26 +538,43 @@ function dNomina(){
     '<div class="lgnd">'+socios.map(s=>'<span><span class="lsq" style="background:'+SOCCLR[s]+'"></span>'+s+'</span>').join('')+'</div>'+
     '<div style="position:relative;height:230px"><canvas id="cNm"></canvas></div></div>'+
 
-    // Tarjetas por socio
-    '<div class="g2">'+socData.map(({s,byTG,tTotal,mes})=>`
-      <div class="soc-card">
+    // Tarjetas por socio con desglose por clasificacion (col L)
+    '<div class="g2">'+socData.map(({s,byTG,tTotal,mes,d})=>{
+      // Desglose por clasificacion de gastos personales (r[5])
+      const byCl=grp(d,5,4).filter(x=>x[0]&&x[0]!=='S/D').slice(0,10);
+      const mxCl=byCl[0]?byCl[0][1]:1;
+      return `<div class="soc-card">
         <div style="font-size:13px;font-weight:800;color:var(--t0);margin-bottom:14px">${SOCEMO[s]} ${s} &mdash; <span style="color:var(--pur)">${fmtK(tTotal)}</span></div>
-        <div style="font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Por tipo de gasto</div>
-        ${byTG.slice(0,8).map(([k,v])=>`
+        
+        <div style="font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;display:flex;align-items:center;gap:6px"><span style="width:3px;height:12px;background:var(--pur);border-radius:2px;display:inline-block"></span>Clasificacion de gastos (col L)</div>
+        ${byCl.map(([k,v])=>`
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-            <div style="font-size:12px;font-weight:500;min-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${k}</div>
-            <div style="flex:1;height:10px;background:var(--s2);border-radius:3px;overflow:hidden">
-              <div style="width:${(v/(byTG[0]?byTG[0][1]:1)*100).toFixed(1)}%;height:100%;background:${SOCCLR[s]};border-radius:3px"></div>
+            <div style="font-size:11px;font-weight:500;min-width:165px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--t1)">${k}</div>
+            <div style="flex:1;height:9px;background:var(--s2);border-radius:3px;overflow:hidden">
+              <div style="width:${(v/mxCl*100).toFixed(1)}%;height:100%;background:${SOCCLR[s]};border-radius:3px;opacity:.8"></div>
             </div>
-            <div style="font-size:11px;min-width:72px;text-align:right;font-family:var(--mono);font-weight:700;color:var(--pur)">${fmt(v)}</div>
+            <div style="font-size:11px;min-width:68px;text-align:right;font-family:var(--mono);font-weight:700;color:var(--pur)">${fmt(v)}</div>
           </div>`).join('')}
-        <div style="margin-top:12px;font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Mensual</div>
+
+        <div style="margin-top:14px;font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;display:flex;align-items:center;gap:6px"><span style="width:3px;height:12px;background:${SOCCLR[s]};border-radius:2px;display:inline-block"></span>Mensual</div>
         <div style="display:flex;gap:4px;flex-wrap:wrap">
-          ${mes.map((v,i)=>`<div style="text-align:center;min-width:40px"><div style="font-size:9px;color:var(--t3)">${MES[i]}</div><div style="font-size:11px;font-weight:700;color:${v>0?'var(--pur)':'var(--t4)'}">${v>0?fmtK(v):'—'}</div></div>`).join('')}
+          ${mes.map((v,i)=>`<div style="text-align:center;min-width:40px"><div style="font-size:9px;color:var(--t3)">${MES[i]}</div><div style="font-size:11px;font-weight:700;color:${v>0?SOCCLR[s].replace('rgba','rgb').replace(',.75)',')'):' var(--t4)'}">${v>0?fmtK(v):'—'}</div></div>`).join('')}
         </div>
-      </div>`).join('')+'</div>'+
+      </div>`;
+    }).join('')+'</div>'+
 
     // Tabla detalle
+    '<div class="slbl">Desglose por clasificacion de gasto (col L)</div>'+
+    '<div class="tw"><table>'+
+    '<thead><tr><th>Socio</th><th>Clasificacion de gasto</th><th class="r">Monto</th><th class="r">% del socio</th></tr></thead>'+
+    '<tbody>'+socData.flatMap(({s,d,tTotal})=>{
+      const byCl=grp(d,5,4).filter(x=>x[0]&&x[0]!=='S/D');
+      return byCl.map(([cl,v])=>'<tr><td><span style="font-size:10px;padding:2px 8px;border-radius:99px;font-weight:600;background:var(--pur2);color:var(--pur)">'+s+'</span></td>'+
+        '<td style="font-weight:500">'+cl+'</td>'+
+        '<td class="r re">'+fmt(v)+'</td>'+
+        '<td class="r mu">'+(tTotal>0?(v/tTotal*100).toFixed(1):0)+'%</td></tr>');
+    }).join('')+
+    '</tbody></table></div>'+
     '<div class="slbl">Tabla comparativa mensual</div>'+
     '<div class="tw"><table>'+
     '<thead><tr><th>Socio</th>'+MES.map(m=>'<th class="r">'+m+'</th>').join('')+'<th class="r">Total</th></tr></thead>'+
@@ -592,14 +610,15 @@ function dClas(){
     '<div style="position:relative;height:'+Math.max(280,topCl.length*30+60)+'px"><canvas id="cCb"></canvas></div></div>'+
     '<div class="tw"><table><thead><tr><th>Clasificacion</th><th class="r">UAL</th><th class="r">JAVP Fiscal</th><th class="r">JAVP No Fiscal</th><th class="r">Total</th><th class="r">%</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
 
-  CH['cCb']=new Chart($('cCb'),{type:'bar',data:{labels:topCl.map(x=>x[0]),datasets:[
-    {label:'UAL',data:topCl.map(([cl])=>ual.filter(r=>r[5]===cl).reduce((a,r)=>a+r[4],0)),backgroundColor:'rgba(59,130,246,.75)',borderRadius:4},
-    {label:'JAVP Fiscal',data:topCl.map(([cl])=>jf.filter(r=>r[5]===cl).reduce((a,r)=>a+r[4],0)),backgroundColor:'rgba(16,185,129,.75)',borderRadius:4},
-    {label:'JAVP No Fiscal',data:topCl.map(([cl])=>jnf.filter(r=>r[5]===cl).reduce((a,r)=>a+r[4],0)),backgroundColor:'rgba(245,158,11,.75)',borderRadius:4},
+  const topClF=topCl.filter(([cl])=>cl&&cl!=='S/D'&&cl!=='Sin clasificar');
+  CH['cCb']=new Chart($('cCb'),{type:'bar',data:{labels:topClF.map(x=>x[0]),datasets:[
+    {label:'UAL',data:topClF.map(([cl])=>ual.filter(r=>r[5]===cl).reduce((a,r)=>a+r[4],0)),backgroundColor:'rgba(59,130,246,.75)',borderRadius:4},
+    {label:'JAVP Fiscal',data:topClF.map(([cl])=>jf.filter(r=>r[5]===cl).reduce((a,r)=>a+r[4],0)),backgroundColor:'rgba(16,185,129,.75)',borderRadius:4},
+    {label:'JAVP No Fiscal',data:topClF.map(([cl])=>jnf.filter(r=>r[5]===cl).reduce((a,r)=>a+r[4],0)),backgroundColor:'rgba(245,158,11,.75)',borderRadius:4},
   ]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,layout:{padding:{right:80}},
     plugins:{legend:{display:true,position:'top',labels:{font:{size:11},usePointStyle:true}},datalabels:{display:false},tooltip:{callbacks:{label:c=>' '+fmt(c.raw)}}},
     scales:{x:{ticks:{color:'#94a3b8',font:{size:10},callback:v=>fmtK(v)},grid:{color:'rgba(0,0,0,.04)'}},
-      y:{ticks:{color:'#1e293b',font:{size:10,weight:'600'},callback:function(v){const l=topCl[v]?topCl[v][0]:'';return l.length>24?l.substring(0,24)+'...':l;}},grid:{display:false}}}}});
+      y:{ticks:{color:'#1e293b',font:{size:10,weight:'600'},callback:function(v){const l=topClF[v]?topClF[v][0]:'';return l.length>24?l.substring(0,24)+'...':l;}},grid:{display:false}}}}});
 }
 
 // ─── GASTOS FIJOS ────────────────────────────────────────────────────────────
