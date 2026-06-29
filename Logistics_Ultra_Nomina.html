@@ -6,585 +6,117 @@
     <title>🚛 Alen IP - Dashboard Operacional</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background: #f5f5f5;
-            color: #333;
-        }
-        
-        .header {
-            background: linear-gradient(135deg, #2d5a3d 0%, #1a3a2a 100%);
-            color: white;
-            padding: 25px 30px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-        }
-        
-        .header h1 {
-            font-size: 32px;
-            margin-bottom: 5px;
-        }
-        
-        .header .subtitle {
-            font-size: 14px;
-            opacity: 0.95;
-        }
-        
-        .container {
-            max-width: 1800px;
-            margin: 20px auto;
-            padding: 0 20px;
-        }
-        
-        .tabs-nav {
-            display: flex;
-            gap: 0;
-            margin-bottom: 20px;
-            background: white;
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            flex-wrap: wrap;
-        }
-        
-        .tab-btn {
-            flex: 1;
-            min-width: 120px;
-            padding: 15px;
-            background: #f5f5f5;
-            border: none;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 13px;
-            color: #666;
-            transition: all 0.2s;
-        }
-        
-        .tab-btn.active {
-            background: #2d5a3d;
-            color: white;
-        }
-        
-        .tab-btn:hover:not(.active) {
-            background: #e0e0e0;
-        }
-        
-        .tab-content {
-            display: none;
-        }
-        
-        .tab-content.active {
-            display: block;
-        }
-        
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin-bottom: 25px;
-        }
-        
-        .stat-card {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            border-left: 4px solid #2d5a3d;
-        }
-        
-        .stat-label {
-            font-size: 12px;
-            color: #999;
-            font-weight: 600;
-            text-transform: uppercase;
-            margin-bottom: 10px;
-        }
-        
-        .stat-value {
-            font-size: 28px;
-            font-weight: bold;
-            color: #2d5a3d;
-            margin-bottom: 5px;
-        }
-        
-        .stat-subtitle {
-            font-size: 12px;
-            color: #666;
-        }
-        
-        .table-wrapper {
-            background: white;
-            border-radius: 8px;
-            overflow-x: auto;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
-        }
-        
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 13px;
-        }
-        
-        thead {
-            background: #f5f5f5;
-            position: sticky;
-            top: 0;
-        }
-        
-        th {
-            padding: 12px 8px;
-            text-align: center;
-            font-weight: 600;
-            color: #2d5a3d;
-            border-bottom: 2px solid #2d5a3d;
-            white-space: nowrap;
-        }
-        
-        th:first-child {
-            text-align: left;
-        }
-        
-        td {
-            padding: 10px 8px;
-            border-bottom: 1px solid #eee;
-            text-align: center;
-        }
-        
-        td:first-child {
-            text-align: left;
-            font-weight: 500;
-        }
-        
-        tbody tr:hover {
-            background: #f9f9f9;
-        }
-        
-        .badge {
-            display: inline-block;
-            padding: 4px 8px;
-            border-radius: 3px;
-            font-size: 11px;
-            font-weight: 600;
-        }
-        
-        .badge-presente {
-            background: #c8e6c9;
-            color: #2e7d32;
-        }
-        
-        .badge-falta {
-            background: #f8d7da;
-            color: #721c24;
-        }
-        
-        .badge-descanso {
-            background: #fff3cd;
-            color: #856404;
-        }
-        
-        .verde {
-            color: #2e7d32;
-            font-weight: 600;
-        }
-        
-        .rojo {
-            color: #c62828;
-            font-weight: 600;
-        }
-        
-        .menu-recibos {
-            background: white;
-            border-radius: 8px;
-            padding: 20px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
-        }
-        
-        .menu-title {
-            font-size: 16px;
-            font-weight: 600;
-            margin-bottom: 15px;
-            color: #2d5a3d;
-        }
-        
-        .recibo-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-            gap: 10px;
-        }
-        
-        .recibo-btn {
-            padding: 12px;
-            background: #2d5a3d;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 13px;
-            font-weight: 600;
-            transition: all 0.2s;
-        }
-        
-        .recibo-btn:hover {
-            background: #1a3a2a;
-            transform: translateY(-2px);
-        }
-        
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0,0,0,0.5);
-            z-index: 1000;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-        }
-        
-        .modal.active {
-            display: flex;
-        }
-        
-        .modal-content {
-            background: white;
-            border-radius: 8px;
-            padding: 40px;
-            max-width: 600px;
-            width: 100%;
-            max-height: 90vh;
-            overflow-y: auto;
-        }
-        
-        .modal-close {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            background: #ddd;
-            border: none;
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
-            cursor: pointer;
-            font-size: 18px;
-        }
-        
-        .recibo-header {
-            text-align: center;
-            margin-bottom: 30px;
-            padding-bottom: 20px;
-            border-bottom: 2px solid #2d5a3d;
-        }
-        
-        .recibo-logo {
-            font-size: 28px;
-            margin-bottom: 10px;
-        }
-        
-        .recibo-title {
-            font-size: 18px;
-            font-weight: 600;
-            color: #2d5a3d;
-            margin-bottom: 10px;
-        }
-        
-        .recibo-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 12px;
-            font-size: 13px;
-        }
-        
-        .recibo-row.total {
-            font-weight: bold;
-            font-size: 16px;
-            color: #2d5a3d;
-            border-top: 2px solid #2d5a3d;
-            padding-top: 15px;
-            margin-top: 15px;
-        }
-        
-        .no-data {
-            text-align: center;
-            padding: 40px;
-            color: #999;
-        }
-        
-        @media print {
-            .tabs-nav, .modal-close, .recibo-btn {
-                display: none !important;
-            }
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto; background: #f5f5f5; color: #333; }
+        .header { background: linear-gradient(135deg, #2d5a3d 0%, #1a3a2a 100%); color: white; padding: 25px 30px; }
+        .header h1 { font-size: 32px; margin-bottom: 5px; }
+        .container { max-width: 1800px; margin: 20px auto; padding: 0 20px; }
+        .filtros { background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; }
+        .filtros select { padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
+        .tabs { display: flex; gap: 0; margin-bottom: 20px; background: white; border-radius: 8px; overflow: hidden; }
+        .tab-btn { flex: 1; padding: 15px; background: #f5f5f5; border: none; cursor: pointer; font-weight: 600; font-size: 13px; }
+        .tab-btn.active { background: #2d5a3d; color: white; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 20px; }
+        .stat { background: white; padding: 20px; border-radius: 8px; border-left: 4px solid #2d5a3d; }
+        .stat-label { font-size: 12px; color: #999; text-transform: uppercase; margin-bottom: 10px; }
+        .stat-value { font-size: 28px; font-weight: bold; color: #2d5a3d; }
+        table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; }
+        th { padding: 12px; background: #f5f5f5; font-weight: 600; text-align: center; border-bottom: 2px solid #2d5a3d; }
+        td { padding: 10px; border-bottom: 1px solid #eee; text-align: center; }
+        td:first-child { text-align: left; }
+        tbody tr:hover { background: #f9f9f9; }
+        .badge { display: inline-block; padding: 4px 8px; border-radius: 3px; font-size: 11px; font-weight: 600; }
+        .badge-si { background: #c8e6c9; color: #2e7d32; }
+        .badge-no { background: #f8d7da; color: #721c24; }
+        .recibo-btn { padding: 12px; background: #2d5a3d; color: white; border: none; border-radius: 6px; cursor: pointer; margin: 5px; }
+        .recibo-btn:hover { background: #1a3a2a; }
+        .modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
+        .modal.active { display: flex; }
+        .modal-content { background: white; border-radius: 8px; padding: 40px; max-width: 650px; width: 100%; max-height: 90vh; overflow-y: auto; }
+        .recibo-header { text-align: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 2px solid #2d5a3d; }
+        .recibo-row { display: flex; justify-content: space-between; margin-bottom: 12px; }
+        .recibo-row.total { font-weight: bold; font-size: 16px; color: #2d5a3d; border-top: 2px solid #2d5a3d; padding-top: 15px; }
+        .no-data { text-align: center; padding: 40px; color: #999; }
+        .verde { color: #2e7d32; font-weight: 600; }
+        .rojo { color: #c62828; font-weight: 600; }
     </style>
 </head>
 <body>
     <div class="header">
         <h1>🚛 ALEN IP - DASHBOARD OPERACIONAL</h1>
-        <div class="subtitle">📊 Análisis de Movimientos, Turnos y Operadores | 📅 <span id="periodText"></span></div>
+        <div>📊 Análisis de Movimientos, Turnos y Operadores</div>
     </div>
     
     <div class="container">
-        <!-- FILTROS -->
-        <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 15px;">
-                <div>
-                    <label style="font-weight: 600; font-size: 12px; color: #666;">📅 AÑO</label>
-                    <select id="filtroAno" onchange="aplicarFiltros()" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-                        <option value="">Todos</option>
-                    </select>
-                </div>
-                <div>
-                    <label style="font-weight: 600; font-size: 12px; color: #666;">📆 MES</label>
-                    <select id="filtroMes" onchange="aplicarFiltros()" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-                        <option value="">Todos</option>
-                    </select>
-                </div>
-                <div>
-                    <label style="font-weight: 600; font-size: 12px; color: #666;">📅 DÍA</label>
-                    <select id="filtroDia" onchange="aplicarFiltros()" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-                        <option value="">Todos</option>
-                    </select>
-                </div>
-                <div>
-                    <label style="font-weight: 600; font-size: 12px; color: #666;">🕐 TURNO</label>
-                    <select id="filtroTurno" onchange="aplicarFiltros()" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-                        <option value="">Todos</option>
-                    </select>
-                </div>
-                <div>
-                    <label style="font-weight: 600; font-size: 12px; color: #666;">👨‍💼 COORDINADOR</label>
-                    <select id="filtroCoordinador" onchange="aplicarFiltros()" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-                        <option value="">Todos</option>
-                    </select>
-                </div>
-                <div>
-                    <label style="font-weight: 600; font-size: 12px; color: #666;">👤 OPERADOR</label>
-                    <select id="filtroOperador" onchange="aplicarFiltros()" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-                        <option value="">Todos</option>
-                    </select>
-                </div>
-            </div>
-            <button onclick="limpiarFiltros()" style="padding: 8px 16px; background: #999; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">🔄 Limpiar Filtros</button>
+        <div class="filtros">
+            <div><label>📅 AÑO</label><select id="filtroAno" onchange="aplicarFiltros()"><option>Todos</option></select></div>
+            <div><label>📆 MES</label><select id="filtroMes" onchange="aplicarFiltros()"><option>Todos</option></select></div>
+            <div><label>📅 DÍA</label><select id="filtroDia" onchange="aplicarFiltros()"><option>Todos</option></select></div>
+            <div><label>🕐 TURNO</label><select id="filtroTurno" onchange="aplicarFiltros()"><option>Todos</option></select></div>
+            <div><label>👨‍💼 COORDINADOR</label><select id="filtroCoordinador" onchange="aplicarFiltros()"><option>Todos</option></select></div>
+            <div><label>👤 OPERADOR</label><select id="filtroOperador" onchange="aplicarFiltros()"><option>Todos</option></select></div>
+            <button onclick="limpiarFiltros()" style="padding: 8px 16px; background: #999; color: white; border: none; border-radius: 4px; cursor: pointer;">🔄 Limpiar</button>
         </div>
-        <!-- TABS NAVEGACIÓN -->
-        <div class="tabs-nav">
+        
+        <div class="tabs">
             <button class="tab-btn active" onclick="switchTab('resumen')">📈 RESUMEN</button>
             <button class="tab-btn" onclick="switchTab('coordinadores')">👨‍💼 COORDINADORES</button>
             <button class="tab-btn" onclick="switchTab('operadores')">👥 OPERADORES</button>
             <button class="tab-btn" onclick="switchTab('turnos')">🕐 TURNOS</button>
-            <button class="tab-btn" onclick="switchTab('dias')">📅 DÍAS</button>
-            <button class="tab-btn" onclick="switchTab('detalle')">📋 DETALLE COMPLETO</button>
             <button class="tab-btn" onclick="switchTab('recibos')">💼 RECIBOS</button>
         </div>
         
-        <!-- TAB: RESUMEN -->
+        <!-- RESUMEN -->
         <div id="resumen" class="tab-content active">
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-label">📦 Movimientos Cargados</div>
-                    <div class="stat-value" id="totalCargados">0</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">🚫 Movimientos Vacíos</div>
-                    <div class="stat-value" id="totalVacios">0</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">👤 Operadores Únicos</div>
-                    <div class="stat-value" id="totalOperadores">0</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">✓ Asistencias</div>
-                    <div class="stat-value verde" id="totalAsistencias">0</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">✗ Faltas</div>
-                    <div class="stat-value rojo" id="totalFaltas">0</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">📊 Promedio Cargados/Día</div>
-                    <div class="stat-value" id="promedioCargados">0</div>
-                </div>
+            <div class="stats">
+                <div class="stat"><div class="stat-label">📦 Cargados</div><div class="stat-value" id="totalCargados">0</div></div>
+                <div class="stat"><div class="stat-label">🚫 Vacíos</div><div class="stat-value" id="totalVacios">0</div></div>
+                <div class="stat"><div class="stat-label">👤 Operadores</div><div class="stat-value" id="totalOps">0</div></div>
+                <div class="stat"><div class="stat-label">✓ Asistencias</div><div class="stat-value verde" id="totalAsist">0</div></div>
+                <div class="stat"><div class="stat-label">✗ Faltas</div><div class="stat-value rojo" id="totalFaltas">0</div></div>
             </div>
-            
-            <div class="table-wrapper">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>📅 Fecha</th>
-                            <th>🕐 Turno</th>
-                            <th>📦 Cargados</th>
-                            <th>🚫 Vacíos</th>
-                            <th>✓ Presentes</th>
-                            <th>✗ Faltas</th>
-                            <th>💼 Total Registros</th>
-                        </tr>
-                    </thead>
-                    <tbody id="resumenTable">
-                        <tr><td colspan="7" class="no-data">Cargando datos...</td></tr>
-                    </tbody>
-                </table>
-            </div>
+            <table><thead><tr><th>📅 Fecha</th><th>🕐 Turno</th><th class="verde">Cargados</th><th class="rojo">Vacíos</th><th>✓</th><th>✗</th><th>Total</th></tr></thead><tbody id="resumenTable"><tr><td colspan="7" class="no-data">Cargando...</td></tr></tbody></table>
         </div>
         
-        <!-- TAB: COORDINADORES -->
+        <!-- COORDINADORES -->
         <div id="coordinadores" class="tab-content">
-            <div class="table-wrapper">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>👨‍💼 Coordinador</th>
-                            <th>📦 Cargados</th>
-                            <th>🚫 Vacíos</th>
-                            <th>✓ Asistencias</th>
-                            <th>✗ Faltas</th>
-                            <th>👥 Operadores Únicos</th>
-                            <th>🕐 Turnos</th>
-                            <th>📊 Promedio Cargados/Op</th>
-                        </tr>
-                    </thead>
-                    <tbody id="coordinadoresTable">
-                        <tr><td colspan="8" class="no-data">Cargando datos...</td></tr>
-                    </tbody>
-                </table>
-            </div>
+            <table><thead><tr><th>👨‍💼 Coordinador</th><th class="verde">Cargados</th><th class="rojo">Vacíos</th><th>Asist</th><th>Faltas</th><th>Operadores</th><th>Promedio</th></tr></thead><tbody id="coordTable"><tr><td colspan="7" class="no-data">Cargando...</td></tr></tbody></table>
         </div>
+        
+        <!-- OPERADORES -->
         <div id="operadores" class="tab-content">
-            <div class="table-wrapper">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>👤 Operador</th>
-                            <th>📦 Cargados</th>
-                            <th>🚫 Vacíos</th>
-                            <th>✓ Asistencias</th>
-                            <th>✗ Faltas</th>
-                            <th>🕐 Turnos</th>
-                            <th>📊 Promedio Cargados</th>
-                            <th>🧵 Ver Recibo</th>
-                        </tr>
-                    </thead>
-                    <tbody id="operadoresTable">
-                        <tr><td colspan="8" class="no-data">Cargando datos...</td></tr>
-                    </tbody>
-                </table>
-            </div>
+            <table><thead><tr><th>👤 Operador</th><th class="verde">Cargados</th><th class="rojo">Vacíos</th><th>Asist</th><th>Faltas</th><th>Turnos</th><th>Acción</th></tr></thead><tbody id="operTable"><tr><td colspan="7" class="no-data">Cargando...</td></tr></tbody></table>
         </div>
         
-        <!-- TAB: TURNOS -->
+        <!-- TURNOS -->
         <div id="turnos" class="tab-content">
-            <div class="table-wrapper">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>🕐 Turno</th>
-                            <th>📆 Días</th>
-                            <th>📦 Cargados</th>
-                            <th>🚫 Vacíos</th>
-                            <th>👥 Operadores Únicos</th>
-                            <th>✓ Presentes</th>
-                            <th>✗ Faltas</th>
-                            <th>📊 Promedio Cargados/Op</th>
-                        </tr>
-                    </thead>
-                    <tbody id="turnosTable">
-                        <tr><td colspan="8" class="no-data">Cargando datos...</td></tr>
-                    </tbody>
-                </table>
-            </div>
+            <table><thead><tr><th>🕐 Turno</th><th class="verde">Cargados</th><th class="rojo">Vacíos</th><th>Asist</th><th>Faltas</th><th>Operadores</th><th>Días</th></tr></thead><tbody id="turnoTable"><tr><td colspan="7" class="no-data">Cargando...</td></tr></tbody></table>
         </div>
         
-        <!-- TAB: DÍAS -->
-        <div id="dias" class="tab-content">
-            <div class="table-wrapper">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>📅 Fecha</th>
-                            <th>🕐 Turno</th>
-                            <th>📦 Cargados</th>
-                            <th>🚫 Vacíos</th>
-                            <th>👥 Operadores</th>
-                            <th>✓ Presentes</th>
-                            <th>✗ Faltas</th>
-                        </tr>
-                    </thead>
-                    <tbody id="diasTable">
-                        <tr><td colspan="7" class="no-data">Cargando datos...</td></tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-        
-        <!-- TAB: DETALLE -->
-        <div id="detalle" class="tab-content">
-            <div class="table-wrapper">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>📅 Fecha</th>
-                            <th>🕐 Turno</th>
-                            <th>👤 Operador</th>
-                            <th>🚐 Unidad</th>
-                            <th>📦 Cargados</th>
-                            <th>🚫 Vacíos</th>
-                            <th>✓ Estado</th>
-                            <th>🕒 Entrada-Salida</th>
-                        </tr>
-                    </thead>
-                    <tbody id="detalleTable">
-                        <tr><td colspan="8" class="no-data">Cargando datos...</td></tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-        
-        <!-- TAB: RECIBOS -->
+        <!-- RECIBOS -->
         <div id="recibos" class="tab-content">
-            <div class="menu-recibos">
-                <div class="menu-title">💼 RECIBOS DE NÓMINA - SELECCIONA OPERADOR</div>
-                <div class="recibo-grid" id="reciboMenu">
-                    <div class="no-data">Cargando operadores...</div>
-                </div>
-            </div>
+            <div id="reciboMenu" style="padding: 20px; background: white; border-radius: 8px;"></div>
         </div>
     </div>
     
     <!-- MODAL RECIBO -->
-    <div class="modal" id="reciboModal">
-        <div class="modal-content" id="reciboContent"></div>
-        <button class="modal-close" onclick="closeRecibo()">✕</button>
+    <div class="modal" id="modal">
+        <div class="modal-content">
+            <button onclick="closeRecibo()" style="float: right; background: #ddd; border: none; width: 30px; height: 30px; border-radius: 50%; cursor: pointer;">✕</button>
+            <div id="reciboContent"></div>
+        </div>
     </div>
     
     <script>
-        // URL CSV - CAMBIAR AQUÍ CON TU URL GOOGLE SHEETS
+        let datos = [];
+        let datosFiltrados = [];
+        
+        // URL CSV - CAMBIAR SI ES NECESARIO
         const URL_CSV = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTE1ZJZ8PzqGMNdj0MLHbfmcFQngQlP0PQVmK_FFTfI9Kmzk3EO8EWAAb6T4d-oCTPrEThpf-g8Roq3/pub?gid=0&single=true&output=csv';
         
-        let datosOriginal = [];
-        let datosFiltrados = [];
-        let dataProcessed = {};
-        let filtros = {
-            ano: '',
-            mes: '',
-            dia: '',
-            turno: '',
-            coordinador: '',
-            operador: ''
-        };
-        
-        // Cargar datos automáticamente
         window.addEventListener('load', () => {
-            loadData();
-        });
-        
-        function loadData() {
             fetch(URL_CSV)
                 .then(r => r.text())
                 .then(csv => {
@@ -592,112 +124,57 @@
                         header: true,
                         skipEmptyLines: true,
                         complete: (results) => {
-                            datosOriginal = results.data.filter(r => r.Operador && r.Fecha);
-                            datosFiltrados = [...datosOriginal];
-                            inicializarFiltros();
-                            processData();
-                        }
+                            datos = results.data.filter(r => r.Operador && r.Fecha);
+                            datosFiltrados = [...datos];
+                            init();
+                        },
+                        error: (e) => console.error('Error CSV:', e)
                     });
                 })
-                .catch(e => console.error('Error cargando CSV:', e));
+                .catch(e => console.error('Error fetch:', e));
+        });
+        
+        function init() {
+            cargarFiltros();
+            actualizar();
         }
         
-        function inicializarFiltros() {
-            const anos = new Set();
-            const meses = new Set();
-            const dias = new Set();
-            const turnos = new Set();
-            const coordinadores = new Set();
-            const operadores = new Set();
-            
-            datosOriginal.forEach(row => {
-                if (row.Fecha) {
-                    const parts = row.Fecha.split('-');
-                    if (parts.length === 3) {
-                        const ano = parts[0];
-                        const mes = parts[1];
-                        anos.add(ano);
-                        meses.add(`${ano}-${mes}`);
-                        dias.add(row.Fecha);
-                    }
-                }
-                if (row.Turno) turnos.add(row.Turno);
-                if (row.Coordinador) coordinadores.add(row.Coordinador);
-                if (row.Operador) operadores.add(row.Operador);
+        function cargarFiltros() {
+            const anos = new Set(), meses = new Set(), dias = new Set(), turnos = new Set(), coords = new Set(), ops = new Set();
+            datos.forEach(r => {
+                if (r.Fecha) { anos.add(r.Fecha.split('-')[0]); meses.add(r.Fecha.substring(0,7)); dias.add(r.Fecha); }
+                if (r.Turno) turnos.add(r.Turno);
+                if (r.Coordinador) coords.add(r.Coordinador);
+                if (r.Operador) ops.add(r.Operador);
             });
             
-            // Llenar select de Año
-            let html = '<option value="">Todos</option>';
-            [...anos].sort().reverse().forEach(a => {
-                html += `<option value="${a}">${a}</option>`;
-            });
-            document.getElementById('filtroAno').innerHTML = html;
-            
-            // Llenar select de Mes
-            html = '<option value="">Todos</option>';
-            [...meses].sort().reverse().forEach(m => {
-                html += `<option value="${m}">${m}</option>`;
-            });
-            document.getElementById('filtroMes').innerHTML = html;
-            
-            // Llenar select de Día
-            html = '<option value="">Todos</option>';
-            [...dias].sort().reverse().forEach(d => {
-                html += `<option value="${d}">${d}</option>`;
-            });
-            document.getElementById('filtroDia').innerHTML = html;
-            
-            // Llenar select de Turno
-            html = '<option value="">Todos</option>';
-            [...turnos].sort().forEach(t => {
-                html += `<option value="${t}">${t}</option>`;
-            });
-            document.getElementById('filtroTurno').innerHTML = html;
-            
-            // Llenar select de Coordinador
-            html = '<option value="">Todos</option>';
-            [...coordinadores].sort().forEach(c => {
-                html += `<option value="${c}">${c}</option>`;
-            });
-            document.getElementById('filtroCoordinador').innerHTML = html;
-            
-            // Llenar select de Operador
-            html = '<option value="">Todos</option>';
-            [...operadores].sort().forEach(o => {
-                html += `<option value="${o}">${o}</option>`;
-            });
-            document.getElementById('filtroOperador').innerHTML = html;
+            document.getElementById('filtroAno').innerHTML = '<option value="">Todos</option>' + [...anos].sort().reverse().map(a => `<option>${a}</option>`).join('');
+            document.getElementById('filtroMes').innerHTML = '<option value="">Todos</option>' + [...meses].sort().reverse().map(m => `<option>${m}</option>`).join('');
+            document.getElementById('filtroDia').innerHTML = '<option value="">Todos</option>' + [...dias].sort().reverse().map(d => `<option>${d}</option>`).join('');
+            document.getElementById('filtroTurno').innerHTML = '<option value="">Todos</option>' + [...turnos].sort().map(t => `<option>${t}</option>`).join('');
+            document.getElementById('filtroCoordinador').innerHTML = '<option value="">Todos</option>' + [...coords].sort().map(c => `<option>${c}</option>`).join('');
+            document.getElementById('filtroOperador').innerHTML = '<option value="">Todos</option>' + [...ops].sort().map(o => `<option>${o}</option>`).join('');
         }
         
         function aplicarFiltros() {
-            filtros = {
-                ano: document.getElementById('filtroAno').value,
-                mes: document.getElementById('filtroMes').value,
-                dia: document.getElementById('filtroDia').value,
-                turno: document.getElementById('filtroTurno').value,
-                coordinador: document.getElementById('filtroCoordinador').value,
-                operador: document.getElementById('filtroOperador').value
-            };
+            const ano = document.getElementById('filtroAno').value;
+            const mes = document.getElementById('filtroMes').value;
+            const dia = document.getElementById('filtroDia').value;
+            const turno = document.getElementById('filtroTurno').value;
+            const coord = document.getElementById('filtroCoordinador').value;
+            const op = document.getElementById('filtroOperador').value;
             
-            datosFiltrados = datosOriginal.filter(row => {
-                // Filtro por Día (más específico)
-                if (filtros.dia && row.Fecha !== filtros.dia) return false;
-                
-                // Filtro por Mes (si no hay día específico)
-                if (!filtros.dia && filtros.mes && !row.Fecha.startsWith(filtros.mes)) return false;
-                
-                // Filtro por Año (si no hay mes ni día)
-                if (!filtros.dia && !filtros.mes && filtros.ano && !row.Fecha.startsWith(filtros.ano)) return false;
-                
-                // Otros filtros
-                if (filtros.turno && row.Turno !== filtros.turno) return false;
-                if (filtros.coordinador && row.Coordinador !== filtros.coordinador) return false;
-                if (filtros.operador && row.Operador !== filtros.operador) return false;
-                
+            datosFiltrados = datos.filter(r => {
+                if (dia && r.Fecha !== dia) return false;
+                if (!dia && mes && !r.Fecha.startsWith(mes)) return false;
+                if (!dia && !mes && ano && !r.Fecha.startsWith(ano)) return false;
+                if (turno && r.Turno !== turno) return false;
+                if (coord && r.Coordinador !== coord) return false;
+                if (op && r.Operador !== op) return false;
                 return true;
             });
             
-            processData();
+            actualizar();
         }
         
         function limpiarFiltros() {
@@ -710,320 +187,188 @@
             aplicarFiltros();
         }
         
-        function processData() {
-            dataProcessed = {
-                porFecha: {},
-                porOperador: {},
-                porCoordinador: {},
-                porTurno: {},
-                total: {
-                    cargados: 0,
-                    vacios: 0,
-                    asistencias: 0,
-                    faltas: 0
-                }
-            };
+        function actualizar() {
+            // RESUMEN
+            let totalCarg = 0, totalVacio = 0, totalAsist = 0, totalFalt = 0;
+            const porFecha = {}, porCoord = {}, porOp = {}, porTurno = {};
             
-            datosFiltrados.forEach(row => {
-                if (!row.Operador || !row.Fecha) return;
+            datosFiltrados.forEach(r => {
+                const carg = parseInt(r['M Cargados']) || 0;
+                const vacio = parseInt(r['M Vacíos']) || 0;
+                const asist = r.Estatus.toLowerCase().includes('asist') || r.Estatus.toLowerCase().includes('si') ? 1 : 0;
+                const falta = r.Estatus.toLowerCase().includes('falta') || r.Estatus.toLowerCase().includes('no asist') ? 1 : 0;
                 
-                const cargados = parseInt(row['M Cargados']) || 0;
-                const vacios = parseInt(row['M Vacíos']) || 0;
-                const fecha = row.Fecha;
-                const turno = row.Turno;
-                const operador = row.Operador;
-                const coordinador = row.Coordinador || 'Sin Asignar';
-                const estatus = row.Estatus.toLowerCase();
+                totalCarg += carg;
+                totalVacio += vacio;
+                totalAsist += asist;
+                totalFalt += falta;
                 
-                dataProcessed.total.cargados += cargados;
-                dataProcessed.total.vacios += vacios;
+                // Por Fecha
+                const key = r.Fecha + '|' + r.Turno;
+                if (!porFecha[key]) porFecha[key] = { c: 0, v: 0, a: 0, f: 0, t: 0 };
+                porFecha[key].c += carg;
+                porFecha[key].v += vacio;
+                porFecha[key].a += asist;
+                porFecha[key].f += falta;
+                porFecha[key].t++;
                 
-                if (estatus.includes('asist') || estatus.includes('si')) dataProcessed.total.asistencias++;
-                if (estatus.includes('falta') || estatus.includes('no asist')) dataProcessed.total.faltas++;
+                // Por Coordinador
+                if (!porCoord[r.Coordinador]) porCoord[r.Coordinador] = { c: 0, v: 0, a: 0, f: 0, ops: new Set() };
+                porCoord[r.Coordinador].c += carg;
+                porCoord[r.Coordinador].v += vacio;
+                porCoord[r.Coordinador].a += asist;
+                porCoord[r.Coordinador].f += falta;
+                porCoord[r.Coordinador].ops.add(r.Operador);
                 
-                // Por fecha
-                if (!dataProcessed.porFecha[fecha]) dataProcessed.porFecha[fecha] = {};
-                if (!dataProcessed.porFecha[fecha][turno]) {
-                    dataProcessed.porFecha[fecha][turno] = { cargados: 0, vacios: 0, asistencias: 0, faltas: 0, registros: 0 };
-                }
-                dataProcessed.porFecha[fecha][turno].cargados += cargados;
-                dataProcessed.porFecha[fecha][turno].vacios += vacios;
-                dataProcessed.porFecha[fecha][turno].registros++;
-                if (estatus.includes('asist') || estatus.includes('si')) dataProcessed.porFecha[fecha][turno].asistencias++;
-                if (estatus.includes('falta') || estatus.includes('no asist')) dataProcessed.porFecha[fecha][turno].faltas++;
+                // Por Operador
+                if (!porOp[r.Operador]) porOp[r.Operador] = { c: 0, v: 0, a: 0, f: 0, turnos: new Set() };
+                porOp[r.Operador].c += carg;
+                porOp[r.Operador].v += vacio;
+                porOp[r.Operador].a += asist;
+                porOp[r.Operador].f += falta;
+                porOp[r.Operador].turnos.add(r.Turno);
                 
-                // Por operador
-                if (!dataProcessed.porOperador[operador]) {
-                    dataProcessed.porOperador[operador] = { cargados: 0, vacios: 0, asistencias: 0, faltas: 0, turnos: new Set() };
-                }
-                dataProcessed.porOperador[operador].cargados += cargados;
-                dataProcessed.porOperador[operador].vacios += vacios;
-                dataProcessed.porOperador[operador].turnos.add(turno);
-                if (estatus.includes('asist') || estatus.includes('si')) dataProcessed.porOperador[operador].asistencias++;
-                if (estatus.includes('falta') || estatus.includes('no asist')) dataProcessed.porOperador[operador].faltas++;
-                
-                // Por coordinador
-                if (!dataProcessed.porCoordinador[coordinador]) {
-                    dataProcessed.porCoordinador[coordinador] = { cargados: 0, vacios: 0, asistencias: 0, faltas: 0, operadores: new Set(), turnos: new Set() };
-                }
-                dataProcessed.porCoordinador[coordinador].cargados += cargados;
-                dataProcessed.porCoordinador[coordinador].vacios += vacios;
-                dataProcessed.porCoordinador[coordinador].operadores.add(operador);
-                dataProcessed.porCoordinador[coordinador].turnos.add(turno);
-                if (estatus.includes('asist') || estatus.includes('si')) dataProcessed.porCoordinador[coordinador].asistencias++;
-                if (estatus.includes('falta') || estatus.includes('no asist')) dataProcessed.porCoordinador[coordinador].faltas++;
-                
-                // Por turno
-                if (!dataProcessed.porTurno[turno]) {
-                    dataProcessed.porTurno[turno] = { cargados: 0, vacios: 0, asistencias: 0, faltas: 0, operadores: new Set(), fechas: new Set() };
-                }
-                dataProcessed.porTurno[turno].cargados += cargados;
-                dataProcessed.porTurno[turno].vacios += vacios;
-                dataProcessed.porTurno[turno].operadores.add(operador);
-                dataProcessed.porTurno[turno].fechas.add(fecha);
-                if (estatus.includes('asist') || estatus.includes('si')) dataProcessed.porTurno[turno].asistencias++;
-                if (estatus.includes('falta') || estatus.includes('no asist')) dataProcessed.porTurno[turno].faltas++;
+                // Por Turno
+                if (!porTurno[r.Turno]) porTurno[r.Turno] = { c: 0, v: 0, a: 0, f: 0, ops: new Set(), fechas: new Set() };
+                porTurno[r.Turno].c += carg;
+                porTurno[r.Turno].v += vacio;
+                porTurno[r.Turno].a += asist;
+                porTurno[r.Turno].f += falta;
+                porTurno[r.Turno].ops.add(r.Operador);
+                porTurno[r.Turno].fechas.add(r.Fecha);
             });
             
-            updateUI();
-        }
-        
-        function updateUI() {
-            // Resumen cards
-            document.getElementById('totalCargados').textContent = dataProcessed.total.cargados;
-            document.getElementById('totalVacios').textContent = dataProcessed.total.vacios;
-            document.getElementById('totalOperadores').textContent = Object.keys(dataProcessed.porOperador).length;
-            document.getElementById('totalAsistencias').textContent = dataProcessed.total.asistencias;
-            document.getElementById('totalFaltas').textContent = dataProcessed.total.faltas;
-            
-            const promedio = Object.keys(dataProcessed.porFecha).length > 0 
-                ? (dataProcessed.total.cargados / Object.keys(dataProcessed.porFecha).length).toFixed(1)
-                : 0;
-            document.getElementById('promedioCargados').textContent = promedio;
+            document.getElementById('totalCargados').textContent = totalCarg;
+            document.getElementById('totalVacios').textContent = totalVacio;
+            document.getElementById('totalOps').textContent = Object.keys(porOp).length;
+            document.getElementById('totalAsist').textContent = totalAsist;
+            document.getElementById('totalFaltas').textContent = totalFalt;
             
             // Tabla Resumen
             let html = '';
-            Object.keys(dataProcessed.porFecha).sort().forEach(fecha => {
-                Object.keys(dataProcessed.porFecha[fecha]).forEach(turno => {
-                    const d = dataProcessed.porFecha[fecha][turno];
-                    html += `<tr>
-                        <td>${fecha}</td>
-                        <td>${turno}</td>
-                        <td class="verde">${d.cargados}</td>
-                        <td class="rojo">${d.vacios}</td>
-                        <td>${d.asistencias}</td>
-                        <td>${d.faltas}</td>
-                        <td>${d.registros}</td>
-                    </tr>`;
-                });
+            Object.keys(porFecha).sort().forEach(key => {
+                const [fecha, turno] = key.split('|');
+                const d = porFecha[key];
+                html += `<tr><td>${fecha}</td><td>${turno}</td><td class="verde">${d.c}</td><td class="rojo">${d.v}</td><td>${d.a}</td><td>${d.f}</td><td>${d.t}</td></tr>`;
             });
             document.getElementById('resumenTable').innerHTML = html || '<tr><td colspan="7" class="no-data">Sin datos</td></tr>';
             
             // Tabla Coordinadores
             html = '';
-            Object.keys(dataProcessed.porCoordinador).sort().forEach(coord => {
-                const d = dataProcessed.porCoordinador[coord];
-                const promedio = d.operadores.size > 0 ? (d.cargados / d.operadores.size).toFixed(1) : 0;
-                html += `<tr>
-                    <td>${coord}</td>
-                    <td class="verde">${d.cargados}</td>
-                    <td class="rojo">${d.vacios}</td>
-                    <td>${d.asistencias}</td>
-                    <td>${d.faltas}</td>
-                    <td>${d.operadores.size}</td>
-                    <td>${d.turnos.size}</td>
-                    <td>${promedio}</td>
-                </tr>`;
+            Object.keys(porCoord).sort().forEach(coord => {
+                const d = porCoord[coord];
+                const prom = d.ops.size > 0 ? (d.c / d.ops.size).toFixed(1) : 0;
+                html += `<tr><td>${coord}</td><td class="verde">${d.c}</td><td class="rojo">${d.v}</td><td>${d.a}</td><td>${d.f}</td><td>${d.ops.size}</td><td>${prom}</td></tr>`;
             });
-            document.getElementById('coordinadoresTable').innerHTML = html || '<tr><td colspan="8" class="no-data">Sin datos</td></tr>';
+            document.getElementById('coordTable').innerHTML = html || '<tr><td colspan="7" class="no-data">Sin datos</td></tr>';
+            
+            // Tabla Operadores
             html = '';
-            Object.keys(dataProcessed.porOperador).sort().forEach(op => {
-                const d = dataProcessed.porOperador[op];
-                const total = d.asistencias + d.faltas;
-                const promedio = total > 0 ? (d.cargados / d.asistencias).toFixed(1) : 0;
-                html += `<tr>
-                    <td>${op}</td>
-                    <td class="verde">${d.cargados}</td>
-                    <td class="rojo">${d.vacios}</td>
-                    <td>${d.asistencias}</td>
-                    <td>${d.faltas}</td>
-                    <td>${d.turnos.size}</td>
-                    <td>${promedio}</td>
-                    <td><button onclick="verRecibo('${op}')" style="padding: 5px 10px; font-size: 11px;">📄</button></td>
-                </tr>`;
+            Object.keys(porOp).sort().forEach(op => {
+                const d = porOp[op];
+                html += `<tr><td>${op}</td><td class="verde">${d.c}</td><td class="rojo">${d.v}</td><td>${d.a}</td><td>${d.f}</td><td>${d.turnos.size}</td><td><button class="recibo-btn" onclick="verRecibo('${op}')">📄</button></td></tr>`;
             });
-            document.getElementById('operadoresTable').innerHTML = html || '<tr><td colspan="8" class="no-data">Sin datos</td></tr>';
+            document.getElementById('operTable').innerHTML = html || '<tr><td colspan="7" class="no-data">Sin datos</td></tr>';
             
             // Tabla Turnos
             html = '';
-            Object.keys(dataProcessed.porTurno).sort().forEach(turno => {
-                const d = dataProcessed.porTurno[turno];
-                const promedio = d.operadores.size > 0 ? (d.cargados / d.operadores.size).toFixed(1) : 0;
-                html += `<tr>
-                    <td>${turno}</td>
-                    <td>${d.fechas.size}</td>
-                    <td class="verde">${d.cargados}</td>
-                    <td class="rojo">${d.vacios}</td>
-                    <td>${d.operadores.size}</td>
-                    <td>${d.asistencias}</td>
-                    <td>${d.faltas}</td>
-                    <td>${promedio}</td>
-                </tr>`;
+            Object.keys(porTurno).sort().forEach(turno => {
+                const d = porTurno[turno];
+                html += `<tr><td>${turno}</td><td class="verde">${d.c}</td><td class="rojo">${d.v}</td><td>${d.a}</td><td>${d.f}</td><td>${d.ops.size}</td><td>${d.fechas.size}</td></tr>`;
             });
-            document.getElementById('turnosTable').innerHTML = html || '<tr><td colspan="8" class="no-data">Sin datos</td></tr>';
+            document.getElementById('turnoTable').innerHTML = html || '<tr><td colspan="7" class="no-data">Sin datos</td></tr>';
             
-            // Tabla Días
-            html = '';
-            Object.keys(dataProcessed.porFecha).sort().forEach(fecha => {
-                let cargadosFecha = 0, vaciosFecha = 0, asistenciasFecha = 0, faltasFecha = 0, operadoresFecha = new Set();
-                Object.keys(dataProcessed.porFecha[fecha]).forEach(turno => {
-                    const d = dataProcessed.porFecha[fecha][turno];
-                    cargadosFecha += d.cargados;
-                    vaciosFecha += d.vacios;
-                    asistenciasFecha += d.asistencias;
-                    faltasFecha += d.faltas;
-                });
-                
-                datos.filter(r => r.Fecha === fecha).forEach(r => operadoresFecha.add(r.Operador));
-                
-                Object.keys(dataProcessed.porFecha[fecha]).forEach(turno => {
-                    html += `<tr>
-                        <td>${fecha}</td>
-                        <td>${turno}</td>
-                        <td class="verde">${dataProcessed.porFecha[fecha][turno].cargados}</td>
-                        <td class="rojo">${dataProcessed.porFecha[fecha][turno].vacios}</td>
-                        <td>${operadoresFecha.size}</td>
-                        <td>${dataProcessed.porFecha[fecha][turno].asistencias}</td>
-                        <td>${dataProcessed.porFecha[fecha][turno].faltas}</td>
-                    </tr>`;
-                });
-            });
-            document.getElementById('diasTable').innerHTML = html || '<tr><td colspan="7" class="no-data">Sin datos</td></tr>';
-            
-            // Tabla Detalle
-            html = '';
-            datosFiltrados.forEach(row => {
-                if (!row.Operador) return;
-                const estatus = row.Estatus;
-                const badge = estatus.toLowerCase().includes('asist') || estatus.toLowerCase().includes('si')
-                    ? `<span class="badge badge-presente">✓ ${estatus}</span>`
-                    : estatus.toLowerCase().includes('falta') || estatus.toLowerCase().includes('no asist')
-                    ? `<span class="badge badge-falta">✗ ${estatus}</span>`
-                    : `<span class="badge badge-descanso">⚪ ${estatus}</span>`;
-                
-                html += `<tr>
-                    <td>${row.Fecha}</td>
-                    <td>${row.Turno}</td>
-                    <td>${row.Operador}</td>
-                    <td>${row.Unidad || '-'}</td>
-                    <td class="verde">${row['M Cargados'] || '0'}</td>
-                    <td class="rojo">${row['M Vacíos'] || '0'}</td>
-                    <td>${badge}</td>
-                    <td>${row.Entrada || '-'} / ${row.Salida || '-'}</td>
-                </tr>`;
-            });
-            document.getElementById('detalleTable').innerHTML = html || '<tr><td colspan="8" class="no-data">Sin datos con filtros actuales</td></tr>';
-            
-            // Menú Recibos - Agrupar por semana de nómina (viernes a jueves)
-            let menuHtml = '';
-            const semanasNomina = {};
-            
-            // Agrupar datos por semana (viernes a jueves)
-            datosOriginal.forEach(row => {
-                if (!row.Operador || !row.Fecha) return;
-                
-                const fecha = new Date(row.Fecha + 'T00:00:00');
-                const dia = fecha.getDay(); // 0=domingo, 5=viernes, 4=jueves
-                
-                // Encontrar el viernes de la semana actual
-                let viernesAño = new Date(fecha);
+            // Menú Recibos - Por Semana
+            const semanas = {};
+            datos.forEach(r => {
+                const fecha = new Date(r.Fecha + 'T00:00:00');
+                const dia = fecha.getDay();
+                let viernes = new Date(fecha);
                 const diasAlViernes = (dia - 5 + 7) % 7;
-                if (diasAlViernes === 0 && dia !== 5) {
-                    viernesAño.setDate(viernesAño.getDate() - 7);
-                } else {
-                    viernesAño.setDate(viernesAño.getDate() - diasAlViernes);
-                }
+                viernes.setDate(viernes.getDate() - diasAlViernes);
+                const fechaViernes = viernes.toISOString().split('T')[0];
                 
-                const fechaViernes = viernesAño.toISOString().split('T')[0];
-                
-                if (!semanasNomina[fechaViernes]) {
-                    semanasNomina[fechaViernes] = new Set();
-                }
-                semanasNomina[fechaViernes].add(row.Operador);
+                if (!semanas[fechaViernes]) semanas[fechaViernes] = new Set();
+                semanas[fechaViernes].add(r.Operador);
             });
             
-            // Crear tabs de semanas
-            const semanas = Object.keys(semanasNomina).sort().reverse();
-            
-            if (semanas.length > 0) {
-                menuHtml = '<div style="margin-bottom: 20px;">';
-                
-                semanas.forEach((viernes, idx) => {
-                    const juevesFecha = new Date(viernes + 'T00:00:00');
-                    juevesFecha.setDate(juevesFecha.getDate() + 6);
-                    const jueves = juevesFecha.toISOString().split('T')[0];
-                    
-                    const isActive = idx === 0 ? 'active' : '';
-                    menuHtml += `<button class="tab-btn ${isActive}" onclick="mostrarSemana('${viernes}')">
-                        📅 ${viernes} a ${jueves}
-                    </button>`;
-                });
-                
-                menuHtml += '</div>';
-                
-                // Operadores por semana
-                menuHtml += '<div id="operadoresPorSemana"></div>';
-                
-                document.getElementById('reciboMenu').innerHTML = menuHtml;
-                
-                // Mostrar primera semana
-                mostrarSemana(semanas[0]);
-            } else {
-                document.getElementById('reciboMenu').innerHTML = '<div class="no-data">No hay datos de operadores</div>';
-            }
+            html = Object.keys(semanas).sort().reverse().map(v => {
+                const j = new Date(v + 'T00:00:00');
+                j.setDate(j.getDate() + 6);
+                const fechaJueves = j.toISOString().split('T')[0];
+                const ops = Array.from(semanas[v]).sort().map(op => `<button class="recibo-btn" onclick="verRecibo('${op}', '${v}')">${op}</button>`).join('');
+                return `<div style="margin-bottom: 30px;"><h3 style="margin-bottom: 15px;">📅 ${v} a ${fechaJueves}</h3><div>${ops}</div></div>`;
+            }).join('');
+            document.getElementById('reciboMenu').innerHTML = html || '<div class="no-data">Sin datos</div>';
         }
         
-        function mostrarSemana(viernes) {
-            const semanasNomina = {};
+        function verRecibo(operador, viernesParam = null) {
+            let datosRecibo = datosFiltrados.filter(r => r.Operador === operador);
             
-            datosOriginal.forEach(row => {
-                if (!row.Operador || !row.Fecha) return;
-                
-                const fecha = new Date(row.Fecha + 'T00:00:00');
-                const dia = fecha.getDay();
-                
-                let viernesAño = new Date(fecha);
-                const diasAlViernes = (dia - 5 + 7) % 7;
-                if (diasAlViernes === 0 && dia !== 5) {
-                    viernesAño.setDate(viernesAño.getDate() - 7);
-                } else {
-                    viernesAño.setDate(viernesAño.getDate() - diasAlViernes);
-                }
-                
-                const fechaViernes = viernesAño.toISOString().split('T')[0];
-                
-                if (!semanasNomina[fechaViernes]) {
-                    semanasNomina[fechaViernes] = new Set();
-                }
-                semanasNomina[fechaViernes].add(row.Operador);
-            });
-            
-            const operadores = Array.from(semanasNomina[viernes] || []).sort();
-            let html = '<div class="recibo-grid" style="margin-top: 20px;">';
-            
-            operadores.forEach(op => {
-                html += `<button class="recibo-btn" onclick="verRecibo('${op}', '${viernes}')">👤 ${op}</button>`;
-            });
-            
-            html += '</div>';
-            document.getElementById('operadoresPorSemana').innerHTML = html;
-        }
-            
-            // Período
-            const fechas = Object.keys(dataProcessed.porFecha).sort();
-            if (fechas.length > 0) {
-                document.getElementById('periodText').textContent = `${fechas[0]} a ${fechas[fechas.length - 1]}`;
+            if (viernesParam) {
+                const j = new Date(viernesParam + 'T00:00:00');
+                j.setDate(j.getDate() + 6);
+                const fechaJueves = j.toISOString().split('T')[0];
+                datosRecibo = datosRecibo.filter(r => r.Fecha >= viernesParam && r.Fecha <= fechaJueves);
             }
+            
+            const detalles = {};
+            datosRecibo.forEach(r => {
+                if (!detalles[r.Fecha]) detalles[r.Fecha] = { carg: 0, asist: false };
+                detalles[r.Fecha].carg = Math.max(detalles[r.Fecha].carg, parseInt(r['M Cargados']) || 0);
+                detalles[r.Fecha].asist = detalles[r.Fecha].asist || r.Estatus.toLowerCase().includes('asist') || r.Estatus.toLowerCase().includes('si');
+            });
+            
+            const diasTrab = Object.keys(detalles).length;
+            const totalCarg = Object.values(detalles).reduce((a, b) => a + b.carg, 0);
+            const pago = totalCarg * 200;
+            const sueldo = diasTrab * 362.50;
+            const diasComp = Object.entries(detalles).filter(([f, d]) => d.asist && d.carg > 0 && d.carg < 5);
+            
+            let html = `
+                <div class="recibo-header">
+                    <div style="font-size: 28px; margin-bottom: 10px;">🚛</div>
+                    <div style="font-size: 18px; font-weight: 600; color: #2d5a3d;">RECIBO DE NÓMINA</div>
+                    <div style="font-size: 13px; color: #666; margin-top: 10px;">Operador: <strong>${operador}</strong></div>
+                </div>
+                
+                <div style="margin-bottom: 20px;">
+                    <table style="width: 100%; border: none;">
+                        <tr style="background: #f5f5f5;"><td style="text-align: left; font-weight: 600; padding: 8px;">📅 Fecha</td><td style="font-weight: 600; padding: 8px;">Cargados</td><td style="font-weight: 600; padding: 8px;">Estado</td></tr>
+                        ${Object.keys(detalles).sort().map(f => `<tr><td style="text-align: left; padding: 8px;">${f}</td><td style="padding: 8px; ${detalles[f].asist ? 'color: #2e7d32' : 'color: #c62828'};"><strong>${detalles[f].carg}</strong></td><td style="padding: 8px;">${detalles[f].asist ? '✓ Asistió' : '✗ Falta'}</td></tr>`).join('')}
+                    </table>
+                </div>
+                
+                <div style="margin-bottom: 20px; padding: 15px; background: #f9f9f9; border-radius: 4px;">
+                    <div class="recibo-row"><span>📦 Movimientos Cargados:</span><span><strong>${totalCarg}</strong></span></div>
+                    <div class="recibo-row"><span>Pago por Movimientos (${totalCarg} × $200):</span><span style="color: #2d5a3d; font-weight: 600;">$${pago.toLocaleString()}</span></div>
+                    <div class="recibo-row"><span>💼 Sueldo Fijo (${diasTrab} × $362.50):</span><span style="color: #2d5a3d; font-weight: 600;">$${sueldo.toLocaleString()}</span></div>
+                    ${diasComp.length > 0 ? `<div class="recibo-row"><span>✏️ Días para Completar:</span><span>${diasComp.length}</span></div>` : ''}
+                </div>
+                
+                <div style="padding: 20px; background: #e8f5e9; border-radius: 4px; border: 2px solid #2d5a3d;">
+                    <div class="recibo-row total" style="margin: 0; border: none; padding: 0;">
+                        <span>💰 TOTAL A PAGAR</span>
+                        <span>$${(pago + sueldo).toLocaleString()}</span>
+                    </div>
+                </div>
+                
+                <div style="margin-top: 20px; text-align: center; font-size: 12px; color: #999;">
+                    <p>Recibo generado: ${new Date().toLocaleDateString('es-MX')}</p>
+                </div>
+                
+                <div style="margin-top: 15px; text-align: center;">
+                    <button onclick="window.print()" style="padding: 10px 20px; background: #2d5a3d; color: white; border: none; border-radius: 4px; cursor: pointer; margin-right: 10px;">🖨️ Imprimir</button>
+                    <button onclick="closeRecibo()" style="padding: 10px 20px; background: #999; color: white; border: none; border-radius: 4px; cursor: pointer;">Cerrar</button>
+                </div>
+            `;
+            
+            document.getElementById('reciboContent').innerHTML = html;
+            document.getElementById('modal').classList.add('active');
+        }
+        
+        function closeRecibo() {
+            document.getElementById('modal').classList.remove('active');
         }
         
         function switchTab(tab) {
@@ -1031,237 +376,6 @@
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             document.getElementById(tab).classList.add('active');
             event.target.classList.add('active');
-        }
-        
-        function verRecibo(operador, viernesParam = null) {
-            // Si viene de la sección de recibos, filtrar solo esa semana
-            let datosRecibo = datosFiltrados;
-            
-            if (viernesParam) {
-                const jueves = new Date(viernesParam + 'T00:00:00');
-                jueves.setDate(jueves.getDate() + 6);
-                const fechaJueves = jueves.toISOString().split('T')[0];
-                
-                datosRecibo = datosOriginal.filter(row => {
-                    return row.Operador === operador && 
-                           row.Fecha >= viernesParam && 
-                           row.Fecha <= fechaJueves;
-                });
-            } else {
-                datosRecibo = datosRecibo.filter(row => row.Operador === operador);
-            }
-            
-            // Obtener detalles por día
-            const detallesPorDia = {};
-            datosRecibo.forEach(row => {
-                const fecha = row.Fecha;
-                const cargados = parseInt(row['M Cargados']) || 0;
-                const estatus = row.Estatus.toLowerCase();
-                const asistio = estatus.includes('asist') || estatus.includes('si');
-                
-                if (!detallesPorDia[fecha]) {
-                    detallesPorDia[fecha] = { cargados: 0, asistio: false };
-                }
-                detallesPorDia[fecha].cargados = Math.max(detallesPorDia[fecha].cargados, cargados);
-                detallesPorDia[fecha].asistio = detallesPorDia[fecha].asistio || asistio;
-            });
-            
-            const diasTrabajados = Object.keys(detallesPorDia).length;
-            const totalCargados = Object.values(detallesPorDia).reduce((a, b) => a + b.cargados, 0);
-            const pagoPorMovimiento = totalCargados * 200;
-            const sueldoFijo = diasTrabajados * 362.50;
-            
-            // Días que necesitan complemento (asistieron pero <5 movimientos)
-            const diasComplemento = Object.entries(detallesPorDia)
-                .filter(([fecha, det]) => det.asistio && det.cargados > 0 && det.cargados < 5)
-                .map(([fecha, det]) => ({ fecha, cargados: det.cargados, faltantes: 5 - det.cargados }));
-            
-            let htmlDias = '';
-            Object.keys(detallesPorDia).sort().forEach(fecha => {
-                const det = detallesPorDia[fecha];
-                const badge = det.asistio ? '✓ Asistió' : '✗ Falta';
-                const estilo = det.asistio ? 'color: #2e7d32;' : 'color: #c62828;';
-                htmlDias += `<tr>
-                    <td>${fecha}</td>
-                    <td style="${estilo} font-weight: 600;">${det.cargados}</td>
-                    <td>${badge}</td>
-                </tr>`;
-            });
-            
-            let htmlComplemento = '<option value="">Ninguno</option>';
-            diasComplemento.forEach(dia => {
-                htmlComplemento += `<option value="${dia.fecha}">${dia.fecha}: ${dia.cargados} movimientos → +${dia.faltantes} ($${dia.faltantes * 200})</option>`;
-            });
-            
-            const html = `
-                <div class="recibo-header">
-                    <div class="recibo-logo">🚛</div>
-                    <div class="recibo-title">RECIBO DE NÓMINA - ALEN IP</div>
-                    <div style="font-size: 13px; color: #666;">Operador: <strong>${operador}</strong></div>
-                    <div style="font-size: 12px; color: #999; margin-top: 5px;">Semana: Viernes a Jueves</div>
-                </div>
-                
-                <div style="margin-bottom: 20px; border-bottom: 1px solid #ddd; padding-bottom: 15px;">
-                    <div style="font-weight: 600; margin-bottom: 10px; color: #2d5a3d;">📅 MOVIMIENTOS POR DÍA</div>
-                    <table style="width: 100%; font-size: 12px;">
-                        <tr style="background: #f5f5f5;">
-                            <th style="padding: 8px; text-align: left; border-bottom: 1px solid #ddd;">Fecha</th>
-                            <th style="padding: 8px; text-align: center; border-bottom: 1px solid #ddd;">Cargados</th>
-                            <th style="padding: 8px; text-align: center; border-bottom: 1px solid #ddd;">Estado</th>
-                        </tr>
-                        ${htmlDias}
-                    </table>
-                    <div style="margin-top: 10px; padding: 10px; background: #f9f9f9; border-radius: 4px; font-size: 12px;">
-                        <strong>Días Trabajados:</strong> ${diasTrabajados} | <strong>Total Movimientos:</strong> ${totalCargados}
-                    </div>
-                </div>
-                
-                <div style="margin-bottom: 20px;">
-                    <div style="font-weight: 600; margin-bottom: 10px; color: #2d5a3d;">💰 CÁLCULO DE NÓMINA</div>
-                    
-                    <div class="recibo-row">
-                        <span>📦 Movimientos Cargados</span>
-                        <span>${totalCargados} × $200</span>
-                    </div>
-                    <div class="recibo-row" style="color: #2d5a3d; font-weight: 600; border-bottom: 1px solid #ddd; padding-bottom: 10px;">
-                        <span>Pago por Movimientos</span>
-                        <span>$${pagoPorMovimiento.toLocaleString()}</span>
-                    </div>
-                    
-                    <div class="recibo-row">
-                        <span>💼 Sueldo Fijo Base</span>
-                        <span>${diasTrabajados} días × $362.50</span>
-                    </div>
-                    <div class="recibo-row" style="color: #2d5a3d; font-weight: 600; border-bottom: 1px solid #ddd; padding-bottom: 10px;">
-                        <span></span>
-                        <span>$${sueldoFijo.toLocaleString()}</span>
-                    </div>
-                </div>
-                
-                <div style="margin-bottom: 20px; padding: 15px; background: #f0f8f5; border-radius: 4px;">
-                    <div style="font-weight: 600; margin-bottom: 10px; color: #2d5a3d;">🎯 INCENTIVOS</div>
-                    
-                    <div style="margin-bottom: 12px;">
-                        <label style="display: flex; align-items: center; gap: 10px;">
-                            <input type="checkbox" id="chkPuntualidad" onchange="actualizarRecibo('${operador}')">
-                            <span>✓ Puntualidad y Asistencia: <strong>+$250</strong></span>
-                        </label>
-                    </div>
-                    
-                    ${d.asistencias === 7 ? `
-                    <div style="margin-bottom: 12px;">
-                        <label style="display: flex; align-items: center; gap: 10px;">
-                            <input type="checkbox" id="chkNoDescanso" onchange="actualizarRecibo('${operador}')" checked>
-                            <span>🎁 Bono No Descanso (7 días): <strong>+$500</strong></span>
-                        </label>
-                    </div>
-                    ` : ''}
-                    
-                    ${diasComplemento.length > 0 ? `
-                    <div style="margin-bottom: 12px;">
-                        <label style="display: block; margin-bottom: 5px;">
-                            <input type="checkbox" id="chkComplemento" onchange="actualizarRecibo('${operador}')">
-                            <span>✏️ Completar Viajes (Días <5 movimientos):</span>
-                        </label>
-                        <select id="selectComplemento" onchange="actualizarRecibo('${operador}')" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; margin-top: 5px;">
-                            ${htmlComplemento}
-                        </select>
-                    </div>
-                    ` : ''}
-                    
-                    <div style="margin-bottom: 12px;">
-                        <label style="display: block; margin-bottom: 5px;">
-                            <span>🤝 Otros Bonos / Apoyo Coordinación:</span>
-                        </label>
-                        <input type="number" id="otrosBonos" value="0" min="0" onchange="actualizarRecibo('${operador}')" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" placeholder="Ingresa monto">
-                    </div>
-                </div>
-                
-                <div id="resumenTotal" style="padding: 15px; background: #e8f5e9; border-radius: 4px; border: 2px solid #2d5a3d;">
-                    <div class="recibo-row total" style="margin: 0; border: none; padding: 0;">
-                        <span>💰 TOTAL A PAGAR</span>
-                        <span id="totalPagar">$${(pagoPorMovimiento + sueldoFijo).toLocaleString()}</span>
-                    </div>
-                </div>
-                
-                <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #ddd; font-size: 12px; color: #999; text-align: center;">
-                    <p>Recibo generado: ${new Date().toLocaleDateString('es-MX')}</p>
-                    <p style="margin-top: 8px;">Este recibo es válido para trámites administrativos de nómina</p>
-                </div>
-                
-                <div style="margin-top: 15px; display: flex; gap: 10px; justify-content: center;">
-                    <button onclick="printRecibo()" style="padding: 10px 20px; background: #2d5a3d; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">🖨️ Imprimir</button>
-                    <button onclick="closeRecibo()" style="padding: 10px 20px; background: #999; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">✕ Cerrar</button>
-                </div>
-            `;
-            
-            document.getElementById('reciboContent').innerHTML = html;
-            document.getElementById('reciboModal').classList.add('active');
-            
-            // Calcular total automáticamente
-            actualizarRecibo(operador);
-        }
-        
-        function actualizarRecibo(operador) {
-            const d = dataProcessed.porOperador[operador];
-            const detallesPorDia = {};
-            datosFiltrados.forEach(row => {
-                if (row.Operador !== operador) return;
-                const fecha = row.Fecha;
-                const cargados = parseInt(row['M Cargados']) || 0;
-                const estatus = row.Estatus.toLowerCase();
-                const asistio = estatus.includes('asist') || estatus.includes('si');
-                
-                if (!detallesPorDia[fecha]) {
-                    detallesPorDia[fecha] = { cargados: 0, asistio: false };
-                }
-                detallesPorDia[fecha].cargados = Math.max(detallesPorDia[fecha].cargados, cargados);
-                detallesPorDia[fecha].asistio = detallesPorDia[fecha].asistio || asistio;
-            });
-            
-            const diasTrabajados = Object.keys(detallesPorDia).length;
-            const totalCargados = d.cargados;
-            const pagoPorMovimiento = totalCargados * 200;
-            const sueldoFijo = diasTrabajados * 362.50;
-            
-            let total = pagoPorMovimiento + sueldoFijo;
-            
-            // Puntualidad y Asistencia
-            if (document.getElementById('chkPuntualidad')?.checked) {
-                total += 250;
-            }
-            
-            // Bono No Descanso
-            if (document.getElementById('chkNoDescanso')?.checked) {
-                total += 500;
-            }
-            
-            // Complemento viajes
-            if (document.getElementById('chkComplemento')?.checked) {
-                const selectComplemento = document.getElementById('selectComplemento');
-                if (selectComplemento && selectComplemento.value) {
-                    const fechaSelect = selectComplemento.value;
-                    const det = detallesPorDia[fechaSelect];
-                    if (det) {
-                        const faltantes = 5 - det.cargados;
-                        total += faltantes * 200;
-                    }
-                }
-            }
-            
-            // Otros bonos
-            const otrosBonos = parseInt(document.getElementById('otrosBonos')?.value) || 0;
-            total += otrosBonos;
-            
-            document.getElementById('totalPagar').textContent = '$' + total.toLocaleString();
-        }
-        
-        function printRecibo() {
-            window.print();
-        }
-        
-        function closeRecibo() {
-            document.getElementById('reciboModal').classList.remove('active');
         }
     </script>
 </body>
