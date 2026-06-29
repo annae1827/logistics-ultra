@@ -332,9 +332,52 @@
     </div>
     
     <div class="container">
+        <!-- FILTROS -->
+        <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 15px;">
+                <div>
+                    <label style="font-weight: 600; font-size: 12px; color: #666;">📅 AÑO</label>
+                    <select id="filtroAno" onchange="aplicarFiltros()" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                        <option value="">Todos</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="font-weight: 600; font-size: 12px; color: #666;">📆 MES</label>
+                    <select id="filtroMes" onchange="aplicarFiltros()" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                        <option value="">Todos</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="font-weight: 600; font-size: 12px; color: #666;">📅 DÍA</label>
+                    <select id="filtroDia" onchange="aplicarFiltros()" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                        <option value="">Todos</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="font-weight: 600; font-size: 12px; color: #666;">🕐 TURNO</label>
+                    <select id="filtroTurno" onchange="aplicarFiltros()" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                        <option value="">Todos</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="font-weight: 600; font-size: 12px; color: #666;">👨‍💼 COORDINADOR</label>
+                    <select id="filtroCoordinador" onchange="aplicarFiltros()" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                        <option value="">Todos</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="font-weight: 600; font-size: 12px; color: #666;">👤 OPERADOR</label>
+                    <select id="filtroOperador" onchange="aplicarFiltros()" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                        <option value="">Todos</option>
+                    </select>
+                </div>
+            </div>
+            <button onclick="limpiarFiltros()" style="padding: 8px 16px; background: #999; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">🔄 Limpiar Filtros</button>
+        </div>
         <!-- TABS NAVEGACIÓN -->
         <div class="tabs-nav">
             <button class="tab-btn active" onclick="switchTab('resumen')">📈 RESUMEN</button>
+            <button class="tab-btn" onclick="switchTab('coordinadores')">👨‍💼 COORDINADORES</button>
             <button class="tab-btn" onclick="switchTab('operadores')">👥 OPERADORES</button>
             <button class="tab-btn" onclick="switchTab('turnos')">🕐 TURNOS</button>
             <button class="tab-btn" onclick="switchTab('dias')">📅 DÍAS</button>
@@ -391,7 +434,28 @@
             </div>
         </div>
         
-        <!-- TAB: OPERADORES -->
+        <!-- TAB: COORDINADORES -->
+        <div id="coordinadores" class="tab-content">
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>👨‍💼 Coordinador</th>
+                            <th>📦 Cargados</th>
+                            <th>🚫 Vacíos</th>
+                            <th>✓ Asistencias</th>
+                            <th>✗ Faltas</th>
+                            <th>👥 Operadores Únicos</th>
+                            <th>🕐 Turnos</th>
+                            <th>📊 Promedio Cargados/Op</th>
+                        </tr>
+                    </thead>
+                    <tbody id="coordinadoresTable">
+                        <tr><td colspan="8" class="no-data">Cargando datos...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
         <div id="operadores" class="tab-content">
             <div class="table-wrapper">
                 <table>
@@ -500,8 +564,20 @@
     </div>
     
     <script>
-        let datos = [];
+        // URL CSV - CAMBIAR AQUÍ CON TU URL GOOGLE SHEETS
+        const URL_CSV = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTE1ZJZ8PzqGMNdj0MLHbfmcFQngQlP0PQVmK_FFTfI9Kmzk3EO8EWAAb6T4d-oCTPrEThpf-g8Roq3/pub?gid=0&single=true&output=csv';
+        
+        let datosOriginal = [];
+        let datosFiltrados = [];
         let dataProcessed = {};
+        let filtros = {
+            ano: '',
+            mes: '',
+            dia: '',
+            turno: '',
+            coordinador: '',
+            operador: ''
+        };
         
         // Cargar datos automáticamente
         window.addEventListener('load', () => {
@@ -509,29 +585,138 @@
         });
         
         function loadData() {
-            // Simulamos carga de CSV - en producción leerías desde Google Sheets
-            // Por ahora usamos datos de ejemplo o cargamos desde file input
-            const exampleData = `Operación,Coordinador,Fecha,Turno,Operador,Estatus,Unidad,M Cargados,M Vacíos,Entrada,Salida,Comentario
-Alen IP,Abdiel Garcia,2026-06-12,07:00-19:00,Primitivo Zavala,asistió,11001,5,3,7:50,19:00,Se recibe 11001
-Alen IP,Abdiel Garcia,2026-06-12,07:00-19:00,Daniel Zavala,asistió,105,0,1,7:50,19:00,No hubo movimientos
-Alen IP,Abdiel Garcia,2026-06-12,07:00-19:00,Jorge Castañeda,asistió,750,2,2,8:50,19:00,Unidad 750
-Alen IP,Manolo Martínez,2026-06-12,19:00-07:00,Edgar Vargas,falta,610,0,0,,,
-Alen IP,Manolo Martínez,2026-06-12,19:00-07:00,Alejandro Casas,asistió,9002,4,4,19:20,7:00,Espera de rampa`;
+            fetch(URL_CSV)
+                .then(r => r.text())
+                .then(csv => {
+                    Papa.parse(csv, {
+                        header: true,
+                        skipEmptyLines: true,
+                        complete: (results) => {
+                            datosOriginal = results.data.filter(r => r.Operador && r.Fecha);
+                            datosFiltrados = [...datosOriginal];
+                            inicializarFiltros();
+                            processData();
+                        }
+                    });
+                })
+                .catch(e => console.error('Error cargando CSV:', e));
+        }
+        
+        function inicializarFiltros() {
+            const anos = new Set();
+            const meses = new Set();
+            const dias = new Set();
+            const turnos = new Set();
+            const coordinadores = new Set();
+            const operadores = new Set();
             
-            Papa.parse(exampleData, {
-                header: true,
-                skipEmptyLines: true,
-                complete: (results) => {
-                    datos = results.data;
-                    processData();
+            datosOriginal.forEach(row => {
+                if (row.Fecha) {
+                    const [ano, mes, dia] = row.Fecha.split('-');
+                    anos.add(ano);
+                    meses.add(`${ano}-${mes}`);
+                    dias.add(row.Fecha);
                 }
+                if (row.Turno) turnos.add(row.Turno);
+                if (row.Coordinador) coordinadores.add(row.Coordinador);
+                if (row.Operador) operadores.add(row.Operador);
             });
+            
+            // Llenar select de Año
+            let html = '<option value="">Todos</option>';
+            [...anos].sort().reverse().forEach(a => {
+                html += `<option value="${a}">${a}</option>`;
+            });
+            document.getElementById('filtroAno').innerHTML = html;
+            
+            // Llenar select de Turno
+            html = '<option value="">Todos</option>';
+            [...turnos].sort().forEach(t => {
+                html += `<option value="${t}">${t}</option>`;
+            });
+            document.getElementById('filtroTurno').innerHTML = html;
+            
+            // Llenar select de Coordinador
+            html = '<option value="">Todos</option>';
+            [...coordinadores].sort().forEach(c => {
+                html += `<option value="${c}">${c}</option>`;
+            });
+            document.getElementById('filtroCoordinador').innerHTML = html;
+            
+            // Llenar select de Operador
+            html = '<option value="">Todos</option>';
+            [...operadores].sort().forEach(o => {
+                html += `<option value="${o}">${o}</option>`;
+            });
+            document.getElementById('filtroOperador').innerHTML = html;
+        }
+        
+        function aplicarFiltros() {
+            filtros = {
+                ano: document.getElementById('filtroAno').value,
+                mes: document.getElementById('filtroMes').value,
+                dia: document.getElementById('filtroDia').value,
+                turno: document.getElementById('filtroTurno').value,
+                coordinador: document.getElementById('filtroCoordinador').value,
+                operador: document.getElementById('filtroOperador').value
+            };
+            
+            datosFiltrados = datosOriginal.filter(row => {
+                if (filtros.ano && !row.Fecha.startsWith(filtros.ano)) return false;
+                if (filtros.mes && !row.Fecha.startsWith(filtros.mes)) return false;
+                if (filtros.dia && row.Fecha !== filtros.dia) return false;
+                if (filtros.turno && row.Turno !== filtros.turno) return false;
+                if (filtros.coordinador && row.Coordinador !== filtros.coordinador) return false;
+                if (filtros.operador && row.Operador !== filtros.operador) return false;
+                return true;
+            });
+            
+            // Actualizar selects dependientes
+            if (filtros.ano) {
+                const meses = new Set();
+                datosFiltrados.forEach(row => {
+                    if (row.Fecha) {
+                        const [a, m] = row.Fecha.split('-');
+                        if (a === filtros.ano) meses.add(`${a}-${m}`);
+                    }
+                });
+                let html = '<option value="">Todos</option>';
+                [...meses].sort().forEach(m => {
+                    html += `<option value="${m}" ${filtros.mes === m ? 'selected' : ''}>${m}</option>`;
+                });
+                document.getElementById('filtroMes').innerHTML = html;
+                
+                const dias = new Set();
+                datosFiltrados.forEach(row => {
+                    if (row.Fecha && (!filtros.mes || row.Fecha.startsWith(filtros.mes))) {
+                        dias.add(row.Fecha);
+                    }
+                });
+                html = '<option value="">Todos</option>';
+                [...dias].sort().forEach(d => {
+                    html += `<option value="${d}" ${filtros.dia === d ? 'selected' : ''}>${d}</option>`;
+                });
+                document.getElementById('filtroDia').innerHTML = html;
+            }
+            
+            processData();
+        }
+        
+        function limpiarFiltros() {
+            document.getElementById('filtroAno').value = '';
+            document.getElementById('filtroMes').value = '';
+            document.getElementById('filtroDia').value = '';
+            document.getElementById('filtroTurno').value = '';
+            document.getElementById('filtroCoordinador').value = '';
+            document.getElementById('filtroOperador').value = '';
+            aplicarFiltros();
         }
         
         function processData() {
             dataProcessed = {
                 porFecha: {},
                 porOperador: {},
+                porCoordinador: {},
                 porTurno: {},
                 total: {
                     cargados: 0,
@@ -541,7 +726,7 @@ Alen IP,Manolo Martínez,2026-06-12,19:00-07:00,Alejandro Casas,asistió,9002,4,
                 }
             };
             
-            datos.forEach(row => {
+            datosFiltrados.forEach(row => {
                 if (!row.Operador || !row.Fecha) return;
                 
                 const cargados = parseInt(row['M Cargados']) || 0;
@@ -549,18 +734,17 @@ Alen IP,Manolo Martínez,2026-06-12,19:00-07:00,Alejandro Casas,asistió,9002,4,
                 const fecha = row.Fecha;
                 const turno = row.Turno;
                 const operador = row.Operador;
+                const coordinador = row.Coordinador || 'Sin Asignar';
                 const estatus = row.Estatus.toLowerCase();
                 
                 dataProcessed.total.cargados += cargados;
                 dataProcessed.total.vacios += vacios;
                 
                 if (estatus.includes('asist') || estatus.includes('si')) dataProcessed.total.asistencias++;
-                if (estatus.includes('falta')) dataProcessed.total.faltas++;
+                if (estatus.includes('falta') || estatus.includes('no asist')) dataProcessed.total.faltas++;
                 
                 // Por fecha
-                if (!dataProcessed.porFecha[fecha]) {
-                    dataProcessed.porFecha[fecha] = {};
-                }
+                if (!dataProcessed.porFecha[fecha]) dataProcessed.porFecha[fecha] = {};
                 if (!dataProcessed.porFecha[fecha][turno]) {
                     dataProcessed.porFecha[fecha][turno] = { cargados: 0, vacios: 0, asistencias: 0, faltas: 0, registros: 0 };
                 }
@@ -568,7 +752,7 @@ Alen IP,Manolo Martínez,2026-06-12,19:00-07:00,Alejandro Casas,asistió,9002,4,
                 dataProcessed.porFecha[fecha][turno].vacios += vacios;
                 dataProcessed.porFecha[fecha][turno].registros++;
                 if (estatus.includes('asist') || estatus.includes('si')) dataProcessed.porFecha[fecha][turno].asistencias++;
-                if (estatus.includes('falta')) dataProcessed.porFecha[fecha][turno].faltas++;
+                if (estatus.includes('falta') || estatus.includes('no asist')) dataProcessed.porFecha[fecha][turno].faltas++;
                 
                 // Por operador
                 if (!dataProcessed.porOperador[operador]) {
@@ -578,7 +762,18 @@ Alen IP,Manolo Martínez,2026-06-12,19:00-07:00,Alejandro Casas,asistió,9002,4,
                 dataProcessed.porOperador[operador].vacios += vacios;
                 dataProcessed.porOperador[operador].turnos.add(turno);
                 if (estatus.includes('asist') || estatus.includes('si')) dataProcessed.porOperador[operador].asistencias++;
-                if (estatus.includes('falta')) dataProcessed.porOperador[operador].faltas++;
+                if (estatus.includes('falta') || estatus.includes('no asist')) dataProcessed.porOperador[operador].faltas++;
+                
+                // Por coordinador
+                if (!dataProcessed.porCoordinador[coordinador]) {
+                    dataProcessed.porCoordinador[coordinador] = { cargados: 0, vacios: 0, asistencias: 0, faltas: 0, operadores: new Set(), turnos: new Set() };
+                }
+                dataProcessed.porCoordinador[coordinador].cargados += cargados;
+                dataProcessed.porCoordinador[coordinador].vacios += vacios;
+                dataProcessed.porCoordinador[coordinador].operadores.add(operador);
+                dataProcessed.porCoordinador[coordinador].turnos.add(turno);
+                if (estatus.includes('asist') || estatus.includes('si')) dataProcessed.porCoordinador[coordinador].asistencias++;
+                if (estatus.includes('falta') || estatus.includes('no asist')) dataProcessed.porCoordinador[coordinador].faltas++;
                 
                 // Por turno
                 if (!dataProcessed.porTurno[turno]) {
@@ -589,7 +784,7 @@ Alen IP,Manolo Martínez,2026-06-12,19:00-07:00,Alejandro Casas,asistió,9002,4,
                 dataProcessed.porTurno[turno].operadores.add(operador);
                 dataProcessed.porTurno[turno].fechas.add(fecha);
                 if (estatus.includes('asist') || estatus.includes('si')) dataProcessed.porTurno[turno].asistencias++;
-                if (estatus.includes('falta')) dataProcessed.porTurno[turno].faltas++;
+                if (estatus.includes('falta') || estatus.includes('no asist')) dataProcessed.porTurno[turno].faltas++;
             });
             
             updateUI();
@@ -626,7 +821,23 @@ Alen IP,Manolo Martínez,2026-06-12,19:00-07:00,Alejandro Casas,asistió,9002,4,
             });
             document.getElementById('resumenTable').innerHTML = html || '<tr><td colspan="7" class="no-data">Sin datos</td></tr>';
             
-            // Tabla Operadores
+            // Tabla Coordinadores
+            html = '';
+            Object.keys(dataProcessed.porCoordinador).sort().forEach(coord => {
+                const d = dataProcessed.porCoordinador[coord];
+                const promedio = d.operadores.size > 0 ? (d.cargados / d.operadores.size).toFixed(1) : 0;
+                html += `<tr>
+                    <td>${coord}</td>
+                    <td class="verde">${d.cargados}</td>
+                    <td class="rojo">${d.vacios}</td>
+                    <td>${d.asistencias}</td>
+                    <td>${d.faltas}</td>
+                    <td>${d.operadores.size}</td>
+                    <td>${d.turnos.size}</td>
+                    <td>${promedio}</td>
+                </tr>`;
+            });
+            document.getElementById('coordinadoresTable').innerHTML = html || '<tr><td colspan="8" class="no-data">Sin datos</td></tr>';
             html = '';
             Object.keys(dataProcessed.porOperador).sort().forEach(op => {
                 const d = dataProcessed.porOperador[op];
@@ -693,12 +904,12 @@ Alen IP,Manolo Martínez,2026-06-12,19:00-07:00,Alejandro Casas,asistió,9002,4,
             
             // Tabla Detalle
             html = '';
-            datos.forEach(row => {
+            datosFiltrados.forEach(row => {
                 if (!row.Operador) return;
                 const estatus = row.Estatus;
                 const badge = estatus.toLowerCase().includes('asist') || estatus.toLowerCase().includes('si')
                     ? `<span class="badge badge-presente">✓ ${estatus}</span>`
-                    : estatus.toLowerCase().includes('falta')
+                    : estatus.toLowerCase().includes('falta') || estatus.toLowerCase().includes('no asist')
                     ? `<span class="badge badge-falta">✗ ${estatus}</span>`
                     : `<span class="badge badge-descanso">⚪ ${estatus}</span>`;
                 
@@ -713,7 +924,7 @@ Alen IP,Manolo Martínez,2026-06-12,19:00-07:00,Alejandro Casas,asistió,9002,4,
                     <td>${row.Entrada || '-'} / ${row.Salida || '-'}</td>
                 </tr>`;
             });
-            document.getElementById('detalleTable').innerHTML = html || '<tr><td colspan="8" class="no-data">Sin datos</td></tr>';
+            document.getElementById('detalleTable').innerHTML = html || '<tr><td colspan="8" class="no-data">Sin datos con filtros actuales</td></tr>';
             
             // Menú Recibos
             let menuHtml = '';
@@ -740,43 +951,214 @@ Alen IP,Manolo Martínez,2026-06-12,19:00-07:00,Alejandro Casas,asistió,9002,4,
             const d = dataProcessed.porOperador[operador];
             if (!d) return;
             
+            // Obtener detalles por día
+            const detallesPorDia = {};
+            datosFiltrados.forEach(row => {
+                if (row.Operador !== operador) return;
+                const fecha = row.Fecha;
+                const cargados = parseInt(row['M Cargados']) || 0;
+                const estatus = row.Estatus.toLowerCase();
+                const asistio = estatus.includes('asist') || estatus.includes('si');
+                
+                if (!detallesPorDia[fecha]) {
+                    detallesPorDia[fecha] = { cargados: 0, asistio: false };
+                }
+                detallesPorDia[fecha].cargados = Math.max(detallesPorDia[fecha].cargados, cargados);
+                detallesPorDia[fecha].asistio = detallesPorDia[fecha].asistio || asistio;
+            });
+            
+            const diasTrabajados = Object.keys(detallesPorDia).length;
+            const totalCargados = d.cargados;
+            const pagoPorMovimiento = totalCargados * 200;
+            const sueldoFijo = diasTrabajados * 362.50;
+            
+            // Días que necesitan complemento (asistieron pero <5 movimientos)
+            const diasComplemento = Object.entries(detallesPorDia)
+                .filter(([fecha, det]) => det.asistio && det.cargados > 0 && det.cargados < 5)
+                .map(([fecha, det]) => ({ fecha, cargados: det.cargados, faltantes: 5 - det.cargados }));
+            
+            let htmlDias = '';
+            Object.keys(detallesPorDia).sort().forEach(fecha => {
+                const det = detallesPorDia[fecha];
+                const badge = det.asistio ? '✓ Asistió' : '✗ Falta';
+                const estilo = det.asistio ? 'color: #2e7d32;' : 'color: #c62828;';
+                htmlDias += `<tr>
+                    <td>${fecha}</td>
+                    <td style="${estilo} font-weight: 600;">${det.cargados}</td>
+                    <td>${badge}</td>
+                </tr>`;
+            });
+            
+            let htmlComplemento = '<option value="">Ninguno</option>';
+            diasComplemento.forEach(dia => {
+                htmlComplemento += `<option value="${dia.fecha}">${dia.fecha}: ${dia.cargados} movimientos → +${dia.faltantes} ($${dia.faltantes * 200})</option>`;
+            });
+            
             const html = `
                 <div class="recibo-header">
                     <div class="recibo-logo">🚛</div>
-                    <div class="recibo-title">RECIBO DE NÓMINA</div>
+                    <div class="recibo-title">RECIBO DE NÓMINA - ALEN IP</div>
                     <div style="font-size: 13px; color: #666;">Operador: <strong>${operador}</strong></div>
+                    <div style="font-size: 12px; color: #999; margin-top: 5px;">Semana: Viernes a Jueves</div>
                 </div>
                 
-                <div>
+                <div style="margin-bottom: 20px; border-bottom: 1px solid #ddd; padding-bottom: 15px;">
+                    <div style="font-weight: 600; margin-bottom: 10px; color: #2d5a3d;">📅 MOVIMIENTOS POR DÍA</div>
+                    <table style="width: 100%; font-size: 12px;">
+                        <tr style="background: #f5f5f5;">
+                            <th style="padding: 8px; text-align: left; border-bottom: 1px solid #ddd;">Fecha</th>
+                            <th style="padding: 8px; text-align: center; border-bottom: 1px solid #ddd;">Cargados</th>
+                            <th style="padding: 8px; text-align: center; border-bottom: 1px solid #ddd;">Estado</th>
+                        </tr>
+                        ${htmlDias}
+                    </table>
+                    <div style="margin-top: 10px; padding: 10px; background: #f9f9f9; border-radius: 4px; font-size: 12px;">
+                        <strong>Días Trabajados:</strong> ${diasTrabajados} | <strong>Total Movimientos:</strong> ${totalCargados}
+                    </div>
+                </div>
+                
+                <div style="margin-bottom: 20px;">
+                    <div style="font-weight: 600; margin-bottom: 10px; color: #2d5a3d;">💰 CÁLCULO DE NÓMINA</div>
+                    
                     <div class="recibo-row">
                         <span>📦 Movimientos Cargados</span>
-                        <span><strong>${d.cargados}</strong></span>
+                        <span>${totalCargados} × $200</span>
                     </div>
+                    <div class="recibo-row" style="color: #2d5a3d; font-weight: 600; border-bottom: 1px solid #ddd; padding-bottom: 10px;">
+                        <span>Pago por Movimientos</span>
+                        <span>$${pagoPorMovimiento.toLocaleString()}</span>
+                    </div>
+                    
                     <div class="recibo-row">
-                        <span>🚫 Movimientos Vacíos</span>
-                        <span><strong>${d.vacios}</strong></span>
+                        <span>💼 Sueldo Fijo Base</span>
+                        <span>${diasTrabajados} días × $362.50</span>
                     </div>
-                    <div class="recibo-row">
-                        <span>✓ Total Asistencias</span>
-                        <span><strong>${d.asistencias}</strong></span>
+                    <div class="recibo-row" style="color: #2d5a3d; font-weight: 600; border-bottom: 1px solid #ddd; padding-bottom: 10px;">
+                        <span></span>
+                        <span>$${sueldoFijo.toLocaleString()}</span>
                     </div>
-                    <div class="recibo-row">
-                        <span>✗ Total Faltas</span>
-                        <span><strong>${d.faltas}</strong></span>
+                </div>
+                
+                <div style="margin-bottom: 20px; padding: 15px; background: #f0f8f5; border-radius: 4px;">
+                    <div style="font-weight: 600; margin-bottom: 10px; color: #2d5a3d;">🎯 INCENTIVOS</div>
+                    
+                    <div style="margin-bottom: 12px;">
+                        <label style="display: flex; align-items: center; gap: 10px;">
+                            <input type="checkbox" id="chkPuntualidad" onchange="actualizarRecibo('${operador}')">
+                            <span>✓ Puntualidad y Asistencia: <strong>+$250</strong></span>
+                        </label>
                     </div>
-                    <div class="recibo-row">
-                        <span>🕐 Turnos Trabajados</span>
-                        <span><strong>${d.turnos.size}</strong></span>
+                    
+                    ${d.asistencias === 7 ? `
+                    <div style="margin-bottom: 12px;">
+                        <label style="display: flex; align-items: center; gap: 10px;">
+                            <input type="checkbox" id="chkNoDescanso" onchange="actualizarRecibo('${operador}')" checked>
+                            <span>🎁 Bono No Descanso (7 días): <strong>+$500</strong></span>
+                        </label>
                     </div>
-                    <div class="recibo-row total">
-                        <span>💰 TOTAL MOVIMIENTOS</span>
-                        <span>${d.cargados}</span>
+                    ` : ''}
+                    
+                    ${diasComplemento.length > 0 ? `
+                    <div style="margin-bottom: 12px;">
+                        <label style="display: block; margin-bottom: 5px;">
+                            <input type="checkbox" id="chkComplemento" onchange="actualizarRecibo('${operador}')">
+                            <span>✏️ Completar Viajes (Días <5 movimientos):</span>
+                        </label>
+                        <select id="selectComplemento" onchange="actualizarRecibo('${operador}')" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; margin-top: 5px;">
+                            ${htmlComplemento}
+                        </select>
                     </div>
+                    ` : ''}
+                    
+                    <div style="margin-bottom: 12px;">
+                        <label style="display: block; margin-bottom: 5px;">
+                            <span>🤝 Otros Bonos / Apoyo Coordinación:</span>
+                        </label>
+                        <input type="number" id="otrosBonos" value="0" min="0" onchange="actualizarRecibo('${operador}')" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" placeholder="Ingresa monto">
+                    </div>
+                </div>
+                
+                <div id="resumenTotal" style="padding: 15px; background: #e8f5e9; border-radius: 4px; border: 2px solid #2d5a3d;">
+                    <div class="recibo-row total" style="margin: 0; border: none; padding: 0;">
+                        <span>💰 TOTAL A PAGAR</span>
+                        <span id="totalPagar">$${(pagoPorMovimiento + sueldoFijo).toLocaleString()}</span>
+                    </div>
+                </div>
+                
+                <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #ddd; font-size: 12px; color: #999; text-align: center;">
+                    <p>Recibo generado: ${new Date().toLocaleDateString('es-MX')}</p>
+                    <p style="margin-top: 8px;">Este recibo es válido para trámites administrativos de nómina</p>
+                </div>
+                
+                <div style="margin-top: 15px; display: flex; gap: 10px; justify-content: center;">
+                    <button onclick="printRecibo()" style="padding: 10px 20px; background: #2d5a3d; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">🖨️ Imprimir</button>
+                    <button onclick="closeRecibo()" style="padding: 10px 20px; background: #999; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">✕ Cerrar</button>
                 </div>
             `;
             
             document.getElementById('reciboContent').innerHTML = html;
             document.getElementById('reciboModal').classList.add('active');
+            
+            // Calcular total automáticamente
+            actualizarRecibo(operador);
+        }
+        
+        function actualizarRecibo(operador) {
+            const d = dataProcessed.porOperador[operador];
+            const detallesPorDia = {};
+            datosFiltrados.forEach(row => {
+                if (row.Operador !== operador) return;
+                const fecha = row.Fecha;
+                const cargados = parseInt(row['M Cargados']) || 0;
+                const estatus = row.Estatus.toLowerCase();
+                const asistio = estatus.includes('asist') || estatus.includes('si');
+                
+                if (!detallesPorDia[fecha]) {
+                    detallesPorDia[fecha] = { cargados: 0, asistio: false };
+                }
+                detallesPorDia[fecha].cargados = Math.max(detallesPorDia[fecha].cargados, cargados);
+                detallesPorDia[fecha].asistio = detallesPorDia[fecha].asistio || asistio;
+            });
+            
+            const diasTrabajados = Object.keys(detallesPorDia).length;
+            const totalCargados = d.cargados;
+            const pagoPorMovimiento = totalCargados * 200;
+            const sueldoFijo = diasTrabajados * 362.50;
+            
+            let total = pagoPorMovimiento + sueldoFijo;
+            
+            // Puntualidad y Asistencia
+            if (document.getElementById('chkPuntualidad')?.checked) {
+                total += 250;
+            }
+            
+            // Bono No Descanso
+            if (document.getElementById('chkNoDescanso')?.checked) {
+                total += 500;
+            }
+            
+            // Complemento viajes
+            if (document.getElementById('chkComplemento')?.checked) {
+                const selectComplemento = document.getElementById('selectComplemento');
+                if (selectComplemento && selectComplemento.value) {
+                    const fechaSelect = selectComplemento.value;
+                    const det = detallesPorDia[fechaSelect];
+                    if (det) {
+                        const faltantes = 5 - det.cargados;
+                        total += faltantes * 200;
+                    }
+                }
+            }
+            
+            // Otros bonos
+            const otrosBonos = parseInt(document.getElementById('otrosBonos')?.value) || 0;
+            total += otrosBonos;
+            
+            document.getElementById('totalPagar').textContent = '$' + total.toLocaleString();
+        }
+        
+        function printRecibo() {
+            window.print();
         }
         
         function closeRecibo() {
