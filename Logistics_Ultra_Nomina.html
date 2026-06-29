@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Logistics Ultra - Nómina de Operadores</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #00897B 0%, #004d40 100%);
+            color: white;
+            padding: 25px 30px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .header-left h1 {
+            font-size: 28px;
+            margin-bottom: 5px;
+        }
+        
+        .header-left .subtitle {
+            font-size: 13px;
+            opacity: 0.9;
+        }
+        
+        .header-right {
+            text-align: right;
+            font-size: 14px;
+        }
+        
+        .container {
+            max-width: 1600px;
+            margin: 20px auto;
+            padding: 0 20px;
+        }
+        
+        .controls {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        
+        .control-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .control-group label {
+            font-weight: 600;
+            color: #2D3748;
+            font-size: 14px;
+        }
+        
+        input[type="text"],
+        input[type="file"] {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+        
+        input[type="text"] {
+            width: 450px;
+        }
+        
+        button {
+            padding: 8px 16px;
+            background: #00897B;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: background 0.2s;
+        }
+        
+        button:hover {
+            background: #00695c;
+        }
+        
+        button.secondary {
+            background: #666;
+        }
+        
+        button.secondary:hover {
+            background: #555;
+        }
+        
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border-left: 4px solid #00897B;
+        }
+        
+        .card-label {
+            font-size: 12px;
+            color: #999;
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+        
+        .card-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #00897B;
+        }
+        
+        .message {
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        
+        .message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .message.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        
+        .table-wrapper {
+            background: white;
+            border-radius: 8px;
+            overflow-x: auto;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        
+        thead {
+            background: #f5f5f5;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        
+        th {
+            padding: 12px 8px;
+            text-align: center;
+            font-weight: 600;
+            color: #2D3748;
+            border-bottom: 2px solid #00897B;
+            white-space: nowrap;
+        }
+        
+        th:first-child {
+            text-align: left;
+            position: sticky;
+            left: 0;
+            background: #f5f5f5;
+            z-index: 11;
+        }
+        
+        td {
+            padding: 10px 8px;
+            border-bottom: 1px solid #eee;
+            text-align: center;
+        }
+        
+        td:first-child {
+            text-align: left;
+            position: sticky;
+            left: 0;
+            background: white;
+            font-weight: 500;
+            z-index: 9;
+        }
+        
+        tbody tr:hover td:first-child {
+            background: #f9f9f9;
+        }
+        
+        tbody tr:hover {
+            background: #f9f9f9;
+        }
+        
+        .data-cell {
+            background: white;
+            color: #333;
+        }
+        
+        .data-cell.zero {
+            color: #ccc;
+        }
+        
+        .total-row {
+            background: #f0f0f0;
+            font-weight: 600;
+            border-top: 2px solid #00897B;
+        }
+        
+        .total-row td {
+            padding: 12px 8px;
+        }
+        
+        .money {
+            color: #00897B;
+            font-weight: 600;
+        }
+        
+        .si-badge {
+            background: #c8e6c9;
+            color: #2e7d32;
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-weight: 600;
+            font-size: 12px;
+        }
+        
+        .no-badge {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-weight: 600;
+            font-size: 12px;
+        }
+        
+        .recibo-container {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .recibo-container.active {
+            display: flex;
+        }
+        
+        .recibo {
+            background: white;
+            width: 100%;
+            max-width: 600px;
+            border-radius: 8px;
+            padding: 40px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        
+        .recibo-header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #00897B;
+            padding-bottom: 20px;
+        }
+        
+        .recibo-logo {
+            font-size: 24px;
+            font-weight: bold;
+            color: #00897B;
+            margin-bottom: 10px;
+        }
+        
+        .recibo-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #2D3748;
+            margin-bottom: 10px;
+        }
+        
+        .recibo-dates {
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .recibo-body {
+            margin-bottom: 30px;
+        }
+        
+        .recibo-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+        
+        .recibo-row.header {
+            font-weight: 600;
+            color: #2D3748;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .recibo-row.total {
+            font-weight: bold;
+            font-size: 16px;
+            color: #00897B;
+            border-top: 2px solid #00897B;
+            padding-top: 15px;
+            margin-top: 20px;
+        }
+        
+        .recibo-footer {
+            text-align: center;
+            font-size: 12px;
+            color: #999;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+        }
+        
+        .recibo-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        
+        .recibo-actions button {
+            padding: 10px 20px;
+        }
+        
+        .close-recibo {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: #ddd;
+            border: none;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 18px;
+        }
+        
+        .close-recibo:hover {
+            background: #ccc;
+        }
+        
+        @media print {
+            body {
+                background: white;
+            }
+            .controls, .summary-cards, .recibo-container, .recibo-actions, .close-recibo {
+                display: none !important;
+            }
+            .recibo {
+                box-shadow: none;
+                padding: 0;
+                max-width: 100%;
+                max-height: 100%;
+            }
+        }
+        
+        .no-data {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-left">
+            <h1>🚚 LOGISTICS ULTRA</h1>
+            <div class="subtitle">Nómina de Operadores - Movimientos Cargados</div>
+        </div>
+        <div class="header-right">
+            <div id="periodInfo"></div>
+        </div>
+    </div>
+    
+    <div class="container">
+        <div class="controls">
+            <div class="control-group">
+                <label for="csvUrl">URL CSV Google Sheets:</label>
+                <input type="text" id="csvUrl" placeholder="https://docs.google.com/spreadsheets/d/... (export?format=csv)">
+            </div>
+            <button onclick="loadFromGoogleSheets()">Cargar desde URL</button>
+        </div>
+        
+        <div class="controls">
+            <div class="control-group">
+                <label for="excelFile">O carga archivo Excel/CSV:</label>
+                <input type="file" id="excelFile" accept=".xlsx,.xls,.csv">
+            </div>
+            <button onclick="loadFromFile()">Cargar archivo</button>
+        </div>
+        
+        <div id="message"></div>
+        
+        <div class="summary-cards">
+            <div class="card">
+                <div class="card-label">Total Movimientos</div>
+                <div class="card-value" id="totalMovimientos">0</div>
+            </div>
+            <div class="card">
+                <div class="card-label">Total Nómina</div>
+                <div class="card-value money" id="totalNomina">$0.00</div>
+            </div>
+            <div class="card">
+                <div class="card-label">Total Bonos</div>
+                <div class="card-value money" id="totalBonos">$0.00</div>
+            </div>
+            <div class="card">
+                <div class="card-label">Total Complementos</div>
+                <div class="card-value money" id="totalComplementos">$0.00</div>
+            </div>
+        </div>
+        
+        <div class="table-wrapper">
+            <table id="nominaTable">
+                <thead>
+                    <tr>
+                        <th style="min-width: 180px;">Operador IP</th>
+                        <th>Lun</th>
+                        <th>Mar</th>
+                        <th>Mié</th>
+                        <th>Jue</th>
+                        <th>Vie</th>
+                        <th>Sáb</th>
+                        <th>Dom</th>
+                        <th style="min-width: 70px;">Suma Total</th>
+                        <th style="min-width: 90px;">Monto Base</th>
+                        <th>Asistencia Completa</th>
+                        <th>Bono No Descanso</th>
+                        <th>Complementar</th>
+                        <th style="min-width: 90px;">Monto Complementar</th>
+                        <th style="min-width: 90px;">TOTAL NÓMINA</th>
+                        <th style="min-width: 60px;">Acción</th>
+                    </tr>
+                </thead>
+                <tbody id="nominaBody">
+                    <tr>
+                        <td colspan="16" class="no-data">Carga datos para ver nómina</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <!-- MODAL RECIBO -->
+    <div class="recibo-container" id="reciboContainer">
+        <button class="close-recibo" onclick="closeRecibo()">✕</button>
+        <div class="recibo" id="reciboContent"></div>
+    </div>
+    
+    <script>
+        const PAGO_POR_MOVIMIENTO = 200;
+        const BONO_NO_DESCANSO = 500;
+        const MONTO_COMPLEMENTO = 1000;
+        const MINIMO_MOVIMIENTOS_SIN_COMPLEMENTO = 5;
+        
+        let rawData = [];
+        let operadores = {};
+        let periodFechas = {};
+        
+        function showMessage(message, type = 'info') {
+            const div = document.getElementById('message');
+            div.className = `message ${type}`;
+            div.textContent = message;
+            setTimeout(() => div.textContent = '', 5000);
+        }
+        
+        function loadFromGoogleSheets() {
+            const url = document.getElementById('csvUrl').value.trim();
+            if (!url) {
+                showMessage('Ingresa una URL válida', 'error');
+                return;
+            }
+            
+            fetch(url)
+                .then(r => r.text())
+                .then(csv => {
+                    rawData = Papa.parse(csv).data.filter(row => row.some(cell => cell));
+                    processData();
+                    showMessage('✓ Datos cargados correctamente', 'success');
+                })
+                .catch(e => showMessage(`Error: ${e.message}`, 'error'));
+        }
+        
+        function loadFromFile() {
+            const file = document.getElementById('excelFile').files[0];
+            if (!file) {
+                showMessage('Selecciona un archivo', 'error');
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                Papa.parse(e.target.result, {
+                    complete: (results) => {
+                        rawData = results.data.filter(row => row.some(cell => cell));
+                        processData();
+                        showMessage('✓ Archivo cargado correctamente', 'success');
+                    },
+                    error: (err) => showMessage(`Error: ${err.message}`, 'error')
+                });
+            };
+            reader.readAsText(file);
+        }
+        
+        function processData() {
+            if (rawData.length < 2) {
+                showMessage('El archivo no tiene datos válidos', 'error');
+                return;
+            }
+            
+            operadores = {};
+            periodFechas = {};
+            
+            const headers = rawData[0].map(h => h.toString().toLowerCase().trim());
+            const operadorIdx = headers.findIndex(h => h.includes('operador'));
+            
+            if (operadorIdx === -1) {
+                showMessage('No se encontró columna de operador', 'error');
+                return;
+            }
+            
+            // Extraer fechas de headers (0-7 son fechas en formato DD/MM/YY)
+            const dateHeaders = [];
+            for (let i = 1; i < 8 && i < headers.length; i++) {
+                if (headers[i].match(/\d{1,2}\/\d{1,2}\/\d{2}/)) {
+                    dateHeaders.push(i);
+                }
+            }
+            
+            if (dateHeaders.length === 0) {
+                showMessage('No se encontraron columnas de fecha (DD/MM/YY)', 'error');
+                return;
+            }
+            
+            // Procesar datos
+            for (let i = 1; i < rawData.length; i++) {
+                const row = rawData[i];
+                if (!row[operadorIdx] || !row[operadorIdx].toString().trim()) continue;
+                
+                const operador = row[operadorIdx].toString().trim();
+                operadores[operador] = {
+                    nombre: operador,
+                    movimientos: {}
+                };
+                
+                // Llenar movimientos por día
+                dateHeaders.forEach((idx, dayIdx) => {
+                    const valor = parseInt(row[idx]) || 0;
+                    operadores[operador].movimientos[dayIdx] = valor;
+                });
+            }
+            
+            calcularNomina();
+            renderNomina();
+        }
+        
+        function calcularNomina() {
+            Object.keys(operadores).forEach(operador => {
+                const op = operadores[operador];
+                const movs = op.movimientos;
+                
+                // Contar total de movimientos
+                const sumaTotal = Object.values(movs).reduce((a, b) => a + b, 0);
+                
+                // Contar días con movimientos (asistencia)
+                const diasAsistidos = Object.values(movs).filter(m => m > 0).length;
+                const asistenciaCompleta = diasAsistidos === 7;
+                
+                // Monto base
+                const montoBase = sumaTotal * PAGO_POR_MOVIMIENTO;
+                
+                // Bono no descanso (si asiste 7 días sin descansar)
+                const bonoNoDescanso = diasAsistidos === 7 ? BONO_NO_DESCANSO : 0;
+                
+                // Complementar: días con asistencia pero <5 movimientos
+                let complementar = 0;
+                let montoComplementar = 0;
+                
+                if (asistenciaCompleta) {
+                    Object.values(movs).forEach(movs_día => {
+                        if (movs_día > 0 && movs_día < MINIMO_MOVIMIENTOS_SIN_COMPLEMENTO) {
+                            complementar++;
+                            montoComplementar += MONTO_COMPLEMENTO;
+                        }
+                    });
+                }
+                
+                // Totales
+                op.sumaTotal = sumaTotal;
+                op.montoBase = montoBase;
+                op.asistenciaCompleta = asistenciaCompleta;
+                op.bonoNoDescanso = bonoNoDescanso;
+                op.complementar = complementar;
+                op.montoComplementar = montoComplementar;
+                op.totalNomina = montoBase + bonoNoDescanso + montoComplementar;
+            });
+        }
+        
+        function renderNomina() {
+            const tbody = document.getElementById('nominaBody');
+            let html = '';
+            let totalSuma = 0, totalBase = 0, totalBonos = 0, totalComplementos = 0;
+            
+            const sorted = Object.values(operadores).sort((a, b) => 
+                b.sumaTotal - a.sumaTotal || a.nombre.localeCompare(b.nombre)
+            );
+            
+            sorted.forEach(op => {
+                const movs = op.movimientos;
+                const diasCells = [];
+                for (let i = 0; i < 7; i++) {
+                    const mov = movs[i] || 0;
+                    diasCells.push(`<td class="data-cell ${mov === 0 ? 'zero' : ''}">${mov || '-'}</td>`);
+                }
+                
+                const asistBadge = op.asistenciaCompleta ? 
+                    '<span class="si-badge">SÍ</span>' : 
+                    '<span class="no-badge">NO</span>';
+                
+                const bonoDisplay = op.bonoNoDescanso > 0 ? 
+                    `<span style="color: #00897B; font-weight: 600;">$${op.bonoNoDescanso.toLocaleString()}</span>` : 
+                    '-';
+                
+                html += `
+                    <tr>
+                        <td><strong>${op.nombre}</strong></td>
+                        ${diasCells.join('')}
+                        <td><strong>${op.sumaTotal}</strong></td>
+                        <td class="money">$${op.montoBase.toLocaleString()}</td>
+                        <td>${asistBadge}</td>
+                        <td>${bonoDisplay}</td>
+                        <td>${op.complementar || '-'}</td>
+                        <td class="money">${op.montoComplementar > 0 ? '$' + op.montoComplementar.toLocaleString() : '-'}</td>
+                        <td class="money"><strong>$${op.totalNomina.toLocaleString()}</strong></td>
+                        <td><button onclick="verRecibo('${op.nombre}')" style="padding: 5px 10px; font-size: 12px;">Ver Recibo</button></td>
+                    </tr>
+                `;
+                
+                totalSuma += op.sumaTotal;
+                totalBase += op.montoBase;
+                totalBonos += op.bonoNoDescanso;
+                totalComplementos += op.montoComplementar;
+            });
+            
+            // Fila total
+            html += `
+                <tr class="total-row">
+                    <td>TOTAL DIARIO</td>
+                    <td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+                    <td><strong>${totalSuma}</strong></td>
+                    <td class="money"><strong>$${totalBase.toLocaleString()}</strong></td>
+                    <td></td>
+                    <td class="money"><strong>$${totalBonos.toLocaleString()}</strong></td>
+                    <td></td>
+                    <td class="money"><strong>$${totalComplementos.toLocaleString()}</strong></td>
+                    <td class="money"><strong>$${(totalBase + totalBonos + totalComplementos).toLocaleString()}</strong></td>
+                    <td></td>
+                </tr>
+            `;
+            
+            tbody.innerHTML = html;
+            
+            // Actualizar summary cards
+            document.getElementById('totalMovimientos').textContent = totalSuma;
+            document.getElementById('totalNomina').textContent = '$' + (totalBase + totalBonos + totalComplementos).toLocaleString();
+            document.getElementById('totalBonos').textContent = '$' + totalBonos.toLocaleString();
+            document.getElementById('totalComplementos').textContent = '$' + totalComplementos.toLocaleString();
+        }
+        
+        function verRecibo(operador) {
+            const op = operadores[operador];
+            if (!op) return;
+            
+            const html = `
+                <div class="recibo-header">
+                    <div class="recibo-logo">🚚 LOGISTICS ULTRA</div>
+                    <div class="recibo-title">RECIBO DE NÓMINA</div>
+                    <div class="recibo-dates">Operador: <strong>${op.nombre}</strong></div>
+                </div>
+                
+                <div class="recibo-body">
+                    <div class="recibo-row header">
+                        <span>CONCEPTO</span>
+                        <span>CANTIDAD/MONTO</span>
+                    </div>
+                    
+                    <div class="recibo-row">
+                        <span>Movimientos Cargados</span>
+                        <span><strong>${op.sumaTotal}</strong> mov. × $${PAGO_POR_MOVIMIENTO} c/u</span>
+                    </div>
+                    
+                    <div class="recibo-row">
+                        <span>Pago Base (Movimientos)</span>
+                        <span style="color: #00897B; font-weight: 600;">$${op.montoBase.toLocaleString()}</span>
+                    </div>
+                    
+                    ${op.asistenciaCompleta ? `
+                        <div class="recibo-row">
+                            <span>✓ Asistencia Completa (7 días)</span>
+                            <span style="color: #4caf50; font-weight: 600;">Sí cumple</span>
+                        </div>
+                    ` : `
+                        <div class="recibo-row">
+                            <span>✗ Asistencia Completa (7 días)</span>
+                            <span style="color: #f44336; font-weight: 600;">Incompleta</span>
+                        </div>
+                    `}
+                    
+                    ${op.bonoNoDescanso > 0 ? `
+                        <div class="recibo-row">
+                            <span>Bono No Descanso (Asistencia 7 días)</span>
+                            <span style="color: #ff9800; font-weight: 600;">+$${op.bonoNoDescanso.toLocaleString()}</span>
+                        </div>
+                    ` : ''}
+                    
+                    ${op.complementar > 0 ? `
+                        <div class="recibo-row">
+                            <span>Complemento (${op.complementar} día${op.complementar > 1 ? 's' : ''} con &lt;5 mov.)</span>
+                            <span style="color: #2196f3; font-weight: 600;">$${op.montoComplementar.toLocaleString()}</span>
+                        </div>
+                    ` : ''}
+                    
+                    <div class="recibo-row total">
+                        <span>TOTAL A PAGAR</span>
+                        <span>$${op.totalNomina.toLocaleString()}</span>
+                    </div>
+                </div>
+                
+                <div class="recibo-footer">
+                    <p>Este recibo es válido para trámites administrativos de nómina.</p>
+                    <p style="margin-top: 10px;">Generado: ${new Date().toLocaleDateString('es-MX')}</p>
+                </div>
+                
+                <div class="recibo-actions">
+                    <button onclick="printRecibo()">🖨️ Imprimir</button>
+                    <button class="secondary" onclick="closeRecibo()">Cerrar</button>
+                </div>
+            `;
+            
+            document.getElementById('reciboContent').innerHTML = html;
+            document.getElementById('reciboContainer').classList.add('active');
+        }
+        
+        function closeRecibo() {
+            document.getElementById('reciboContainer').classList.remove('active');
+        }
+        
+        function printRecibo() {
+            window.print();
+        }
+    </script>
+</body>
+</html>
