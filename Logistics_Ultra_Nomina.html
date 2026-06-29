@@ -612,10 +612,14 @@
             
             datosOriginal.forEach(row => {
                 if (row.Fecha) {
-                    const [ano, mes, dia] = row.Fecha.split('-');
-                    anos.add(ano);
-                    meses.add(`${ano}-${mes}`);
-                    dias.add(row.Fecha);
+                    const parts = row.Fecha.split('-');
+                    if (parts.length === 3) {
+                        const ano = parts[0];
+                        const mes = parts[1];
+                        anos.add(ano);
+                        meses.add(`${ano}-${mes}`);
+                        dias.add(row.Fecha);
+                    }
                 }
                 if (row.Turno) turnos.add(row.Turno);
                 if (row.Coordinador) coordinadores.add(row.Coordinador);
@@ -628,6 +632,20 @@
                 html += `<option value="${a}">${a}</option>`;
             });
             document.getElementById('filtroAno').innerHTML = html;
+            
+            // Llenar select de Mes
+            html = '<option value="">Todos</option>';
+            [...meses].sort().reverse().forEach(m => {
+                html += `<option value="${m}">${m}</option>`;
+            });
+            document.getElementById('filtroMes').innerHTML = html;
+            
+            // Llenar select de Día
+            html = '<option value="">Todos</option>';
+            [...dias].sort().reverse().forEach(d => {
+                html += `<option value="${d}">${d}</option>`;
+            });
+            document.getElementById('filtroDia').innerHTML = html;
             
             // Llenar select de Turno
             html = '<option value="">Todos</option>';
@@ -662,42 +680,22 @@
             };
             
             datosFiltrados = datosOriginal.filter(row => {
-                if (filtros.ano && !row.Fecha.startsWith(filtros.ano)) return false;
-                if (filtros.mes && !row.Fecha.startsWith(filtros.mes)) return false;
+                // Filtro por Día (más específico)
                 if (filtros.dia && row.Fecha !== filtros.dia) return false;
+                
+                // Filtro por Mes (si no hay día específico)
+                if (!filtros.dia && filtros.mes && !row.Fecha.startsWith(filtros.mes)) return false;
+                
+                // Filtro por Año (si no hay mes ni día)
+                if (!filtros.dia && !filtros.mes && filtros.ano && !row.Fecha.startsWith(filtros.ano)) return false;
+                
+                // Otros filtros
                 if (filtros.turno && row.Turno !== filtros.turno) return false;
                 if (filtros.coordinador && row.Coordinador !== filtros.coordinador) return false;
                 if (filtros.operador && row.Operador !== filtros.operador) return false;
+                
                 return true;
             });
-            
-            // Actualizar selects dependientes
-            if (filtros.ano) {
-                const meses = new Set();
-                datosFiltrados.forEach(row => {
-                    if (row.Fecha) {
-                        const [a, m] = row.Fecha.split('-');
-                        if (a === filtros.ano) meses.add(`${a}-${m}`);
-                    }
-                });
-                let html = '<option value="">Todos</option>';
-                [...meses].sort().forEach(m => {
-                    html += `<option value="${m}" ${filtros.mes === m ? 'selected' : ''}>${m}</option>`;
-                });
-                document.getElementById('filtroMes').innerHTML = html;
-                
-                const dias = new Set();
-                datosFiltrados.forEach(row => {
-                    if (row.Fecha && (!filtros.mes || row.Fecha.startsWith(filtros.mes))) {
-                        dias.add(row.Fecha);
-                    }
-                });
-                html = '<option value="">Todos</option>';
-                [...dias].sort().forEach(d => {
-                    html += `<option value="${d}" ${filtros.dia === d ? 'selected' : ''}>${d}</option>`;
-                });
-                document.getElementById('filtroDia').innerHTML = html;
-            }
             
             processData();
         }
@@ -926,12 +924,100 @@
             });
             document.getElementById('detalleTable').innerHTML = html || '<tr><td colspan="8" class="no-data">Sin datos con filtros actuales</td></tr>';
             
-            // Menú Recibos
+            // Menú Recibos - Agrupar por semana de nómina (viernes a jueves)
             let menuHtml = '';
-            Object.keys(dataProcessed.porOperador).sort().forEach(op => {
-                menuHtml += `<button class="recibo-btn" onclick="verRecibo('${op}')">👤 ${op}</button>`;
+            const semanasNomina = {};
+            
+            // Agrupar datos por semana (viernes a jueves)
+            datosOriginal.forEach(row => {
+                if (!row.Operador || !row.Fecha) return;
+                
+                const fecha = new Date(row.Fecha + 'T00:00:00');
+                const dia = fecha.getDay(); // 0=domingo, 5=viernes, 4=jueves
+                
+                // Encontrar el viernes de la semana actual
+                let viernesAño = new Date(fecha);
+                const diasAlViernes = (dia - 5 + 7) % 7;
+                if (diasAlViernes === 0 && dia !== 5) {
+                    viernesAño.setDate(viernesAño.getDate() - 7);
+                } else {
+                    viernesAño.setDate(viernesAño.getDate() - diasAlViernes);
+                }
+                
+                const fechaViernes = viernesAño.toISOString().split('T')[0];
+                
+                if (!semanasNomina[fechaViernes]) {
+                    semanasNomina[fechaViernes] = new Set();
+                }
+                semanasNomina[fechaViernes].add(row.Operador);
             });
-            document.getElementById('reciboMenu').innerHTML = menuHtml || '<div class="no-data">Sin operadores</div>';
+            
+            // Crear tabs de semanas
+            const semanas = Object.keys(semanasNomina).sort().reverse();
+            
+            if (semanas.length > 0) {
+                menuHtml = '<div style="margin-bottom: 20px;">';
+                
+                semanas.forEach((viernes, idx) => {
+                    const juevesFecha = new Date(viernes + 'T00:00:00');
+                    juevesFecha.setDate(juevesFecha.getDate() + 6);
+                    const jueves = juevesFecha.toISOString().split('T')[0];
+                    
+                    const isActive = idx === 0 ? 'active' : '';
+                    menuHtml += `<button class="tab-btn ${isActive}" onclick="mostrarSemana('${viernes}')">
+                        📅 ${viernes} a ${jueves}
+                    </button>`;
+                });
+                
+                menuHtml += '</div>';
+                
+                // Operadores por semana
+                menuHtml += '<div id="operadoresPorSemana"></div>';
+                
+                document.getElementById('reciboMenu').innerHTML = menuHtml;
+                
+                // Mostrar primera semana
+                mostrarSemana(semanas[0]);
+            } else {
+                document.getElementById('reciboMenu').innerHTML = '<div class="no-data">No hay datos de operadores</div>';
+            }
+        }
+        
+        function mostrarSemana(viernes) {
+            const semanasNomina = {};
+            
+            datosOriginal.forEach(row => {
+                if (!row.Operador || !row.Fecha) return;
+                
+                const fecha = new Date(row.Fecha + 'T00:00:00');
+                const dia = fecha.getDay();
+                
+                let viernesAño = new Date(fecha);
+                const diasAlViernes = (dia - 5 + 7) % 7;
+                if (diasAlViernes === 0 && dia !== 5) {
+                    viernesAño.setDate(viernesAño.getDate() - 7);
+                } else {
+                    viernesAño.setDate(viernesAño.getDate() - diasAlViernes);
+                }
+                
+                const fechaViernes = viernesAño.toISOString().split('T')[0];
+                
+                if (!semanasNomina[fechaViernes]) {
+                    semanasNomina[fechaViernes] = new Set();
+                }
+                semanasNomina[fechaViernes].add(row.Operador);
+            });
+            
+            const operadores = Array.from(semanasNomina[viernes] || []).sort();
+            let html = '<div class="recibo-grid" style="margin-top: 20px;">';
+            
+            operadores.forEach(op => {
+                html += `<button class="recibo-btn" onclick="verRecibo('${op}', '${viernes}')">👤 ${op}</button>`;
+            });
+            
+            html += '</div>';
+            document.getElementById('operadoresPorSemana').innerHTML = html;
+        }
             
             // Período
             const fechas = Object.keys(dataProcessed.porFecha).sort();
@@ -947,14 +1033,27 @@
             event.target.classList.add('active');
         }
         
-        function verRecibo(operador) {
-            const d = dataProcessed.porOperador[operador];
-            if (!d) return;
+        function verRecibo(operador, viernesParam = null) {
+            // Si viene de la sección de recibos, filtrar solo esa semana
+            let datosRecibo = datosFiltrados;
+            
+            if (viernesParam) {
+                const jueves = new Date(viernesParam + 'T00:00:00');
+                jueves.setDate(jueves.getDate() + 6);
+                const fechaJueves = jueves.toISOString().split('T')[0];
+                
+                datosRecibo = datosOriginal.filter(row => {
+                    return row.Operador === operador && 
+                           row.Fecha >= viernesParam && 
+                           row.Fecha <= fechaJueves;
+                });
+            } else {
+                datosRecibo = datosRecibo.filter(row => row.Operador === operador);
+            }
             
             // Obtener detalles por día
             const detallesPorDia = {};
-            datosFiltrados.forEach(row => {
-                if (row.Operador !== operador) return;
+            datosRecibo.forEach(row => {
                 const fecha = row.Fecha;
                 const cargados = parseInt(row['M Cargados']) || 0;
                 const estatus = row.Estatus.toLowerCase();
@@ -968,7 +1067,7 @@
             });
             
             const diasTrabajados = Object.keys(detallesPorDia).length;
-            const totalCargados = d.cargados;
+            const totalCargados = Object.values(detallesPorDia).reduce((a, b) => a + b.cargados, 0);
             const pagoPorMovimiento = totalCargados * 200;
             const sueldoFijo = diasTrabajados * 362.50;
             
