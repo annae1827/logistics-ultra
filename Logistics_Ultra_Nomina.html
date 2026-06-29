@@ -142,15 +142,17 @@
         function cargarFiltros() {
             const anos = new Set(), meses = new Set(), dias = new Set(), turnos = new Set(), coords = new Set(), ops = new Set();
             datos.forEach(r => {
-                if (r.Fecha) { anos.add(r.Fecha.split('-')[0]); meses.add(r.Fecha.substring(0,7)); dias.add(r.Fecha); }
+                if (r.año) anos.add(r.año);
+                if (r.mes) meses.add(r.mes);
+                if (r.día) dias.add(r.día);
                 if (r.Turno) turnos.add(r.Turno);
                 if (r.Coordinador) coords.add(r.Coordinador);
                 if (r.Operador) ops.add(r.Operador);
             });
             
             document.getElementById('filtroAno').innerHTML = '<option value="">Todos</option>' + [...anos].sort().reverse().map(a => `<option>${a}</option>`).join('');
-            document.getElementById('filtroMes').innerHTML = '<option value="">Todos</option>' + [...meses].sort().reverse().map(m => `<option>${m}</option>`).join('');
-            document.getElementById('filtroDia').innerHTML = '<option value="">Todos</option>' + [...dias].sort().reverse().map(d => `<option>${d}</option>`).join('');
+            document.getElementById('filtroMes').innerHTML = '<option value="">Todos</option>' + [...meses].sort().map(m => `<option>${m}</option>`).join('');
+            document.getElementById('filtroDia').innerHTML = '<option value="">Todos</option>' + [...dias].sort().map(d => `<option>${d}</option>`).join('');
             document.getElementById('filtroTurno').innerHTML = '<option value="">Todos</option>' + [...turnos].sort().map(t => `<option>${t}</option>`).join('');
             document.getElementById('filtroCoordinador').innerHTML = '<option value="">Todos</option>' + [...coords].sort().map(c => `<option>${c}</option>`).join('');
             document.getElementById('filtroOperador').innerHTML = '<option value="">Todos</option>' + [...ops].sort().map(o => `<option>${o}</option>`).join('');
@@ -165,9 +167,9 @@
             const op = document.getElementById('filtroOperador').value;
             
             datosFiltrados = datos.filter(r => {
-                if (dia && r.Fecha !== dia) return false;
-                if (!dia && mes && !r.Fecha.startsWith(mes)) return false;
-                if (!dia && !mes && ano && !r.Fecha.startsWith(ano)) return false;
+                if (ano && r.año !== ano) return false;
+                if (mes && r.mes !== mes) return false;
+                if (dia && r.día !== dia) return false;
                 if (turno && r.Turno !== turno) return false;
                 if (coord && r.Coordinador !== coord) return false;
                 if (op && r.Operador !== op) return false;
@@ -278,26 +280,44 @@
             });
             document.getElementById('turnoTable').innerHTML = html || '<tr><td colspan="7" class="no-data">Sin datos</td></tr>';
             
-            // Menú Recibos - Por Semana
+            // Menú Recibos - Por Semana (Viernes a Jueves)
             const semanas = {};
+            const diasSemana = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo'];
+            
             datos.forEach(r => {
-                const fecha = new Date(r.Fecha + 'T00:00:00');
-                const dia = fecha.getDay();
-                let viernes = new Date(fecha);
-                const diasAlViernes = (dia - 5 + 7) % 7;
-                viernes.setDate(viernes.getDate() - diasAlViernes);
-                const fechaViernes = viernes.toISOString().split('T')[0];
+                const fecha = new Date(r.Fecha.split('/').reverse().join('-') + 'T00:00:00');
+                const dia = fecha.getDay(); // 0=domingo, 5=viernes
                 
-                if (!semanas[fechaViernes]) semanas[fechaViernes] = new Set();
-                semanas[fechaViernes].add(r.Operador);
+                // Calcular viernes de la semana actual (viernes a jueves)
+                let viernes = new Date(fecha);
+                const diasAlViernes = (dia + 2) % 7; // Distancia al viernes anterior
+                if (dia === 5) {
+                    // Si es viernes, es el inicio de la semana
+                } else if (dia === 6 || dia === 0 || dia === 1 || dia === 2 || dia === 3 || dia === 4) {
+                    if (dia < 5) {
+                        // Lunes a jueves: viernes anterior
+                        viernes.setDate(viernes.getDate() - (dia + 2));
+                    } else {
+                        // Sábado, domingo: viernes de esta semana
+                        viernes.setDate(viernes.getDate() + (5 - dia));
+                    }
+                }
+                
+                const fechaViernesStr = viernes.toISOString().split('T')[0];
+                
+                if (!semanas[fechaViernesStr]) semanas[fechaViernesStr] = new Set();
+                semanas[fechaViernesStr].add(r.Operador);
             });
             
             html = Object.keys(semanas).sort().reverse().map(v => {
-                const j = new Date(v + 'T00:00:00');
-                j.setDate(j.getDate() + 6);
-                const fechaJueves = j.toISOString().split('T')[0];
+                const [year, month, day] = v.split('-');
+                const jueves = new Date(v + 'T00:00:00');
+                jueves.setDate(jueves.getDate() + 6);
+                const fechaJuevesStr = jueves.toISOString().split('T')[0];
+                const [jYear, jMonth, jDay] = fechaJuevesStr.split('-');
+                
                 const ops = Array.from(semanas[v]).sort().map(op => `<button class="recibo-btn" onclick="verRecibo('${op}', '${v}')">${op}</button>`).join('');
-                return `<div style="margin-bottom: 30px;"><h3 style="margin-bottom: 15px;">📅 ${v} a ${fechaJueves}</h3><div>${ops}</div></div>`;
+                return `<div style="margin-bottom: 30px;"><h3 style="margin-bottom: 15px; color: #2d5a3d;">📅 ${v} a ${fechaJuevesStr}</h3><div>${ops}</div></div>`;
             }).join('');
             document.getElementById('reciboMenu').innerHTML = html || '<div class="no-data">Sin datos</div>';
         }
@@ -309,7 +329,24 @@
                 const j = new Date(viernesParam + 'T00:00:00');
                 j.setDate(j.getDate() + 6);
                 const fechaJueves = j.toISOString().split('T')[0];
-                datosRecibo = datosRecibo.filter(r => r.Fecha >= viernesParam && r.Fecha <= fechaJueves);
+                
+                // Convertir a formato DD/MM/YYYY para comparar
+                const [vyear, vmonth, vday] = viernesParam.split('-');
+                const viernesFormato = `${vday}/${vmonth}/${vyear}`;
+                const [jyear, jmonth, jday] = fechaJueves.split('-');
+                const juevesFopmato = `${jday}/${jmonth}/${jyear}`;
+                
+                datosRecibo = datosRecibo.filter(r => {
+                    const fechaNum = parseInt(r.Fecha.split('/')[0]);
+                    const [vdayNum] = viernesFormato.split('/').map(x => parseInt(x));
+                    const [jdayNum] = juevesFopmato.split('/').map(x => parseInt(x));
+                    
+                    if (vdayNum <= jdayNum) {
+                        return fechaNum >= vdayNum && fechaNum <= jdayNum;
+                    } else {
+                        return fechaNum >= vdayNum || fechaNum <= jdayNum;
+                    }
+                });
             }
             
             const detalles = {};
