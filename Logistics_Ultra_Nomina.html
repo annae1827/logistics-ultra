@@ -421,22 +421,6 @@
     </div>
     
     <div class="container">
-        <div class="controls">
-            <div class="control-group">
-                <label for="csvUrl">URL CSV Google Sheets:</label>
-                <input type="text" id="csvUrl" placeholder="https://docs.google.com/spreadsheets/d/... (export?format=csv)">
-            </div>
-            <button onclick="loadFromGoogleSheets()">Cargar desde URL</button>
-        </div>
-        
-        <div class="controls">
-            <div class="control-group">
-                <label for="excelFile">O carga archivo Excel/CSV:</label>
-                <input type="file" id="excelFile" accept=".xlsx,.xls,.csv">
-            </div>
-            <button onclick="loadFromFile()">Cargar archivo</button>
-        </div>
-        
         <div id="message"></div>
         
         <div class="summary-cards">
@@ -496,14 +480,23 @@
     </div>
     
     <script>
+        // ===== CONFIGURACIÓN =====
         const PAGO_POR_MOVIMIENTO = 200;
         const BONO_NO_DESCANSO = 500;
         const MONTO_COMPLEMENTO = 1000;
         const MINIMO_MOVIMIENTOS_SIN_COMPLEMENTO = 5;
         
+        // URL CSV del Google Sheet publicado (CAMBIAR AQUÍ)
+        const URL_CSV_GOOGLE_SHEETS = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTE1ZJZ8PzqGMNdj0MLHbfmcFQngQlP0PQVmK_FFTfI9Kmzk3EO8EWAAb6T4d-oCTPrEThpf-g8Roq3/pub?gid=0&single=true&output=csv';
+        
         let rawData = [];
         let operadores = {};
         let periodFechas = {};
+        
+        // Cargar datos automáticamente al abrir la página
+        window.addEventListener('load', () => {
+            loadFromGoogleSheets(URL_CSV_GOOGLE_SHEETS);
+        });
         
         function showMessage(message, type = 'info') {
             const div = document.getElementById('message');
@@ -512,43 +505,29 @@
             setTimeout(() => div.textContent = '', 5000);
         }
         
-        function loadFromGoogleSheets() {
-            const url = document.getElementById('csvUrl').value.trim();
+        function loadFromGoogleSheets(urlParam = null) {
+            const url = urlParam || document.getElementById('csvUrl').value.trim() || URL_CSV_GOOGLE_SHEETS;
             if (!url) {
                 showMessage('Ingresa una URL válida', 'error');
                 return;
             }
+            
+            showMessage('⏳ Cargando datos...', 'info');
             
             fetch(url)
                 .then(r => r.text())
                 .then(csv => {
                     rawData = Papa.parse(csv).data.filter(row => row.some(cell => cell));
                     processData();
-                    showMessage('✓ Datos cargados correctamente', 'success');
+                    showMessage('✓ Datos cargados correctamente desde Google Sheets', 'success');
                 })
-                .catch(e => showMessage(`Error: ${e.message}`, 'error'));
+                .catch(e => showMessage(`Error al cargar: ${e.message}`, 'error'));
         }
         
         function loadFromFile() {
-            const file = document.getElementById('excelFile').files[0];
-            if (!file) {
-                showMessage('Selecciona un archivo', 'error');
-                return;
-            }
-            
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                Papa.parse(e.target.result, {
-                    complete: (results) => {
-                        rawData = results.data.filter(row => row.some(cell => cell));
-                        processData();
-                        showMessage('✓ Archivo cargado correctamente', 'success');
-                    },
-                    error: (err) => showMessage(`Error: ${err.message}`, 'error')
-                });
-            };
-            reader.readAsText(file);
+            // Función removida - no se usa
         }
+        
         
         function processData() {
             if (rawData.length < 2) {
