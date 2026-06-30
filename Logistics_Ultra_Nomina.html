@@ -416,48 +416,75 @@
                 return;
             }
             
-            let html = `<table style="width: 100%; border-collapse: collapse; background: white; font-size: 11px;">
-                <thead style="background: #2d5a3d; color: white; position: sticky; top: 0;">
+            let html = `<div style="overflow-x: auto; border-radius: 8px;">
+            <table style="width: 100%; border-collapse: collapse; background: white; font-size: 11px;">
+                <thead style="background: #2d5a3d; color: white; position: sticky; top: 0; z-index: 10;">
                     <tr>
-                        <th style="padding: 10px; text-align: left; border: 1px solid #ddd;">Operador</th>
-                        <th style="padding: 10px; text-align: center; border: 1px solid #ddd;">Movimientos</th>
-                        <th style="padding: 10px; text-align: center; border: 1px solid #ddd;">Sueldo Fijo</th>
-                        <th style="padding: 10px; text-align: center; border: 1px solid #ddd;">Bonos</th>
-                        <th style="padding: 10px; text-align: center; border: 1px solid #ddd;">Subtotal</th>
-                        <th style="padding: 10px; text-align: center; border: 1px solid #ddd;">Préstamo</th>
-                        <th style="padding: 10px; text-align: center; border: 1px solid #ddd;">Adelanto</th>
-                        <th style="padding: 10px; text-align: center; border: 1px solid #ddd;">Penalización</th>
-                        <th style="padding: 10px; text-align: center; border: 1px solid #ddd;">ISR (7.5%)</th>
-                        <th style="padding: 10px; text-align: center; border: 1px solid #ddd; background: #e8f5e9;">TOTAL A PAGAR</th>
+                        <th style="padding: 12px 8px; text-align: left; border: 1px solid #ddd; min-width: 180px;">Operador</th>
+                        <th style="padding: 12px 8px; text-align: center; border: 1px solid #ddd; min-width: 60px;">Viajes</th>
+                        <th style="padding: 12px 8px; text-align: center; border: 1px solid #ddd; min-width: 70px;">Completar a 30</th>
+                        <th style="padding: 12px 8px; text-align: center; border: 1px solid #ddd; min-width: 60px;">Total Viajes</th>
+                        <th style="padding: 12px 8px; text-align: center; border: 1px solid #ddd; min-width: 80px;">Movimientos</th>
+                        <th style="padding: 12px 8px; text-align: center; border: 1px solid #ddd; min-width: 80px;">Sueldo Fijo</th>
+                        <th style="padding: 12px 8px; text-align: center; border: 1px solid #ddd; min-width: 70px; background: #fff9c4;">Puntualidad</th>
+                        <th style="padding: 12px 8px; text-align: center; border: 1px solid #ddd; min-width: 70px; background: #fff9c4;">Asistencia</th>
+                        <th style="padding: 12px 8px; text-align: center; border: 1px solid #ddd; min-width: 70px; background: #fff9c4;">Otros Bonos</th>
+                        <th style="padding: 12px 8px; text-align: center; border: 1px solid #ddd; min-width: 80px;">Subtotal</th>
+                        <th style="padding: 12px 8px; text-align: center; border: 1px solid #ddd; min-width: 70px; background: #ffecb3;">Préstamo</th>
+                        <th style="padding: 12px 8px; text-align: center; border: 1px solid #ddd; min-width: 70px; background: #ffecb3;">Adelanto</th>
+                        <th style="padding: 12px 8px; text-align: center; border: 1px solid #ddd; min-width: 70px; background: #ffcdd2;">Penalización</th>
+                        <th style="padding: 12px 8px; text-align: center; border: 1px solid #ddd; min-width: 70px; color: #c62828;">ISR (7.5%)</th>
+                        <th style="padding: 12px 8px; text-align: center; border: 1px solid #ddd; min-width: 90px; background: #e8f5e9; font-weight: bold;">TOTAL A PAGAR</th>
                     </tr>
                 </thead>
                 <tbody id="nom_body">`;
             
             Object.keys(datosOps).sort().forEach(op => {
                 const d = datosOps[op];
+                const viajesReales = d.c;
                 const mov = d.c * 200;
                 const sueldo = d.dias * 362.50;
-                const bonos = 0;
-                const subtotal = mov + sueldo + bonos;
+                const subtotal = mov + sueldo;
                 const deducciones = d.prefil + d.adelanto + d.penalizacion;
                 const isr = subtotal * 0.075;
                 const total = subtotal - deducciones - isr;
                 
                 html += `<tr style="border-bottom: 1px solid #eee;">
                     <td style="padding: 8px; text-align: left; border: 1px solid #ddd;"><strong>${op}</strong></td>
-                    <td style="padding: 8px; text-align: center; border: 1px solid #ddd;">$${mov.toLocaleString('es-MX')}</td>
+                    <td style="padding: 8px; text-align: center; border: 1px solid #ddd;"><strong>${viajesReales}</strong></td>
+                    <td style="padding: 8px; text-align: center; border: 1px solid #ddd;">
+                        ${viajesReales < 30 ? `<input type="checkbox" class="chk_comp_${op.replace(/\s/g,'_')}" data-viajes="${viajesReales}" onchange="recalcNomina()" style="width: 16px; height: 16px; cursor: pointer;">` : '-'}
+                    </td>
+                    <td style="padding: 8px; text-align: center; border: 1px solid #ddd;"><span class="tot_viajes_${op.replace(/\s/g,'_')}">${viajesReales}</span></td>
+                    <td style="padding: 8px; text-align: center; border: 1px solid #ddd;">$<span class="mov_${op.replace(/\s/g,'_')}">${mov.toLocaleString('es-MX')}</span></td>
                     <td style="padding: 8px; text-align: center; border: 1px solid #ddd;">$${sueldo.toLocaleString('es-MX')}</td>
-                    <td style="padding: 8px; text-align: center; border: 1px solid #ddd;">$<input type="number" class="bon_${op.replace(/\s/g,'_')}" value="0" onchange="recalcNomina()" style="width: 60px; text-align: center; border: none; background: #f9f9f9;"></td>
+                    <td style="padding: 8px; text-align: center; border: 1px solid #ddd; background: #fffde7;">
+                        <input type="checkbox" class="bon_punt_${op.replace(/\s/g,'_')}" onchange="recalcNomina()" style="width: 16px; height: 16px; cursor: pointer;">
+                        <span style="display: block; font-size: 10px;">$250</span>
+                    </td>
+                    <td style="padding: 8px; text-align: center; border: 1px solid #ddd; background: #fffde7;">
+                        <input type="checkbox" class="bon_asis_${op.replace(/\s/g,'_')}" onchange="recalcNomina()" style="width: 16px; height: 16px; cursor: pointer;">
+                        <span style="display: block; font-size: 10px;">$250</span>
+                    </td>
+                    <td style="padding: 8px; text-align: center; border: 1px solid #ddd; background: #fffde7;">
+                        $<input type="number" class="bon_otro_${op.replace(/\s/g,'_')}" value="0" onchange="recalcNomina()" style="width: 50px; text-align: center; border: none; background: transparent;">
+                    </td>
                     <td style="padding: 8px; text-align: center; border: 1px solid #ddd;">$<span class="sub_${op.replace(/\s/g,'_')}">${subtotal.toLocaleString('es-MX')}</span></td>
-                    <td style="padding: 8px; text-align: center; border: 1px solid #ddd;">$<input type="number" class="prf_${op.replace(/\s/g,'_')}" value="0" onchange="recalcNomina()" style="width: 60px; text-align: center; border: none; background: #fff3cd;"></td>
-                    <td style="padding: 8px; text-align: center; border: 1px solid #ddd;">$<input type="number" class="adl_${op.replace(/\s/g,'_')}" value="0" onchange="recalcNomina()" style="width: 60px; text-align: center; border: none; background: #fff3cd;"></td>
-                    <td style="padding: 8px; text-align: center; border: 1px solid #ddd;">$<input type="number" class="pen_${op.replace(/\s/g,'_')}" value="0" onchange="recalcNomina()" style="width: 60px; text-align: center; border: none; background: #ffebee;"></td>
+                    <td style="padding: 8px; text-align: center; border: 1px solid #ddd; background: #ffe0b2;">
+                        $<input type="number" class="prf_${op.replace(/\s/g,'_')}" value="0" onchange="recalcNomina()" style="width: 50px; text-align: center; border: none; background: transparent;">
+                    </td>
+                    <td style="padding: 8px; text-align: center; border: 1px solid #ddd; background: #ffe0b2;">
+                        $<input type="number" class="adl_${op.replace(/\s/g,'_')}" value="0" onchange="recalcNomina()" style="width: 50px; text-align: center; border: none; background: transparent;">
+                    </td>
+                    <td style="padding: 8px; text-align: center; border: 1px solid #ddd; background: #ffcdd2;">
+                        $<input type="number" class="pen_${op.replace(/\s/g,'_')}" value="0" onchange="recalcNomina()" style="width: 50px; text-align: center; border: none; background: transparent;">
+                    </td>
                     <td style="padding: 8px; text-align: center; border: 1px solid #ddd; color: #c62828;">-$<span class="isr_${op.replace(/\s/g,'_')}">${isr.toLocaleString('es-MX')}</span></td>
                     <td style="padding: 8px; text-align: center; border: 1px solid #ddd; background: #e8f5e9; font-weight: 600;">$<span class="tot_${op.replace(/\s/g,'_')}">${total.toLocaleString('es-MX')}</span></td>
                 </tr>`;
             });
             
-            html += `</tbody></table>`;
+            html += `</tbody></table></div>`;
             document.getElementById('t_nom').innerHTML = html;
         }
         
@@ -487,9 +514,24 @@
             
             Object.keys(datosOps).forEach(op => {
                 const d = datosOps[op];
-                const mov = d.c * 200;
+                let viajesReales = d.c;
+                let totalViajes = viajesReales;
+                
+                // Verificar si está marcado el checkbox de completar a 30
+                const chkComp = document.querySelector('.chk_comp_' + op.replace(/\s/g,'_'));
+                if (chkComp && chkComp.checked && viajesReales < 30) {
+                    totalViajes = 30;
+                }
+                
+                const mov = totalViajes * 200;
                 const sueldo = d.dias * 362.50;
-                const bonos = parseInt(document.querySelector('.bon_' + op.replace(/\s/g,'_')).value) || 0;
+                
+                // Bonos
+                const bonoPunt = document.querySelector('.bon_punt_' + op.replace(/\s/g,'_')).checked ? 250 : 0;
+                const bonoAsis = document.querySelector('.bon_asis_' + op.replace(/\s/g,'_')).checked ? 250 : 0;
+                const bonoOtro = parseInt(document.querySelector('.bon_otro_' + op.replace(/\s/g,'_')).value) || 0;
+                const bonos = bonoPunt + bonoAsis + bonoOtro;
+                
                 const subtotal = mov + sueldo + bonos;
                 
                 const prefil = parseInt(document.querySelector('.prf_' + op.replace(/\s/g,'_')).value) || 0;
@@ -499,6 +541,8 @@
                 const isr = subtotal * 0.075;
                 const total = subtotal - prefil - adelanto - penalizacion - isr;
                 
+                document.querySelector('.tot_viajes_' + op.replace(/\s/g,'_')).textContent = totalViajes;
+                document.querySelector('.mov_' + op.replace(/\s/g,'_')).textContent = mov.toLocaleString('es-MX');
                 document.querySelector('.sub_' + op.replace(/\s/g,'_')).textContent = subtotal.toLocaleString('es-MX');
                 document.querySelector('.isr_' + op.replace(/\s/g,'_')).textContent = isr.toLocaleString('es-MX');
                 document.querySelector('.tot_' + op.replace(/\s/g,'_')).textContent = total.toLocaleString('es-MX');
