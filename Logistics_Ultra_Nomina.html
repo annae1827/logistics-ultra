@@ -232,7 +232,16 @@
                     <div style="margin-bottom: 8px;"><label><input type="checkbox" id="chk_pun" onchange="calc('${op}', '${sem||''}')"> Puntualidad $250</label></div>
                     <div style="margin-bottom: 8px;"><label><input type="checkbox" id="chk_asis" onchange="calc('${op}', '${sem||''}')"> Asistencia $250</label></div>
                     <div style="margin-bottom: 8px;"><label><input type="checkbox" id="chk_des" onchange="calc('${op}', '${sem||''}')"> No descanso 7 días $500</label></div>
-                    <div style="margin-bottom: 8px;"><input type="number" id="txt_otros" placeholder="Otros bonos" onchange="calc('${op}', '${sem||''}')" style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px;"></div>
+                    
+                    <div style="margin-bottom: 8px;">
+                        <label style="display: block; margin-bottom: 5px; font-size: 12px;">Completar viajes:</label>
+                        <select id="sel_comp" onchange="calc('${op}', '${sem||''}')" style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px;">
+                            <option value="">-- Seleccionar día --</option>
+                            ${Object.keys(det).filter(f => det[f].c < 5).map(f => `<option value="${f}">${f} (${det[f].c} viajes)</option>`).join('')}
+                        </select>
+                    </div>
+                    
+                    <div style="margin-bottom: 8px;"><input type="number" id="txt_otros" placeholder="Otros bonos" onchange="calc('${op}', '${sem||''}')" style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px;"></div>
                 </div>
                 
                 <div id="tot" style="padding: 12px; background: #e8f5e9; border-radius: 4px;">
@@ -270,6 +279,13 @@
             if (document.getElementById('chk_pun').checked) total += 250;
             if (document.getElementById('chk_asis').checked) total += 250;
             if (document.getElementById('chk_des').checked) total += 500;
+            
+            const diaComp = document.getElementById('sel_comp').value;
+            if (diaComp && det[diaComp]) {
+                const faltantes = 5 - det[diaComp].c;
+                total += faltantes * 200;
+            }
+            
             total += parseInt(document.getElementById('txt_otros').value) || 0;
             
             document.getElementById('tot').innerHTML = `<div class="recibo-row recibo-total"><span>💰 TOTAL</span><span>$${total.toLocaleString('es-MX')}</span></div>`;
