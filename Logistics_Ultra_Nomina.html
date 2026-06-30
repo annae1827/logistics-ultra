@@ -287,27 +287,29 @@
             // Tab Recibos - Semanas
             html = Object.keys(sem).sort().reverse().map(v => {
                 const [year, month, day] = v.split('-');
-                // Calcular último día del mes actual
-                const monthNum = parseInt(month);
                 const yearNum = parseInt(year);
-                const diasMes = new Date(yearNum, monthNum, 0).getDate();
+                const monthNum = parseInt(month) - 1; // JavaScript cuenta meses desde 0
+                const dayNum = parseInt(day);
                 
-                let jDay = parseInt(day) + 6;
+                // Último día del mes actual
+                const diasMes = new Date(yearNum, monthNum + 1, 0).getDate();
+                
+                let jDay = dayNum + 6;
                 let jMonth = monthNum;
                 let jYear = yearNum;
                 
-                // Si el jueves se pasa del mes, ajustar al siguiente mes
+                // Si el jueves se pasa del mes
                 if (jDay > diasMes) {
                     jDay = jDay - diasMes;
                     jMonth = jMonth + 1;
-                    if (jMonth > 12) {
-                        jMonth = 1;
+                    if (jMonth > 11) {
+                        jMonth = 0;
                         jYear = jYear + 1;
                     }
                 }
                 
                 const ops = Array.from(sem[v]).sort().map(op => `<button class="recibo-btn" onclick="verRecibo('${op}', '${v}')">${op}</button>`).join('');
-                const fechaFin = `${jYear}-${String(jMonth).padStart(2, '0')}-${String(jDay).padStart(2, '0')}`;
+                const fechaFin = `${jYear}-${String(jMonth + 1).padStart(2, '0')}-${String(jDay).padStart(2, '0')}`;
                 return `<div style="margin-bottom: 25px;"><h3 style="margin-bottom: 15px; color: #2d5a3d;">📅 ${v} a ${fechaFin}</h3><div>${ops}</div></div>`;
             }).join('');
             document.getElementById('t5').innerHTML = html || '<div class="no-data">Sin datos</div>';
