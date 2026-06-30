@@ -212,40 +212,62 @@
             
             const dias = Object.keys(det).length;
             const tot = Object.values(det).reduce((a, b) => a + b.c, 0);
-            const pago = tot * 200;
-            const sueldo = dias * 362.50;
             
             let h = `
+                <div id="contenido_recibo">
                 <div style="text-align: center; margin-bottom: 20px;"><div style="font-size: 28px;">🚛</div><h3 style="color: #2d5a3d;">RECIBO NÓMINA</h3><div>${op}</div></div>
-                <table style="font-size: 11px; margin-bottom: 15px;"><tr style="background: #e8e8e8;"><th style="padding: 5px;">Fecha</th><th>Viajes</th></tr>
-                ${Object.keys(det).sort().map(f => `<tr><td style="padding: 5px;">${f}</td><td><strong>${det[f].c}</strong></td></tr>`).join('')}
+                
+                <table style="font-size: 12px; margin-bottom: 15px; width: 100%; border-collapse: collapse;">
+                    <tr style="background: #e8e8e8;">
+                        <th style="padding: 8px; text-align: left;">Fecha</th>
+                        <th style="padding: 8px; text-align: center;">Viajes</th>
+                        <th style="padding: 8px; text-align: center;">Completar</th>
+                        <th style="padding: 8px; text-align: center;">Total</th>
+                    </tr>
+                    ${Object.keys(det).sort().map(f => `
+                    <tr style="border-bottom: 1px solid #ddd;">
+                        <td style="padding: 8px;">${f}</td>
+                        <td style="padding: 8px; text-align: center;"><strong>${det[f].c}</strong></td>
+                        <td style="padding: 8px; text-align: center;">
+                            ${det[f].c < 5 ? `<input type="checkbox" class="chk_comp" data-fecha="${f}" onchange="recalc('${op}', '${sem||''}')" style="cursor: pointer; width: 16px; height: 16px;">` : '—'}
+                        </td>
+                        <td style="padding: 8px; text-align: center;"><strong class="tot_${f.replace(/\//g, '_')}">${det[f].c}</strong></td>
+                    </tr>
+                    `).join('')}
                 </table>
                 
                 <div style="border: 1px solid #ddd; padding: 12px; border-radius: 4px; margin-bottom: 15px;">
                     <div style="font-weight: 600; margin-bottom: 8px;">💰 BASE</div>
-                    <div class="recibo-row"><span>Movimientos:</span><span><strong>${tot}</strong> × $200 = $${pago.toLocaleString('es-MX')}</span></div>
-                    <div class="recibo-row"><span>Sueldo fijo:</span><span><strong>${dias}</strong> × $362.50 = $${sueldo.toLocaleString('es-MX')}</span></div>
+                    <div class="recibo-row"><span>Movimientos:</span><span id="mov_val"><strong id="mov_num">${tot}</strong> × $200 = $<strong id="mov_total">${(tot * 200).toLocaleString('es-MX')}</strong></span></div>
+                    <div class="recibo-row"><span>Sueldo fijo:</span><span><strong>${dias}</strong> × $362.50 = $<strong>${(dias * 362.50).toLocaleString('es-MX')}</strong></span></div>
                 </div>
                 
                 <div style="border: 1px solid #ddd; padding: 12px; border-radius: 4px; margin-bottom: 15px;">
                     <div style="font-weight: 600; margin-bottom: 8px;">🎁 BONOS</div>
-                    <div style="margin-bottom: 8px;"><label><input type="checkbox" id="chk_pun" onchange="calc('${op}', '${sem||''}')"> Puntualidad $250</label></div>
-                    <div style="margin-bottom: 8px;"><label><input type="checkbox" id="chk_asis" onchange="calc('${op}', '${sem||''}')"> Asistencia $250</label></div>
-                    <div style="margin-bottom: 8px;"><label><input type="checkbox" id="chk_des" onchange="calc('${op}', '${sem||''}')"> No descanso 7 días $500</label></div>
-                    
-                    <div style="margin-bottom: 8px;">
-                        <label style="display: block; margin-bottom: 5px; font-size: 12px;">Completar viajes:</label>
-                        <select id="sel_comp" onchange="calc('${op}', '${sem||''}')" style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px;">
-                            <option value="">-- Seleccionar día --</option>
-                            ${Object.keys(det).filter(f => det[f].c < 5).map(f => `<option value="${f}">${f} (${det[f].c} viajes)</option>`).join('')}
-                        </select>
-                    </div>
-                    
-                    <div style="margin-bottom: 8px;"><input type="number" id="txt_otros" placeholder="Otros bonos" onchange="calc('${op}', '${sem||''}')" style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px;"></div>
+                    <div style="margin-bottom: 8px;"><label><input type="checkbox" id="chk_pun" onchange="recalc('${op}', '${sem||''}')"> Puntualidad $250</label></div>
+                    <div style="margin-bottom: 8px;"><label><input type="checkbox" id="chk_asis" onchange="recalc('${op}', '${sem||''}')"> Asistencia $250</label></div>
+                    <div style="margin-bottom: 8px;"><label><input type="checkbox" id="chk_des" onchange="recalc('${op}', '${sem||''}')"> No descanso 7 días $500</label></div>
+                    <div style="margin-bottom: 8px;"><input type="number" id="txt_otros" placeholder="Otros bonos" onchange="recalc('${op}', '${sem||''}')" style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px;"></div>
                 </div>
                 
-                <div id="tot" style="padding: 12px; background: #e8f5e9; border-radius: 4px;">
-                    <div class="recibo-row recibo-total"><span>💰 TOTAL</span><span>$${(pago + sueldo).toLocaleString('es-MX')}</span></div>
+                <div style="padding: 12px; background: #f9f9f9; border-radius: 4px;">
+                    <div class="recibo-row" style="font-weight: 600; margin-bottom: 8px; padding-bottom: 8px; border-bottom: 2px solid #2d5a3d;">
+                        <span>SUBTOTAL</span>
+                        <span>$<strong id="subtotal_val">${(tot * 200 + dias * 362.50).toLocaleString('es-MX')}</strong></span>
+                    </div>
+                    <div class="recibo-row" style="margin-bottom: 8px; color: #c62828;">
+                        <span>ISR (7.5%)</span>
+                        <span>-$<strong id="isr_val">${((tot * 200 + dias * 362.50) * 0.075).toLocaleString('es-MX')}</strong></span>
+                    </div>
+                    <div class="recibo-row recibo-total" style="font-weight: 600; font-size: 14px;">
+                        <span>💰 TOTAL A PAGAR</span>
+                        <span>$<strong id="total_val">${((tot * 200 + dias * 362.50) * 0.925).toLocaleString('es-MX')}</strong></span>
+                    </div>
+                </div>
+                </div>
+                
+                <div style="margin-top: 15px; text-align: center;">
+                    <button onclick="imprimirRecibo()" style="padding: 10px 20px; background: #2d5a3d; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 13px;">🖨️ Imprimir</button>
                 </div>
             `;
             
@@ -253,7 +275,7 @@
             document.getElementById('modal').classList.add('active');
         }
         
-        function calc(op, sem) {
+        function recalc(op, sem) {
             let rf = datos.filter(r => (r.OP || r.Operador) === op);
             if (sem) {
                 const [y, m, d] = sem.split('-');
@@ -272,23 +294,63 @@
                 det[r.Fecha].c = Math.max(det[r.Fecha].c, parseInt(r['M Cargados']) || 0);
             });
             
+            // Calcular completados
+            const completados = {};
+            document.querySelectorAll('.chk_comp:checked').forEach(chk => {
+                const fecha = chk.getAttribute('data-fecha');
+                completados[fecha] = 5 - det[fecha].c;
+                const totalKey = 'tot_' + fecha.replace(/\//g, '_');
+                document.querySelector('.' + totalKey).textContent = 5;
+            });
+            
+            // Resetear los no checkeados
+            document.querySelectorAll('.chk_comp:not(:checked)').forEach(chk => {
+                const fecha = chk.getAttribute('data-fecha');
+                const totalKey = 'tot_' + fecha.replace(/\//g, '_');
+                document.querySelector('.' + totalKey).textContent = det[fecha].c;
+            });
+            
             const dias = Object.keys(det).length;
-            const tot = Object.values(det).reduce((a, b) => a + b.c, 0);
-            let total = tot * 200 + dias * 362.50;
+            let tot = Object.values(det).reduce((a, b) => a + b.c, 0);
+            tot += Object.values(completados).reduce((a, b) => a + b, 0);
             
-            if (document.getElementById('chk_pun').checked) total += 250;
-            if (document.getElementById('chk_asis').checked) total += 250;
-            if (document.getElementById('chk_des').checked) total += 500;
+            let bonos = 0;
+            if (document.getElementById('chk_pun').checked) bonos += 250;
+            if (document.getElementById('chk_asis').checked) bonos += 250;
+            if (document.getElementById('chk_des').checked) bonos += 500;
+            bonos += parseInt(document.getElementById('txt_otros').value) || 0;
             
-            const diaComp = document.getElementById('sel_comp').value;
-            if (diaComp && det[diaComp]) {
-                const faltantes = 5 - det[diaComp].c;
-                total += faltantes * 200;
-            }
+            const subtotal = tot * 200 + dias * 362.50 + bonos;
+            const isr = subtotal * 0.075;
+            const total = subtotal - isr;
             
-            total += parseInt(document.getElementById('txt_otros').value) || 0;
-            
-            document.getElementById('tot').innerHTML = `<div class="recibo-row recibo-total"><span>💰 TOTAL</span><span>$${total.toLocaleString('es-MX')}</span></div>`;
+            document.getElementById('mov_num').textContent = tot;
+            document.getElementById('mov_total').textContent = (tot * 200).toLocaleString('es-MX');
+            document.getElementById('subtotal_val').textContent = subtotal.toLocaleString('es-MX');
+            document.getElementById('isr_val').textContent = isr.toLocaleString('es-MX');
+            document.getElementById('total_val').textContent = total.toLocaleString('es-MX');
+        }
+        
+        function imprimirRecibo() {
+            const contenido = document.getElementById('contenido_recibo').innerHTML;
+            const ventana = window.open('', '', 'height=900,width=800');
+            ventana.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Recibo</title><style>
+                body{font-family: Arial, sans-serif; margin: 20px; color: #333;}
+                h3{color: #2d5a3d; text-align: center;}
+                table{width: 100%; border-collapse: collapse; margin-bottom: 15px;}
+                th, td{padding: 8px; border-bottom: 1px solid #ddd; text-align: center;}
+                th{background: #f5f5f5; font-weight: bold;}
+                td:first-child, th:first-child{text-align: left;}
+                .recibo-row{display: flex; justify-content: space-between; margin-bottom: 10px; padding: 5px 0;}
+                .recibo-total{font-weight: bold; font-size: 14px; border-top: 2px solid #333; padding-top: 10px;}
+                .section{border: 1px solid #ddd; padding: 12px; margin-bottom: 15px; border-radius: 4px;}
+                .final{padding: 12px; background: #f9f9f9; border-radius: 4px;}
+                @media print{body{margin: 0;}}
+            </style></head><body>`);
+            ventana.document.write(contenido);
+            ventana.document.write('</body></html>');
+            ventana.document.close();
+            setTimeout(() => ventana.print(), 500);
         }
         
         function cerrar() { document.getElementById('modal').classList.remove('active'); }
