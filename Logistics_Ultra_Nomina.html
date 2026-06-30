@@ -287,23 +287,24 @@
             // Tab Recibos - Semanas
             html = Object.keys(sem).sort().reverse().map(v => {
                 const [year, month, day] = v.split('-');
-                const diasMes = new Date(parseInt(year), parseInt(month), 0).getDate(); // días en el mes
+                // Calcular días en el mes correctamente
+                const diasMes = new Date(parseInt(year), parseInt(month), 0).getDate();
                 let jDay = parseInt(day) + 6;
-                let jMonth = month;
-                let jYear = year;
+                let jMonth = parseInt(month);
+                let jYear = parseInt(year);
                 
-                // Si el jueves se pasa del mes, ajustar
+                // Si el jueves se pasa del mes, ajustar al siguiente mes
                 if (jDay > diasMes) {
-                    jDay -= diasMes;
-                    jMonth = String(parseInt(month) + 1).padStart(2, '0');
+                    jDay = jDay - diasMes;
+                    jMonth = jMonth + 1;
                     if (jMonth > 12) {
-                        jMonth = '01';
-                        jYear = String(parseInt(year) + 1);
+                        jMonth = 1;
+                        jYear = jYear + 1;
                     }
                 }
                 
                 const ops = Array.from(sem[v]).sort().map(op => `<button class="recibo-btn" onclick="verRecibo('${op}', '${v}')">${op}</button>`).join('');
-                const fechaFin = `${jYear}-${jMonth}-${String(jDay).padStart(2, '0')}`;
+                const fechaFin = `${jYear}-${String(jMonth).padStart(2, '0')}-${String(jDay).padStart(2, '0')}`;
                 return `<div style="margin-bottom: 25px;"><h3 style="margin-bottom: 15px; color: #2d5a3d;">📅 ${v} a ${fechaFin}</h3><div>${ops}</div></div>`;
             }).join('');
             document.getElementById('t5').innerHTML = html || '<div class="no-data">Sin datos</div>';
