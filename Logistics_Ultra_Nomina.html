@@ -138,7 +138,14 @@
                 .catch(e => console.error('Error fetch:', e));
         });
         
-        function init() {
+        function meses_nombre_a_num(mes_nombre) {
+            const meses = {
+                'enero': '01', 'febrero': '02', 'marzo': '03', 'abril': '04',
+                'mayo': '05', 'junio': '06', 'julio': '07', 'agosto': '08',
+                'septiembre': '09', 'octubre': '10', 'noviembre': '11', 'diciembre': '12'
+            };
+            return meses[mes_nombre.toLowerCase()] || mes_nombre;
+        }
             cargarFiltros();
             aplicarFiltros();
         }
@@ -230,6 +237,7 @@
                 
                 // Semana viernes a jueves usando columna día
                 if (año && mes_col && día_col) {
+                    const mes_num = meses_nombre_a_num(mes_col);
                     const diaIdx = diasSemana.indexOf(día_col.toLowerCase().trim());
                     let viernesD = parseInt(r.Fecha.split('/')[0]);
                     
@@ -239,7 +247,7 @@
                         else viernesD += (5 - diaIdx);
                     }
                     
-                    const keySem = `${año}-${mes_col}-${String(viernesD).padStart(2, '0')}`;
+                    const keySem = `${año}-${mes_num}-${String(viernesD).padStart(2, '0')}`;
                     if (!sem[keySem]) sem[keySem] = new Set();
                     sem[keySem].add(op_col);
                 }
@@ -309,8 +317,9 @@
                 }
                 
                 const ops = Array.from(sem[v]).sort().map(op => `<button class="recibo-btn" onclick="verRecibo('${op}', '${v}')">${op}</button>`).join('');
+                const fechaIni = `${year}-${month}-${String(dayNum).padStart(2, '0')}`;
                 const fechaFin = `${jYear}-${String(jMonth + 1).padStart(2, '0')}-${String(jDay).padStart(2, '0')}`;
-                return `<div style="margin-bottom: 25px;"><h3 style="margin-bottom: 15px; color: #2d5a3d;">📅 ${v} a ${fechaFin}</h3><div>${ops}</div></div>`;
+                return `<div style="margin-bottom: 25px;"><h3 style="margin-bottom: 15px; color: #2d5a3d;">📅 ${fechaIni} a ${fechaFin}</h3><div>${ops}</div></div>`;
             }).join('');
             document.getElementById('t5').innerHTML = html || '<div class="no-data">Sin datos</div>';
         }
