@@ -57,7 +57,8 @@
         
         <div class="tabs">
             <button class="tab-btn active" onclick="tab('res')">📈 RESUMEN</button>
-            <button class="tab-btn" onclick="tab('rec')">💼 RECIBOS</button>
+            <button class="tab-btn" onclick="tab('nom')">💼 NÓMINA</button>
+            <button class="tab-btn" onclick="tab('rec')">📋 RECIBOS</button>
         </div>
         
         <div id="res" class="tab-content active">
@@ -66,6 +67,14 @@
                 <div class="stat"><div class="stat-label">👤 Operadores</div><div class="stat-value" id="c3">0</div></div>
             </div>
             <table><thead><tr><th>Operador</th><th class="verde">Cargados</th><th>Días</th><th></th></tr></thead><tbody id="t1"></tbody></table>
+        </div>
+        
+        <div id="nom" class="tab-content">
+            <div style="margin-bottom: 15px;">
+                <button onclick="generarNomina()" style="padding: 10px 20px; background: #2d5a3d; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">📊 Generar Nómina</button>
+                <button onclick="imprimirNomina()" style="padding: 10px 20px; background: #666; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; margin-left: 10px;">🖨️ Imprimir</button>
+            </div>
+            <div id="t_nom" style="overflow-x: auto;"></div>
         </div>
         
         <div id="rec" class="tab-content">
@@ -350,6 +359,112 @@
                 .final{padding: 12px; background: #f9f9f9; border-radius: 4px;}
                 @media print{body{margin: 0;}}
             </style></head><body>`);
+            ventana.document.write(contenido);
+            ventana.document.write('</body></html>');
+            ventana.document.close();
+            setTimeout(() => ventana.print(), 500);
+        }
+        
+        function generarNomina() {
+            const datosOps = {};
+            datos.forEach(r => {
+                const op = r.OP || r.Operador;
+                const carg = parseInt(r['M Cargados']) || 0;
+                if (!datosOps[op]) datosOps[op] = {c: 0, dias: 0, prefil: 0, adelanto: 0, penalizacion: 0};
+                datosOps[op].c += carg;
+                datosOps[op].dias += 1;
+            });
+            
+            let html = `<table style="width: 100%; border-collapse: collapse; background: white; font-size: 11px;">
+                <thead style="background: #2d5a3d; color: white; position: sticky; top: 0;">
+                    <tr>
+                        <th style="padding: 10px; text-align: left; border: 1px solid #ddd;">Operador</th>
+                        <th style="padding: 10px; text-align: center; border: 1px solid #ddd;">Movimientos</th>
+                        <th style="padding: 10px; text-align: center; border: 1px solid #ddd;">Sueldo Fijo</th>
+                        <th style="padding: 10px; text-align: center; border: 1px solid #ddd;">Bonos</th>
+                        <th style="padding: 10px; text-align: center; border: 1px solid #ddd;">Subtotal</th>
+                        <th style="padding: 10px; text-align: center; border: 1px solid #ddd;">Préstamo</th>
+                        <th style="padding: 10px; text-align: center; border: 1px solid #ddd;">Adelanto</th>
+                        <th style="padding: 10px; text-align: center; border: 1px solid #ddd;">Penalización</th>
+                        <th style="padding: 10px; text-align: center; border: 1px solid #ddd;">ISR (7.5%)</th>
+                        <th style="padding: 10px; text-align: center; border: 1px solid #ddd; background: #e8f5e9;">TOTAL A PAGAR</th>
+                    </tr>
+                </thead>
+                <tbody id="nom_body">`;
+            
+            Object.keys(datosOps).sort().forEach(op => {
+                const d = datosOps[op];
+                const mov = d.c * 200;
+                const sueldo = d.dias * 362.50;
+                const bonos = 0;
+                const subtotal = mov + sueldo + bonos;
+                const deducciones = d.prefil + d.adelanto + d.penalizacion;
+                const isr = subtotal * 0.075;
+                const total = subtotal - deducciones - isr;
+                
+                html += `<tr style="border-bottom: 1px solid #eee;">
+                    <td style="padding: 8px; text-align: left; border: 1px solid #ddd;"><strong>${op}</strong></td>
+                    <td style="padding: 8px; text-align: center; border: 1px solid #ddd;">$${mov.toLocaleString('es-MX')}</td>
+                    <td style="padding: 8px; text-align: center; border: 1px solid #ddd;">$${sueldo.toLocaleString('es-MX')}</td>
+                    <td style="padding: 8px; text-align: center; border: 1px solid #ddd;">$<input type="number" class="bon_${op.replace(/\s/g,'_')}" value="0" onchange="recalcNomina()" style="width: 60px; text-align: center; border: none; background: #f9f9f9;"></td>
+                    <td style="padding: 8px; text-align: center; border: 1px solid #ddd;">$<span class="sub_${op.replace(/\s/g,'_')}">${subtotal.toLocaleString('es-MX')}</span></td>
+                    <td style="padding: 8px; text-align: center; border: 1px solid #ddd;">$<input type="number" class="prf_${op.replace(/\s/g,'_')}" value="0" onchange="recalcNomina()" style="width: 60px; text-align: center; border: none; background: #fff3cd;"></td>
+                    <td style="padding: 8px; text-align: center; border: 1px solid #ddd;">$<input type="number" class="adl_${op.replace(/\s/g,'_')}" value="0" onchange="recalcNomina()" style="width: 60px; text-align: center; border: none; background: #fff3cd;"></td>
+                    <td style="padding: 8px; text-align: center; border: 1px solid #ddd;">$<input type="number" class="pen_${op.replace(/\s/g,'_')}" value="0" onchange="recalcNomina()" style="width: 60px; text-align: center; border: none; background: #ffebee;"></td>
+                    <td style="padding: 8px; text-align: center; border: 1px solid #ddd; color: #c62828;">-$<span class="isr_${op.replace(/\s/g,'_')}">${isr.toLocaleString('es-MX')}</span></td>
+                    <td style="padding: 8px; text-align: center; border: 1px solid #ddd; background: #e8f5e9; font-weight: 600;">$<span class="tot_${op.replace(/\s/g,'_')}">${total.toLocaleString('es-MX')}</span></td>
+                </tr>`;
+            });
+            
+            html += `</tbody></table>`;
+            document.getElementById('t_nom').innerHTML = html;
+        }
+        
+        function recalcNomina() {
+            const datosOps = {};
+            datos.forEach(r => {
+                const op = r.OP || r.Operador;
+                const carg = parseInt(r['M Cargados']) || 0;
+                if (!datosOps[op]) datosOps[op] = {c: 0, dias: 0};
+                datosOps[op].c += carg;
+                datosOps[op].dias += 1;
+            });
+            
+            Object.keys(datosOps).forEach(op => {
+                const d = datosOps[op];
+                const mov = d.c * 200;
+                const sueldo = d.dias * 362.50;
+                const bonos = parseInt(document.querySelector('.bon_' + op.replace(/\s/g,'_')).value) || 0;
+                const subtotal = mov + sueldo + bonos;
+                
+                const prefil = parseInt(document.querySelector('.prf_' + op.replace(/\s/g,'_')).value) || 0;
+                const adelanto = parseInt(document.querySelector('.adl_' + op.replace(/\s/g,'_')).value) || 0;
+                const penalizacion = parseInt(document.querySelector('.pen_' + op.replace(/\s/g,'_')).value) || 0;
+                
+                const isr = subtotal * 0.075;
+                const total = subtotal - prefil - adelanto - penalizacion - isr;
+                
+                document.querySelector('.sub_' + op.replace(/\s/g,'_')).textContent = subtotal.toLocaleString('es-MX');
+                document.querySelector('.isr_' + op.replace(/\s/g,'_')).textContent = isr.toLocaleString('es-MX');
+                document.querySelector('.tot_' + op.replace(/\s/g,'_')).textContent = total.toLocaleString('es-MX');
+            });
+        }
+        
+        function imprimirNomina() {
+            const contenido = document.getElementById('t_nom').innerHTML;
+            const ventana = window.open('', '', 'height=900,width=1400');
+            ventana.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Nómina</title><style>
+                body{font-family: Arial, sans-serif; margin: 10px; color: #333;}
+                h2{color: #2d5a3d; text-align: center; margin-bottom: 20px;}
+                table{width: 100%; border-collapse: collapse; font-size: 10px;}
+                th, td{padding: 6px; border: 1px solid #ccc; text-align: center;}
+                th{background: #2d5a3d; color: white; font-weight: bold;}
+                td:first-child, th:first-child{text-align: left;}
+                .total{background: #e8f5e9; font-weight: bold;}
+                input{border: none !important; background: none !important; text-align: center; font-weight: bold;}
+                @media print{body{margin: 0;} input{display: none;}}
+            </style></head><body>`);
+            ventana.document.write('<h2>📊 NÓMINA DE OPERADORES - ALEN IP</h2>');
             ventana.document.write(contenido);
             ventana.document.write('</body></html>');
             ventana.document.close();
