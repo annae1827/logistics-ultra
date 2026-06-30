@@ -29,15 +29,13 @@
         tbody tr:hover { background: #f9f9f9; }
         .verde { color: #2e7d32; font-weight: 600; }
         .rojo { color: #c62828; font-weight: 600; }
-        .recibo-btn { padding: 6px 12px; background: #2d5a3d; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px; margin: 3px; }
-        .recibo-btn:hover { background: #1a3a2a; }
+        .btn-rec { padding: 6px 12px; background: #2d5a3d; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px; margin: 3px; }
+        .btn-rec:hover { background: #1a3a2a; }
         .modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
         .modal.active { display: flex; }
         .modal-content { background: white; border-radius: 8px; padding: 30px; max-width: 600px; width: 100%; max-height: 90vh; overflow-y: auto; }
-        .recibo-header { text-align: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 2px solid #2d5a3d; }
         .recibo-row { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 12px; }
-        .recibo-row.total { font-weight: bold; font-size: 14px; color: #2d5a3d; border-top: 2px solid #2d5a3d; padding-top: 10px; }
-        .no-data { text-align: center; padding: 30px; color: #999; }
+        .recibo-total { font-weight: bold; font-size: 14px; color: #2d5a3d; border-top: 2px solid #2d5a3d; padding-top: 10px; }
     </style>
 </head>
 <body>
@@ -48,44 +46,26 @@
     
     <div class="container">
         <div class="filtros">
-            <div><label style="font-weight: 600; font-size: 11px;">AÑO</label><select id="filtroAno" onchange="aplicarFiltros()"><option value="">Todos</option></select></div>
-            <div><label style="font-weight: 600; font-size: 11px;">MES</label><select id="filtroMes" onchange="aplicarFiltros()"><option value="">Todos</option></select></div>
-            <div><label style="font-weight: 600; font-size: 11px;">DÍA</label><select id="filtroDia" onchange="aplicarFiltros()"><option value="">Todos</option></select></div>
-            <div><label style="font-weight: 600; font-size: 11px;">TURNO</label><select id="filtroTurno" onchange="aplicarFiltros()"><option value="">Todos</option></select></div>
-            <div><label style="font-weight: 600; font-size: 11px;">COORDINADOR</label><select id="filtroCoordinador" onchange="aplicarFiltros()"><option value="">Todos</option></select></div>
-            <div><label style="font-weight: 600; font-size: 11px;">OPERADOR</label><select id="filtroOperador" onchange="aplicarFiltros()"><option value="">Todos</option></select></div>
-            <button onclick="limpiarFiltros()" style="padding: 8px 12px; background: #999; color: white; border: none; border-radius: 4px; cursor: pointer;">🔄 Limpiar</button>
+            <div><label style="font-weight: 600; font-size: 11px;">AÑO</label><select id="ano" onchange="aplicar()"><option value="">Todos</option></select></div>
+            <div><label style="font-weight: 600; font-size: 11px;">MES</label><select id="mes" onchange="aplicar()"><option value="">Todos</option></select></div>
+            <div><label style="font-weight: 600; font-size: 11px;">DÍA</label><select id="dia" onchange="aplicar()"><option value="">Todos</option></select></div>
+            <div><label style="font-weight: 600; font-size: 11px;">TURNO</label><select id="turno" onchange="aplicar()"><option value="">Todos</option></select></div>
+            <div><label style="font-weight: 600; font-size: 11px;">COORDINADOR</label><select id="coord" onchange="aplicar()"><option value="">Todos</option></select></div>
+            <div><label style="font-weight: 600; font-size: 11px;">OPERADOR</label><select id="op" onchange="aplicar()"><option value="">Todos</option></select></div>
+            <button onclick="limpiar()" style="padding: 8px 12px; background: #999; color: white; border: none; border-radius: 4px; cursor: pointer;">🔄</button>
         </div>
         
         <div class="tabs">
-            <button class="tab-btn active" onclick="cambiarTab('res')">📈 RESUMEN</button>
-            <button class="tab-btn" onclick="cambiarTab('coord')">👨‍💼 COORDINADORES</button>
-            <button class="tab-btn" onclick="cambiarTab('ops')">👥 OPERADORES</button>
-            <button class="tab-btn" onclick="cambiarTab('turn')">🕐 TURNOS</button>
-            <button class="tab-btn" onclick="cambiarTab('rec')">💼 RECIBOS</button>
+            <button class="tab-btn active" onclick="tab('res')">📈 RESUMEN</button>
+            <button class="tab-btn" onclick="tab('rec')">💼 RECIBOS</button>
         </div>
         
         <div id="res" class="tab-content active">
             <div class="stats">
                 <div class="stat"><div class="stat-label">📦 Cargados</div><div class="stat-value" id="c1">0</div></div>
-                <div class="stat"><div class="stat-label">🚫 Vacíos</div><div class="stat-value" id="c2">0</div></div>
                 <div class="stat"><div class="stat-label">👤 Operadores</div><div class="stat-value" id="c3">0</div></div>
-                <div class="stat"><div class="stat-label">✓ Asistencias</div><div class="stat-value verde" id="c4">0</div></div>
-                <div class="stat"><div class="stat-label">✗ Faltas</div><div class="stat-value rojo" id="c5">0</div></div>
             </div>
-            <table><thead><tr><th>Fecha</th><th>Turno</th><th class="verde">Cargados</th><th class="rojo">Vacíos</th><th>✓</th><th>✗</th></tr></thead><tbody id="t1"></tbody></table>
-        </div>
-        
-        <div id="coord" class="tab-content">
-            <table><thead><tr><th>Coordinador</th><th class="verde">Cargados</th><th class="rojo">Vacíos</th><th>Asist</th><th>Faltas</th><th>Operadores</th></tr></thead><tbody id="t2"></tbody></table>
-        </div>
-        
-        <div id="ops" class="tab-content">
-            <table><thead><tr><th>Operador</th><th class="verde">Cargados</th><th class="rojo">Vacíos</th><th>Asist</th><th>Faltas</th><th>Turnos</th><th>Acción</th></tr></thead><tbody id="t3"></tbody></table>
-        </div>
-        
-        <div id="turn" class="tab-content">
-            <table><thead><tr><th>Turno</th><th class="verde">Cargados</th><th class="rojo">Vacíos</th><th>Asist</th><th>Faltas</th><th>Operadores</th></tr></thead><tbody id="t4"></tbody></table>
+            <table><thead><tr><th>Operador</th><th class="verde">Cargados</th><th>Días</th><th></th></tr></thead><tbody id="t1"></tbody></table>
         </div>
         
         <div id="rec" class="tab-content">
@@ -95,414 +75,218 @@
     
     <div class="modal" id="modal">
         <div class="modal-content">
-            <button onclick="cerrarModal()" style="float: right; background: #ddd; border: none; width: 25px; height: 25px; border-radius: 50%; cursor: pointer;">✕</button>
-            <div id="recibo_html"></div>
+            <button onclick="cerrar()" style="float: right; background: #ddd; border: none; width: 25px; height: 25px; border-radius: 50%; cursor: pointer;">✕</button>
+            <div id="recibo"></div>
         </div>
     </div>
     
     <script>
         let datos = [];
-        let datosFiltrados = [];
-        
-        // URL CSV - Google Sheet Alen IP
-        const URL_CSV = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTE1ZJZ8PzqGMNdj0MLHbfmcFQngQlP0PQVmK_FFTfI9Kmzk3EO8EWAAb6T4d-oCTPrEThpf-g8Roq3/pub?gid=0&single=true&output=csv';
+        const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTE1ZJZ8PzqGMNdj0MLHbfmcFQngQlP0PQVmK_FFTfI9Kmzk3EO8EWAAb6T4d-oCTPrEThpf-g8Roq3/pub?gid=0&single=true&output=csv';
         
         window.addEventListener('load', () => {
-            fetch(URL_CSV)
+            fetch(CSV_URL)
                 .then(r => r.text())
                 .then(csv => {
                     Papa.parse(csv, {
                         header: true,
                         skipEmptyLines: true,
-                        complete: (results) => {
-                            // Normalizar nombres de columnas
-                            datos = results.data.map(r => {
-                                const row = {};
-                                Object.keys(r).forEach(key => {
-                                    const normalized = key.trim().toLowerCase();
-                                    row[key] = r[key];
-                                });
-                                return r;
-                            }).filter(r => {
-                                // Usar OP si existe, sino Operador
-                                const op = r.OP || r.Operador;
-                                return op && r.Fecha;
-                            });
-                            
-                            datosFiltrados = [...datos];
+                        complete: (r) => {
+                            datos = r.data.filter(x => x.Operador && x.Fecha);
                             init();
-                        },
-                        error: (e) => console.error('Error CSV:', e)
+                        }
                     });
-                })
-                .catch(e => console.error('Error fetch:', e));
+                });
         });
         
-        function meses_nombre_a_num(mes_nombre) {
-            const meses = {
-                'enero': '01', 'febrero': '02', 'marzo': '03', 'abril': '04',
-                'mayo': '05', 'junio': '06', 'julio': '07', 'agosto': '08',
-                'septiembre': '09', 'octubre': '10', 'noviembre': '11', 'diciembre': '12'
-            };
-            return meses[mes_nombre.toLowerCase()] || mes_nombre;
-        }
-            cargarFiltros();
-            aplicarFiltros();
-        }
-        
-        function cargarFiltros() {
-            const anos = new Set(), meses = new Set(), dias = new Set(), turnos = new Set(), coords = new Set(), ops = new Set();
+        function init() {
+            const s1 = new Set(), s2 = new Set(), s3 = new Set(), s4 = new Set(), s5 = new Set(), s6 = new Set();
             datos.forEach(r => {
-                // Buscar columnas con encoding flexible
-                const año = r.año || r['año'] || r.Año || r['Año'];
-                const mes = r.mes || r['mes'] || r.Mes || r['Mes'];
-                const día = r.día || r['día'] || r.Día || r['Día'];
+                if (r.año) s1.add(r.año);
+                if (r.mes) s2.add(r.mes);
+                if (r.día) s3.add(r.día);
+                if (r.Turno) s4.add(r.Turno);
+                if (r.Coordinador) s5.add(r.Coordinador);
                 const op = r.OP || r.Operador;
-                
-                if (año) anos.add(año.trim());
-                if (mes) meses.add(mes.trim());
-                if (día) dias.add(día.trim());
-                if (r.Turno) turnos.add(r.Turno.trim());
-                if (r.Coordinador) coords.add(r.Coordinador.trim());
-                if (op) ops.add(op.trim());
+                if (op) s6.add(op);
             });
             
-            document.getElementById('filtroAno').innerHTML = '<option value="">Todos</option>' + [...anos].sort().reverse().map(a => `<option>${a}</option>`).join('');
-            document.getElementById('filtroMes').innerHTML = '<option value="">Todos</option>' + [...meses].sort().map(m => `<option>${m}</option>`).join('');
-            document.getElementById('filtroDia').innerHTML = '<option value="">Todos</option>' + [...dias].sort().map(d => `<option>${d}</option>`).join('');
-            document.getElementById('filtroTurno').innerHTML = '<option value="">Todos</option>' + [...turnos].sort().map(t => `<option>${t}</option>`).join('');
-            document.getElementById('filtroCoordinador').innerHTML = '<option value="">Todos</option>' + [...coords].sort().map(c => `<option>${c}</option>`).join('');
-            document.getElementById('filtroOperador').innerHTML = '<option value="">Todos</option>' + [...ops].sort().map(o => `<option>${o}</option>`).join('');
+            document.getElementById('ano').innerHTML = '<option value="">Todos</option>' + [...s1].sort().reverse().map(x => `<option>${x}</option>`).join('');
+            document.getElementById('mes').innerHTML = '<option value="">Todos</option>' + [...s2].sort().map(x => `<option>${x}</option>`).join('');
+            document.getElementById('dia').innerHTML = '<option value="">Todos</option>' + [...s3].sort().map(x => `<option>${x}</option>`).join('');
+            document.getElementById('turno').innerHTML = '<option value="">Todos</option>' + [...s4].sort().map(x => `<option>${x}</option>`).join('');
+            document.getElementById('coord').innerHTML = '<option value="">Todos</option>' + [...s5].sort().map(x => `<option>${x}</option>`).join('');
+            document.getElementById('op').innerHTML = '<option value="">Todos</option>' + [...s6].sort().map(x => `<option>${x}</option>`).join('');
+            
+            aplicar();
         }
         
-        function aplicarFiltros() {
-            const ano = document.getElementById('filtroAno').value;
-            const mes = document.getElementById('filtroMes').value;
-            const dia = document.getElementById('filtroDia').value;
-            const turno = document.getElementById('filtroTurno').value;
-            const coord = document.getElementById('filtroCoordinador').value;
-            const op = document.getElementById('filtroOperador').value;
+        function aplicar() {
+            const ano = document.getElementById('ano').value;
+            const mes = document.getElementById('mes').value;
+            const dia = document.getElementById('dia').value;
             
-            datosFiltrados = datos.filter(r => {
-                const año = r.año || r['año'] || r.Año || r['Año'];
-                const mes_col = r.mes || r['mes'] || r.Mes || r['Mes'];
-                const día_col = r.día || r['día'] || r.Día || r['Día'];
-                const op_col = r.OP || r.Operador;
-                
-                if (ano && año !== ano) return false;
-                if (mes && mes_col !== mes) return false;
-                if (dia && día_col !== dia) return false;
-                if (turno && r.Turno !== turno) return false;
-                if (coord && r.Coordinador !== coord) return false;
-                if (op && op_col !== op) return false;
+            let f = datos.filter(r => {
+                if (ano && r.año !== ano) return false;
+                if (mes && r.mes !== mes) return false;
+                if (dia && r.día !== dia) return false;
                 return true;
             });
             
-            actualizar();
+            render(f);
         }
         
-        function actualizar() {
-            let c = 0, v = 0, a = 0, fa = 0, pF = {}, pC = {}, pO = {}, pT = {}, sem = {};
-            const diasSemana = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo'];
+        function render(f) {
+            let c = 0, pO = {}, sem = {};
+            const meses_num = {'enero':'01','febrero':'02','marzo':'03','abril':'04','mayo':'05','junio':'06','julio':'07','agosto':'08','septiembre':'09','octubre':'10','noviembre':'11','diciembre':'12'};
+            const dias_semana = ['lunes','martes','miércoles','jueves','viernes','sábado','domingo'];
             
-            datosFiltrados.forEach(r => {
+            f.forEach(r => {
                 const carg = parseInt(r['M Cargados']) || 0;
-                const vac = parseInt(r['M Vacíos']) || 0;
-                const asist = r.Estatus.toLowerCase().includes('asist') || r.Estatus.toLowerCase().includes('si') ? 1 : 0;
-                const falt = r.Estatus.toLowerCase().includes('falta') ? 1 : 0;
-                const op_col = r.OP || r.Operador;
+                const op = r.OP || r.Operador;
+                c += carg;
                 
-                // Leer año/mes/día flexiblemente
-                const año = r.año || r['año'] || r.Año || r['Año'];
-                const mes_col = r.mes || r['mes'] || r.Mes || r['Mes'];
-                const día_col = r.día || r['día'] || r.Día || r['Día'];
+                if (!pO[op]) pO[op] = {c: 0, dias: 0};
+                pO[op].c += carg;
+                pO[op].dias += 1;
                 
-                c += carg; v += vac; a += asist; fa += falt;
+                const año = r.año;
+                const mes_num = meses_num[r.mes.toLowerCase()] || r.mes;
+                const día_idx = dias_semana.indexOf(r.día.toLowerCase());
+                const día_num = parseInt(r.Fecha.split('/')[0]);
+                let vie_num = día_num;
                 
-                const k = r.Fecha + '|' + r.Turno;
-                if (!pF[k]) pF[k] = { c: 0, v: 0, a: 0, f: 0 };
-                pF[k].c += carg; pF[k].v += vac; pF[k].a += asist; pF[k].f += falt;
-                
-                if (!pC[r.Coordinador]) pC[r.Coordinador] = { c: 0, v: 0, a: 0, f: 0, ops: new Set() };
-                pC[r.Coordinador].c += carg; pC[r.Coordinador].v += vac; pC[r.Coordinador].a += asist; pC[r.Coordinador].f += falt;
-                pC[r.Coordinador].ops.add(op_col);
-                
-                if (!pO[op_col]) pO[op_col] = { c: 0, v: 0, a: 0, f: 0, t: new Set() };
-                pO[op_col].c += carg; pO[op_col].v += vac; pO[op_col].a += asist; pO[op_col].f += falt;
-                pO[op_col].t.add(r.Turno);
-                
-                if (!pT[r.Turno]) pT[r.Turno] = { c: 0, v: 0, a: 0, f: 0, ops: new Set() };
-                pT[r.Turno].c += carg; pT[r.Turno].v += vac; pT[r.Turno].a += asist; pT[r.Turno].f += falt;
-                pT[r.Turno].ops.add(op_col);
-                
-                // Semana viernes a jueves usando columna día
-                if (año && mes_col && día_col) {
-                    const mes_num = meses_nombre_a_num(mes_col);
-                    const diaIdx = diasSemana.indexOf(día_col.toLowerCase().trim());
-                    let viernesD = parseInt(r.Fecha.split('/')[0]);
-                    
-                    if (diaIdx >= 0) {
-                        if (diaIdx <= 3) viernesD -= (diaIdx + 1);
-                        else if (diaIdx === 4) viernesD = parseInt(r.Fecha.split('/')[0]);
-                        else viernesD += (5 - diaIdx);
-                    }
-                    
-                    const keySem = `${año}-${mes_num}-${String(viernesD).padStart(2, '0')}`;
-                    if (!sem[keySem]) sem[keySem] = new Set();
-                    sem[keySem].add(op_col);
+                if (día_idx >= 0) {
+                    if (día_idx <= 3) vie_num -= (día_idx + 1);
+                    else if (día_idx === 4) vie_num = día_num;
+                    else vie_num += (5 - día_idx);
                 }
+                
+                const key = `${año}-${mes_num}-${String(vie_num).padStart(2,'0')}`;
+                if (!sem[key]) sem[key] = new Set();
+                sem[key].add(op);
             });
             
             document.getElementById('c1').textContent = c;
-            document.getElementById('c2').textContent = v;
             document.getElementById('c3').textContent = Object.keys(pO).length;
-            document.getElementById('c4').textContent = a;
-            document.getElementById('c5').textContent = fa;
             
-            // Tab Resumen
             let html = '';
-            Object.keys(pF).sort().forEach(k => {
-                const [fecha, turno] = k.split('|');
-                const d = pF[k];
-                html += `<tr><td>${fecha}</td><td>${turno}</td><td class="verde">${d.c}</td><td class="rojo">${d.v}</td><td>${d.a}</td><td>${d.f}</td></tr>`;
-            });
-            document.getElementById('t1').innerHTML = html || '<tr><td colspan="6" class="no-data">Sin datos</td></tr>';
-            
-            // Tab Coordinadores
-            html = '';
-            Object.keys(pC).sort().forEach(x => {
-                const d = pC[x];
-                html += `<tr><td>${x}</td><td class="verde">${d.c}</td><td class="rojo">${d.v}</td><td>${d.a}</td><td>${d.f}</td><td>${d.ops.size}</td></tr>`;
-            });
-            document.getElementById('t2').innerHTML = html || '<tr><td colspan="6" class="no-data">Sin datos</td></tr>';
-            
-            // Tab Operadores
-            html = '';
             Object.keys(pO).sort().forEach(x => {
                 const d = pO[x];
-                html += `<tr><td>${x}</td><td class="verde">${d.c}</td><td class="rojo">${d.v}</td><td>${d.a}</td><td>${d.f}</td><td>${d.t.size}</td><td><button class="recibo-btn" onclick="verRecibo('${x}')">📄</button></td></tr>`;
+                html += `<tr><td>${x}</td><td class="verde">${d.c}</td><td>${d.dias}</td><td><button class="btn-rec" onclick="rec('${x}')">📄</button></td></tr>`;
             });
-            document.getElementById('t3').innerHTML = html || '<tr><td colspan="7" class="no-data">Sin datos</td></tr>';
+            document.getElementById('t1').innerHTML = html || '<tr><td colspan="4">Sin datos</td></tr>';
             
-            // Tab Turnos
-            html = '';
-            Object.keys(pT).sort().forEach(x => {
-                const d = pT[x];
-                html += `<tr><td>${x}</td><td class="verde">${d.c}</td><td class="rojo">${d.v}</td><td>${d.a}</td><td>${d.f}</td><td>${d.ops.size}</td></tr>`;
-            });
-            document.getElementById('t4').innerHTML = html || '<tr><td colspan="6" class="no-data">Sin datos</td></tr>';
-            
-            // Tab Recibos - Semanas
             html = Object.keys(sem).sort().reverse().map(v => {
-                const [year, month, day] = v.split('-');
-                const yearNum = parseInt(year);
-                const monthNum = parseInt(month) - 1; // JavaScript cuenta meses desde 0
-                const dayNum = parseInt(day);
+                const [año, mes, día] = v.split('-');
+                const y = parseInt(año), m = parseInt(mes), d = parseInt(día);
+                const mDate = new Date(y, m, 0).getDate();
+                let jd = d + 6, jm = m, jy = y;
+                if (jd > mDate) { jd -= mDate; jm++; if (jm > 12) { jm = 1; jy++; } }
                 
-                // Último día del mes actual
-                const diasMes = new Date(yearNum, monthNum + 1, 0).getDate();
-                
-                let jDay = dayNum + 6;
-                let jMonth = monthNum;
-                let jYear = yearNum;
-                
-                // Si el jueves se pasa del mes
-                if (jDay > diasMes) {
-                    jDay = jDay - diasMes;
-                    jMonth = jMonth + 1;
-                    if (jMonth > 11) {
-                        jMonth = 0;
-                        jYear = jYear + 1;
-                    }
-                }
-                
-                const ops = Array.from(sem[v]).sort().map(op => `<button class="recibo-btn" onclick="verRecibo('${op}', '${v}')">${op}</button>`).join('');
-                const fechaIni = `${year}-${month}-${String(dayNum).padStart(2, '0')}`;
-                const fechaFin = `${jYear}-${String(jMonth + 1).padStart(2, '0')}-${String(jDay).padStart(2, '0')}`;
-                return `<div style="margin-bottom: 25px;"><h3 style="margin-bottom: 15px; color: #2d5a3d;">📅 ${fechaIni} a ${fechaFin}</h3><div>${ops}</div></div>`;
+                const ops = Array.from(sem[v]).sort().map(o => `<button class="btn-rec" onclick="rec('${o}', '${v}')">${o}</button>`).join('');
+                const fin = `${jy}-${String(jm).padStart(2,'0')}-${String(jd).padStart(2,'0')}`;
+                return `<div style="margin-bottom: 20px;"><h3 style="color: #2d5a3d; margin-bottom: 10px;">📅 ${v} a ${fin}</h3>${ops}</div>`;
             }).join('');
-            document.getElementById('t5').innerHTML = html || '<div class="no-data">Sin datos</div>';
+            document.getElementById('t5').innerHTML = html || '<div>Sin datos</div>';
         }
         
-        function verRecibo(operador, viernesParam = null) {
-            let datosRecibo = datos.filter(r => (r.OP || r.Operador) === operador);
-            
-            if (viernesParam) {
-                const [year, month, day] = viernesParam.split('-');
-                const jDay = parseInt(day) + 6;
-                datosRecibo = datosRecibo.filter(r => {
-                    const [d, m, y] = r.Fecha.split('/');
-                    return y === year && m === month && parseInt(d) >= parseInt(day) && parseInt(d) <= jDay;
+        function rec(op, sem) {
+            let rf = datos.filter(r => (r.OP || r.Operador) === op);
+            if (sem) {
+                const [y, m, d] = sem.split('-');
+                const mDate = new Date(parseInt(y), parseInt(m), 0).getDate();
+                let jd = parseInt(d) + 6;
+                if (jd > mDate) jd -= mDate;
+                rf = rf.filter(r => {
+                    const [rd, rm, ry] = r.Fecha.split('/');
+                    return ry === y && rm === m && parseInt(rd) >= parseInt(d) && parseInt(rd) <= jd;
                 });
             }
             
-            const detalles = {};
-            datosRecibo.forEach(r => {
-                if (!detalles[r.Fecha]) detalles[r.Fecha] = { carg: 0, dia: r.día };
-                detalles[r.Fecha].carg = Math.max(detalles[r.Fecha].carg, parseInt(r['M Cargados']) || 0);
+            const det = {};
+            rf.forEach(r => {
+                if (!det[r.Fecha]) det[r.Fecha] = {c: 0};
+                det[r.Fecha].c = Math.max(det[r.Fecha].c, parseInt(r['M Cargados']) || 0);
             });
             
-            const diasTrabajados = Object.keys(detalles).length;
-            const movimientos = Object.values(detalles).reduce((a, b) => a + b.carg, 0);
-            const pagoPorMovimientos = movimientos * 200;
-            const sueldoFijo = diasTrabajados * 362.50;
+            const dias = Object.keys(det).length;
+            const tot = Object.values(det).reduce((a, b) => a + b.c, 0);
+            const pago = tot * 200;
+            const sueldo = dias * 362.50;
             
-            // Opciones para completar viajes
-            const opcionesCompletar = Object.keys(detalles)
-                .filter(f => detalles[f].carg < 5)
-                .map(f => `<option value="${f}">${f} (${detalles[f].carg} viajes)</option>`)
-                .join('');
-            
-            let recibo = `
-                <div class="recibo-header">
-                    <div style="font-size: 28px;">🚛</div>
-                    <div style="font-size: 16px; font-weight: 600; color: #2d5a3d; margin: 10px 0;">RECIBO DE NÓMINA</div>
-                    <div style="font-size: 12px; color: #666;">${operador}</div>
+            let h = `
+                <div style="text-align: center; margin-bottom: 20px;"><div style="font-size: 28px;">🚛</div><h3 style="color: #2d5a3d;">RECIBO NÓMINA</h3><div>${op}</div></div>
+                <table style="font-size: 11px; margin-bottom: 15px;"><tr style="background: #e8e8e8;"><th style="padding: 5px;">Fecha</th><th>Viajes</th></tr>
+                ${Object.keys(det).sort().map(f => `<tr><td style="padding: 5px;">${f}</td><td><strong>${det[f].c}</strong></td></tr>`).join('')}
+                </table>
+                
+                <div style="border: 1px solid #ddd; padding: 12px; border-radius: 4px; margin-bottom: 15px;">
+                    <div style="font-weight: 600; margin-bottom: 8px;">💰 BASE</div>
+                    <div class="recibo-row"><span>Movimientos:</span><span><strong>${tot}</strong> × $200 = $${pago.toLocaleString('es-MX')}</span></div>
+                    <div class="recibo-row"><span>Sueldo fijo:</span><span><strong>${dias}</strong> × $362.50 = $${sueldo.toLocaleString('es-MX')}</span></div>
                 </div>
                 
-                <div style="margin-bottom: 15px; padding: 10px; background: #f5f5f5; border-radius: 4px;">
-                    <table style="width: 100%; font-size: 11px;">
-                        <tr style="background: #e8e8e8;"><th style="padding: 5px; text-align: left;">Fecha</th><th style="padding: 5px;">Viajes</th></tr>
-                        ${Object.keys(detalles).sort().map(f => `<tr><td style="padding: 5px;">${f}</td><td style="padding: 5px; text-align: center; font-weight: 600;">${detalles[f].carg}</td></tr>`).join('')}
-                    </table>
+                <div style="border: 1px solid #ddd; padding: 12px; border-radius: 4px; margin-bottom: 15px;">
+                    <div style="font-weight: 600; margin-bottom: 8px;">🎁 BONOS</div>
+                    <div style="margin-bottom: 8px;"><label><input type="checkbox" id="chk_pun" onchange="calc('${op}', '${sem||''}')"> Puntualidad $250</label></div>
+                    <div style="margin-bottom: 8px;"><label><input type="checkbox" id="chk_asis" onchange="calc('${op}', '${sem||''}')"> Asistencia $250</label></div>
+                    <div style="margin-bottom: 8px;"><label><input type="checkbox" id="chk_des" onchange="calc('${op}', '${sem||''}')"> No descanso 7 días $500</label></div>
+                    <div style="margin-bottom: 8px;"><input type="number" id="txt_otros" placeholder="Otros bonos" onchange="calc('${op}', '${sem||''}')" style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px;"></div>
                 </div>
                 
-                <div style="border: 1px solid #ddd; border-radius: 4px; padding: 12px; margin-bottom: 15px;">
-                    <div style="font-weight: 600; margin-bottom: 10px; color: #2d5a3d;">💰 BASE</div>
-                    <div class="recibo-row"><span>Movimientos:</span><span><strong>${movimientos}</strong> × $200</span></div>
-                    <div class="recibo-row"><span style="text-align: right;">$${pagoPorMovimientos.toLocaleString('es-MX')}</span></div>
-                    <div class="recibo-row" style="margin-top: 8px;"><span>Sueldo fijo:</span><span><strong>${diasTrabajados}</strong> × $362.50</span></div>
-                    <div class="recibo-row"><span style="text-align: right;">$${sueldoFijo.toLocaleString('es-MX')}</span></div>
-                </div>
-                
-                <div style="border: 1px solid #ddd; border-radius: 4px; padding: 12px; margin-bottom: 15px;">
-                    <div style="font-weight: 600; margin-bottom: 10px; color: #2d5a3d;">🎁 BONOS</div>
-                    
-                    <div style="margin-bottom: 10px;">
-                        <label style="display: flex; align-items: center; cursor: pointer;">
-                            <input type="checkbox" id="chk_puntualidad" onchange="calcularTotal('${operador}', '${viernesParam || ''}')" style="margin-right: 8px;">
-                            <span>✓ Puntualidad</span>
-                            <span style="margin-left: auto; color: #2d5a3d; font-weight: 600;">$250</span>
-                        </label>
-                    </div>
-                    
-                    <div style="margin-bottom: 10px;">
-                        <label style="display: flex; align-items: center; cursor: pointer;">
-                            <input type="checkbox" id="chk_asistencia" onchange="calcularTotal('${operador}', '${viernesParam || ''}')" style="margin-right: 8px;">
-                            <span>✓ Asistencia</span>
-                            <span style="margin-left: auto; color: #2d5a3d; font-weight: 600;">$250</span>
-                        </label>
-                    </div>
-                    
-                    <div style="margin-bottom: 10px;">
-                        <label style="display: flex; align-items: center; cursor: pointer;">
-                            <input type="checkbox" id="chk_descanso" onchange="calcularTotal('${operador}', '${viernesParam || ''}')" style="margin-right: 8px;">
-                            <span>No descansó 7 días</span>
-                            <span style="margin-left: auto; color: #2d5a3d; font-weight: 600;">$500</span>
-                        </label>
-                    </div>
-                    
-                    ${opcionesCompletar ? `
-                    <div style="margin-bottom: 10px;">
-                        <label style="display: block; margin-bottom: 5px;">Completar viajes:</label>
-                        <select id="sel_completar" onchange="calcularTotal('${operador}', '${viernesParam || ''}')" style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px;">
-                            <option value="">-- Seleccionar día --</option>
-                            ${opcionesCompletar}
-                        </select>
-                    </div>
-                    ` : ''}
-                    
-                    <div style="margin-bottom: 10px;">
-                        <label style="display: block; margin-bottom: 5px;">Otros bonos/Apoyo coordinación:</label>
-                        <input type="number" id="txt_otros" onchange="calcularTotal('${operador}', '${viernesParam || ''}')" placeholder="$0" style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px;" min="0" step="50">
-                    </div>
-                </div>
-                
-                <div id="resumen_total" style="padding: 12px; background: #e8f5e9; border-radius: 4px;">
-                    <div class="recibo-row total">
-                        <span>💰 TOTAL A PAGAR</span>
-                        <span>$${(pagoPorMovimientos + sueldoFijo).toLocaleString('es-MX')}</span>
-                    </div>
-                </div>
-                
-                <div style="margin-top: 15px; text-align: center;">
-                    <button onclick="imprimirRecibo()" style="padding: 8px 16px; background: #2d5a3d; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">🖨️ Imprimir</button>
+                <div id="tot" style="padding: 12px; background: #e8f5e9; border-radius: 4px;">
+                    <div class="recibo-row recibo-total"><span>💰 TOTAL</span><span>$${(pago + sueldo).toLocaleString('es-MX')}</span></div>
                 </div>
             `;
             
-            document.getElementById('recibo_html').innerHTML = recibo;
+            document.getElementById('recibo').innerHTML = h;
             document.getElementById('modal').classList.add('active');
         }
         
-        function calcularTotal(operador, viernesParam) {
-            let datosRecibo = datos.filter(r => (r.OP || r.Operador) === operador);
-            
-            if (viernesParam) {
-                const [year, month, day] = viernesParam.split('-');
-                const jDay = parseInt(day) + 6;
-                datosRecibo = datosRecibo.filter(r => {
-                    const [d, m, y] = r.Fecha.split('/');
-                    return y === year && m === month && parseInt(d) >= parseInt(day) && parseInt(d) <= jDay;
+        function calc(op, sem) {
+            let rf = datos.filter(r => (r.OP || r.Operador) === op);
+            if (sem) {
+                const [y, m, d] = sem.split('-');
+                const mDate = new Date(parseInt(y), parseInt(m), 0).getDate();
+                let jd = parseInt(d) + 6;
+                if (jd > mDate) jd -= mDate;
+                rf = rf.filter(r => {
+                    const [rd, rm, ry] = r.Fecha.split('/');
+                    return ry === y && rm === m && parseInt(rd) >= parseInt(d) && parseInt(rd) <= jd;
                 });
             }
             
-            const detalles = {};
-            datosRecibo.forEach(r => {
-                if (!detalles[r.Fecha]) detalles[r.Fecha] = { carg: 0 };
-                detalles[r.Fecha].carg = Math.max(detalles[r.Fecha].carg, parseInt(r['M Cargados']) || 0);
+            const det = {};
+            rf.forEach(r => {
+                if (!det[r.Fecha]) det[r.Fecha] = {c: 0};
+                det[r.Fecha].c = Math.max(det[r.Fecha].c, parseInt(r['M Cargados']) || 0);
             });
             
-            const diasTrabajados = Object.keys(detalles).length;
-            const movimientos = Object.values(detalles).reduce((a, b) => a + b.carg, 0);
-            const pagoPorMovimientos = movimientos * 200;
-            const sueldoFijo = diasTrabajados * 362.50;
+            const dias = Object.keys(det).length;
+            const tot = Object.values(det).reduce((a, b) => a + b.c, 0);
+            let total = tot * 200 + dias * 362.50;
             
-            let total = pagoPorMovimientos + sueldoFijo;
+            if (document.getElementById('chk_pun').checked) total += 250;
+            if (document.getElementById('chk_asis').checked) total += 250;
+            if (document.getElementById('chk_des').checked) total += 500;
+            total += parseInt(document.getElementById('txt_otros').value) || 0;
             
-            if (document.getElementById('chk_puntualidad').checked) total += 250;
-            if (document.getElementById('chk_asistencia').checked) total += 250;
-            if (document.getElementById('chk_descanso').checked) total += 500;
-            
-            const diaCompletar = document.getElementById('sel_completar').value;
-            if (diaCompletar && detalles[diaCompletar]) {
-                const faltantes = 5 - detalles[diaCompletar].carg;
-                total += faltantes * 200;
-            }
-            
-            const otros = parseInt(document.getElementById('txt_otros').value) || 0;
-            total += otros;
-            
-            document.getElementById('resumen_total').innerHTML = `
-                <div class="recibo-row total">
-                    <span>💰 TOTAL A PAGAR</span>
-                    <span>$${total.toLocaleString('es-MX')}</span>
-                </div>
-            `;
+            document.getElementById('tot').innerHTML = `<div class="recibo-row recibo-total"><span>💰 TOTAL</span><span>$${total.toLocaleString('es-MX')}</span></div>`;
         }
         
-        function imprimirRecibo() {
-            window.print();
-        }
-        
-        function cerrarModal() {
-            document.getElementById('modal').classList.remove('active');
-        }
-        
-        function cambiarTab(id) {
+        function cerrar() { document.getElementById('modal').classList.remove('active'); }
+        function tab(id) {
             document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.tab-btn').forEach(t => t.classList.remove('active'));
             document.getElementById(id).classList.add('active');
             event.target.classList.add('active');
         }
-        
-        function limpiarFiltros() {
-            document.getElementById('filtroAno').value = '';
-            document.getElementById('filtroMes').value = '';
-            document.getElementById('filtroDia').value = '';
-            document.getElementById('filtroTurno').value = '';
-            document.getElementById('filtroCoordinador').value = '';
-            document.getElementById('filtroOperador').value = '';
-            aplicarFiltros();
+        function limpiar() {
+            document.getElementById('ano').value = '';
+            document.getElementById('mes').value = '';
+            document.getElementById('dia').value = '';
+            aplicar();
         }
     </script>
 </body>
