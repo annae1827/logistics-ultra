@@ -138,8 +138,6 @@
         
         function render(f) {
             let c = 0, pO = {}, sem = {};
-            const meses_num = {'enero':'01','febrero':'02','marzo':'03','abril':'04','mayo':'05','junio':'06','julio':'07','agosto':'08','septiembre':'09','octubre':'10','noviembre':'11','diciembre':'12'};
-            const dias_semana = ['lunes','martes','miércoles','jueves','viernes','sábado','domingo'];
             
             f.forEach(r => {
                 const carg = parseInt(r['M Cargados']) || 0;
@@ -150,19 +148,21 @@
                 pO[op].c += carg;
                 pO[op].dias += 1;
                 
-                const año = r.año;
-                const mes_num = meses_num[r.mes.toLowerCase()] || r.mes;
-                const día_idx = dias_semana.indexOf(r.día.toLowerCase());
-                const día_num = parseInt(r.Fecha.split('/')[0]);
-                let vie_num = día_num;
+                // Calcular viernes de la semana usando la fecha directamente
+                const [día_num, mes_num, año] = r.Fecha.split('/');
+                const fecha = new Date(parseInt(año), parseInt(mes_num) - 1, parseInt(día_num));
+                const dayOfWeek = fecha.getDay(); // 0=dom, 1=lun, ..., 5=vie, 6=sab
                 
-                if (día_idx >= 0) {
-                    if (día_idx <= 3) vie_num -= (día_idx + 1);
-                    else if (día_idx === 4) vie_num = día_num;
-                    else vie_num += (5 - día_idx);
-                }
+                // Calcular cuántos días atrás fue el viernes
+                const diff = (dayOfWeek - 5 + 7) % 7;
+                const fridayDate = new Date(fecha);
+                fridayDate.setDate(fridayDate.getDate() - diff);
                 
-                const key = `${año}-${mes_num}-${String(vie_num).padStart(2,'0')}`;
+                const fridayDay = String(fridayDate.getDate()).padStart(2, '0');
+                const fridayMonth = String(fridayDate.getMonth() + 1).padStart(2, '0');
+                const fridayYear = fridayDate.getFullYear();
+                
+                const key = `${fridayYear}-${fridayMonth}-${fridayDay}`;
                 if (!sem[key]) sem[key] = new Set();
                 sem[key].add(op);
             });
@@ -178,14 +178,17 @@
             document.getElementById('t1').innerHTML = html || '<tr><td colspan="4">Sin datos</td></tr>';
             
             html = Object.keys(sem).sort().reverse().map(v => {
-                const [año, mes, día] = v.split('-');
-                const y = parseInt(año), m = parseInt(mes), d = parseInt(día);
-                const mDate = new Date(y, m, 0).getDate();
-                let jd = d + 6, jm = m, jy = y;
-                if (jd > mDate) { jd -= mDate; jm++; if (jm > 12) { jm = 1; jy++; } }
+                const [year, month, day] = v.split('-');
+                const fridayDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+                const thursdayDate = new Date(fridayDate);
+                thursdayDate.setDate(thursdayDate.getDate() + 6);
+                
+                const thuDay = String(thursdayDate.getDate()).padStart(2, '0');
+                const thuMonth = String(thursdayDate.getMonth() + 1).padStart(2, '0');
+                const thuYear = thursdayDate.getFullYear();
                 
                 const ops = Array.from(sem[v]).sort().map(o => `<button class="btn-rec" onclick="rec('${o}', '${v}')">${o}</button>`).join('');
-                const fin = `${jy}-${String(jm).padStart(2,'0')}-${String(jd).padStart(2,'0')}`;
+                const fin = `${thuYear}-${thuMonth}-${thuDay}`;
                 return `<div style="margin-bottom: 20px;"><h3 style="color: #2d5a3d; margin-bottom: 10px;">📅 ${v} a ${fin}</h3>${ops}</div>`;
             }).join('');
             document.getElementById('t5').innerHTML = html || '<div>Sin datos</div>';
