@@ -418,24 +418,24 @@
             
             let html = `<div style="overflow-x: auto; border-radius: 8px;">
             <table style="width: 100%; border-collapse: collapse; background: white; font-size: 11px;">
-                <thead style="background: #2d5a3d; color: white; position: sticky; top: 0; z-index: 10;">
-                    <tr>
-                        <th style="padding: 12px 8px; text-align: left; border: 1px solid #ddd; min-width: 180px; font-weight: bold; font-size: 12px; color: #ffffff;">Operador</th>
-                        <th style="padding: 12px 8px; text-align: center; border: 1px solid #ddd; min-width: 70px; font-weight: bold; font-size: 12px; color: #ffffff;">Viajes Acumulados</th>
-                        <th style="padding: 12px 8px; text-align: center; border: 1px solid #ddd; min-width: 70px; font-weight: bold; font-size: 12px; color: #ffffff;">Días Trabajados</th>
-                        <th style="padding: 12px 8px; text-align: center; border: 1px solid #ddd; min-width: 80px; font-weight: bold; font-size: 12px; color: #ffffff;">Viajes a Completar</th>
-                        <th style="padding: 12px 8px; text-align: center; border: 1px solid #ddd; min-width: 60px; font-weight: bold; font-size: 12px; color: #ffffff;">Total Viajes</th>
-                        <th style="padding: 12px 8px; text-align: center; border: 1px solid #ddd; min-width: 80px; font-weight: bold; font-size: 12px; color: #ffffff;">Movimientos</th>
-                        <th style="padding: 12px 8px; text-align: center; border: 1px solid #ddd; min-width: 80px; font-weight: bold; font-size: 12px; color: #ffffff;">Sueldo Fijo</th>
-                        <th style="padding: 12px 8px; text-align: center; border: 1px solid #ddd; min-width: 70px; background: #fff9c4; font-weight: bold; font-size: 12px; color: #333;">Puntualidad</th>
-                        <th style="padding: 12px 8px; text-align: center; border: 1px solid #ddd; min-width: 70px; background: #fff9c4; font-weight: bold; font-size: 12px; color: #333;">Asistencia</th>
-                        <th style="padding: 12px 8px; text-align: center; border: 1px solid #ddd; min-width: 70px; background: #fff9c4; font-weight: bold; font-size: 12px; color: #333;">Otros Bonos</th>
-                        <th style="padding: 12px 8px; text-align: center; border: 1px solid #ddd; min-width: 80px; font-weight: bold; font-size: 12px; color: #ffffff;">Subtotal</th>
-                        <th style="padding: 12px 8px; text-align: center; border: 1px solid #ddd; min-width: 70px; background: #ffecb3; font-weight: bold; font-size: 12px; color: #333;">Préstamo</th>
-                        <th style="padding: 12px 8px; text-align: center; border: 1px solid #ddd; min-width: 70px; background: #ffecb3; font-weight: bold; font-size: 12px; color: #333;">Adelanto</th>
-                        <th style="padding: 12px 8px; text-align: center; border: 1px solid #ddd; min-width: 70px; background: #ffcdd2; font-weight: bold; font-size: 12px; color: #333;">Penalización</th>
-                        <th style="padding: 12px 8px; text-align: center; border: 1px solid #ddd; min-width: 70px; font-weight: bold; font-size: 12px; color: #ffffff;">ISR (7.5%)</th>
-                        <th style="padding: 12px 8px; text-align: center; border: 1px solid #ddd; min-width: 90px; background: #e8f5e9; font-weight: bold; font-size: 12px; color: #333;">TOTAL A PAGAR</th>
+                <thead style="background: #1a1a1a; color: #ffffff; position: sticky; top: 0; z-index: 10;">
+                    <tr style="background: #1a1a1a;">
+                        <th style="padding: 14px 10px; text-align: left; border: 2px solid #333; min-width: 180px; font-weight: bold; font-size: 13px; color: #ffffff; background: #1a1a1a;">Operador</th>
+                        <th style="padding: 14px 10px; text-align: center; border: 2px solid #333; min-width: 70px; font-weight: bold; font-size: 13px; color: #ffffff; background: #1a1a1a;">Viajes Acumulados</th>
+                        <th style="padding: 14px 10px; text-align: center; border: 2px solid #333; min-width: 70px; font-weight: bold; font-size: 13px; color: #ffffff; background: #1a1a1a;">Días Trabajados</th>
+                        <th style="padding: 14px 10px; text-align: center; border: 2px solid #333; min-width: 80px; font-weight: bold; font-size: 13px; color: #ffffff; background: #1a1a1a;">Viajes a Completar</th>
+                        <th style="padding: 14px 10px; text-align: center; border: 2px solid #333; min-width: 60px; font-weight: bold; font-size: 13px; color: #ffffff; background: #1a1a1a;">Total Viajes</th>
+                        <th style="padding: 14px 10px; text-align: center; border: 2px solid #333; min-width: 80px; font-weight: bold; font-size: 13px; color: #ffffff; background: #1a1a1a;">Movimientos</th>
+                        <th style="padding: 14px 10px; text-align: center; border: 2px solid #333; min-width: 80px; font-weight: bold; font-size: 13px; color: #ffffff; background: #1a1a1a;">Sueldo Fijo</th>
+                        <th style="padding: 14px 10px; text-align: center; border: 2px solid #333; min-width: 70px; background: #333333; font-weight: bold; font-size: 13px; color: #ffeb3b;">Puntualidad</th>
+                        <th style="padding: 14px 10px; text-align: center; border: 2px solid #333; min-width: 70px; background: #333333; font-weight: bold; font-size: 13px; color: #ffeb3b;">Asistencia</th>
+                        <th style="padding: 14px 10px; text-align: center; border: 2px solid #333; min-width: 70px; background: #333333; font-weight: bold; font-size: 13px; color: #ffeb3b;">Otros Bonos</th>
+                        <th style="padding: 14px 10px; text-align: center; border: 2px solid #333; min-width: 80px; font-weight: bold; font-size: 13px; color: #ffffff; background: #1a1a1a;">Subtotal</th>
+                        <th style="padding: 14px 10px; text-align: center; border: 2px solid #333; min-width: 70px; background: #333333; font-weight: bold; font-size: 13px; color: #ffeb3b;">Préstamo</th>
+                        <th style="padding: 14px 10px; text-align: center; border: 2px solid #333; min-width: 70px; background: #333333; font-weight: bold; font-size: 13px; color: #ffeb3b;">Adelanto</th>
+                        <th style="padding: 14px 10px; text-align: center; border: 2px solid #333; min-width: 70px; background: #333333; font-weight: bold; font-size: 13px; color: #ff6b6b;">Penalización</th>
+                        <th style="padding: 14px 10px; text-align: center; border: 2px solid #333; min-width: 70px; font-weight: bold; font-size: 13px; color: #ff6b6b; background: #1a1a1a;">ISR (7.5%)</th>
+                        <th style="padding: 14px 10px; text-align: center; border: 2px solid #333; min-width: 90px; background: #1b5e20; font-weight: bold; font-size: 13px; color: #c8e6c9;">TOTAL A PAGAR</th>
                     </tr>
                 </thead>
                 <tbody id="nom_body">`;
