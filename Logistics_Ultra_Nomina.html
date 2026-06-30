@@ -287,11 +287,14 @@
             // Tab Recibos - Semanas
             html = Object.keys(sem).sort().reverse().map(v => {
                 const [year, month, day] = v.split('-');
-                // Calcular días en el mes correctamente
-                const diasMes = new Date(parseInt(year), parseInt(month), 0).getDate();
+                // Calcular último día del mes actual
+                const monthNum = parseInt(month);
+                const yearNum = parseInt(year);
+                const diasMes = new Date(yearNum, monthNum, 0).getDate();
+                
                 let jDay = parseInt(day) + 6;
-                let jMonth = parseInt(month);
-                let jYear = parseInt(year);
+                let jMonth = monthNum;
+                let jYear = yearNum;
                 
                 // Si el jueves se pasa del mes, ajustar al siguiente mes
                 if (jDay > diasMes) {
@@ -311,7 +314,7 @@
         }
         
         function verRecibo(operador, viernesParam = null) {
-            let datosRecibo = datos.filter(r => r.Operador === operador);
+            let datosRecibo = datos.filter(r => (r.OP || r.Operador) === operador);
             
             if (viernesParam) {
                 const [year, month, day] = viernesParam.split('-');
@@ -421,9 +424,7 @@
         }
         
         function calcularTotal(operador, viernesParam) {
-            let datosRecibo = datos.filter(r => r.OP || r.Operador === operador);
-            const op_col = r => r.OP || r.Operador;
-            datosRecibo = datosRecibo.filter(r => op_col(r) === operador);
+            let datosRecibo = datos.filter(r => (r.OP || r.Operador) === operador);
             
             if (viernesParam) {
                 const [year, month, day] = viernesParam.split('-');
