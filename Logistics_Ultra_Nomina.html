@@ -275,15 +275,20 @@
             
             const detalles = {};
             datosRecibo.forEach(r => {
-                if (!detalles[r.Fecha]) detalles[r.Fecha] = { carg: 0 };
+                if (!detalles[r.Fecha]) detalles[r.Fecha] = { carg: 0, dia: r.día };
                 detalles[r.Fecha].carg = Math.max(detalles[r.Fecha].carg, parseInt(r['M Cargados']) || 0);
             });
             
-            const dias = Object.keys(detalles).length;
+            const diasTrabajados = Object.keys(detalles).length;
             const movimientos = Object.values(detalles).reduce((a, b) => a + b.carg, 0);
             const pagoPorMovimientos = movimientos * 200;
-            const sueldoFijo = dias * 362.50;
-            const total = pagoPorMovimientos + sueldoFijo;
+            const sueldoFijo = diasTrabajados * 362.50;
+            
+            // Opciones para completar viajes
+            const opcionesCompletar = Object.keys(detalles)
+                .filter(f => detalles[f].carg < 5)
+                .map(f => `<option value="${f}">${f} (${detalles[f].carg} viajes)</option>`)
+                .join('');
             
             let recibo = `
                 <div class="recibo-header">
@@ -294,25 +299,116 @@
                 
                 <div style="margin-bottom: 15px; padding: 10px; background: #f5f5f5; border-radius: 4px;">
                     <table style="width: 100%; font-size: 11px;">
-                        <tr style="background: #e8e8e8;"><th style="padding: 5px; text-align: left;">Fecha</th><th style="padding: 5px;">Cargados</th></tr>
+                        <tr style="background: #e8e8e8;"><th style="padding: 5px; text-align: left;">Fecha</th><th style="padding: 5px;">Viajes</th></tr>
                         ${Object.keys(detalles).sort().map(f => `<tr><td style="padding: 5px;">${f}</td><td style="padding: 5px; text-align: center; font-weight: 600;">${detalles[f].carg}</td></tr>`).join('')}
                     </table>
                 </div>
                 
-                <div class="recibo-row"><span>📦 Movimientos:</span><span><strong>${movimientos}</strong></span></div>
-                <div class="recibo-row"><span>Pago (${movimientos} × $200):</span><span style="color: #2d5a3d; font-weight: 600;">$${pagoPorMovimientos.toLocaleString('es-MX')}</span></div>
-                <div class="recibo-row"><span>💼 Sueldo Fijo (${dias} × $362.50):</span><span style="color: #2d5a3d; font-weight: 600;">$${sueldoFijo.toLocaleString('es-MX')}</span></div>
+                <div style="border: 1px solid #ddd; border-radius: 4px; padding: 12px; margin-bottom: 15px;">
+                    <div style="font-weight: 600; margin-bottom: 10px; color: #2d5a3d;">💰 BASE</div>
+                    <div class="recibo-row"><span>Movimientos:</span><span><strong>${movimientos}</strong> × $200</span></div>
+                    <div class="recibo-row"><span style="text-align: right;">$${pagoPorMovimientos.toLocaleString('es-MX')}</span></div>
+                    <div class="recibo-row" style="margin-top: 8px;"><span>Sueldo fijo:</span><span><strong>${diasTrabajados}</strong> × $362.50</span></div>
+                    <div class="recibo-row"><span style="text-align: right;">$${sueldoFijo.toLocaleString('es-MX')}</span></div>
+                </div>
                 
-                <div style="padding: 12px; background: #e8f5e9; border-radius: 4px; margin-top: 15px;">
-                    <div class="recibo-row total">
-                        <span>💰 TOTAL</span>
-                        <span>$${total.toLocaleString('es-MX')}</span>
+                <div style="border: 1px solid #ddd; border-radius: 4px; padding: 12px; margin-bottom: 15px;">
+                    <div style="font-weight: 600; margin-bottom: 10px; color: #2d5a3d;">🎁 BONOS</div>
+                    
+                    <div style="margin-bottom: 10px;">
+                        <label style="display: flex; align-items: center; cursor: pointer;">
+                            <input type="checkbox" id="chk_puntualidad" onchange="calcularTotal('${operador}', '${viernesParam || ''}')" style="margin-right: 8px;">
+                            <span>✓ Puntualidad y Asistencia</span>
+                            <span style="margin-left: auto; color: #2d5a3d; font-weight: 600;">$250</span>
+                        </label>
                     </div>
+                    
+                    <div style="margin-bottom: 10px;">
+                        <label style="display: flex; align-items: center; cursor: pointer;">
+                            <input type="checkbox" id="chk_descanso" onchange="calcularTotal('${operador}', '${viernesParam || ''}')" style="margin-right: 8px;">
+                            <span>No descansó 7 días</span>
+                            <span style="margin-left: auto; color: #2d5a3d; font-weight: 600;">$500</span>
+                        </label>
+                    </div>
+                    
+                    ${opcionesCompletar ? `
+                    <div style="margin-bottom: 10px;">
+                        <label style="display: block; margin-bottom: 5px;">Completar viajes:</label>
+                        <select id="sel_completar" onchange="calcularTotal('${operador}', '${viernesParam || ''}')" style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px;">
+                            <option value="">-- Seleccionar día --</option>
+                            ${opcionesCompletar}
+                        </select>
+                    </div>
+                    ` : ''}
+                    
+                    <div style="margin-bottom: 10px;">
+                        <label style="display: block; margin-bottom: 5px;">Otros bonos/Apoyo coordinación:</label>
+                        <input type="number" id="txt_otros" onchange="calcularTotal('${operador}', '${viernesParam || ''}')" placeholder="$0" style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px;" min="0" step="50">
+                    </div>
+                </div>
+                
+                <div id="resumen_total" style="padding: 12px; background: #e8f5e9; border-radius: 4px;">
+                    <div class="recibo-row total">
+                        <span>💰 TOTAL A PAGAR</span>
+                        <span>$${(pagoPorMovimientos + sueldoFijo).toLocaleString('es-MX')}</span>
+                    </div>
+                </div>
+                
+                <div style="margin-top: 15px; text-align: center;">
+                    <button onclick="imprimirRecibo()" style="padding: 8px 16px; background: #2d5a3d; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">🖨️ Imprimir</button>
                 </div>
             `;
             
             document.getElementById('recibo_html').innerHTML = recibo;
             document.getElementById('modal').classList.add('active');
+        }
+        
+        function calcularTotal(operador, viernesParam) {
+            let datosRecibo = datos.filter(r => r.Operador === operador);
+            if (viernesParam) {
+                const [year, month, day] = viernesParam.split('-');
+                const jDay = parseInt(day) + 6;
+                datosRecibo = datosRecibo.filter(r => {
+                    const [d, m, y] = r.Fecha.split('/');
+                    return y === year && m === month && parseInt(d) >= parseInt(day) && parseInt(d) <= jDay;
+                });
+            }
+            
+            const detalles = {};
+            datosRecibo.forEach(r => {
+                if (!detalles[r.Fecha]) detalles[r.Fecha] = { carg: 0 };
+                detalles[r.Fecha].carg = Math.max(detalles[r.Fecha].carg, parseInt(r['M Cargados']) || 0);
+            });
+            
+            const diasTrabajados = Object.keys(detalles).length;
+            const movimientos = Object.values(detalles).reduce((a, b) => a + b.carg, 0);
+            const pagoPorMovimientos = movimientos * 200;
+            const sueldoFijo = diasTrabajados * 362.50;
+            
+            let total = pagoPorMovimientos + sueldoFijo;
+            
+            if (document.getElementById('chk_puntualidad').checked) total += 250;
+            if (document.getElementById('chk_descanso').checked) total += 500;
+            
+            const diaCompletar = document.getElementById('sel_completar').value;
+            if (diaCompletar && detalles[diaCompletar]) {
+                const faltantes = 5 - detalles[diaCompletar].carg;
+                total += faltantes * 200;
+            }
+            
+            const otros = parseInt(document.getElementById('txt_otros').value) || 0;
+            total += otros;
+            
+            document.getElementById('resumen_total').innerHTML = `
+                <div class="recibo-row total">
+                    <span>💰 TOTAL A PAGAR</span>
+                    <span>$${total.toLocaleString('es-MX')}</span>
+                </div>
+            `;
+        }
+        
+        function imprimirRecibo() {
+            window.print();
         }
         
         function cerrarModal() {
