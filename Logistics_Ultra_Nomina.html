@@ -70,9 +70,12 @@
         </div>
         
         <div id="nom" class="tab-content">
-            <div style="margin-bottom: 15px;">
-                <button onclick="generarNomina()" style="padding: 10px 20px; background: #2d5a3d; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">📊 Generar Nómina</button>
-                <button onclick="imprimirNomina()" style="padding: 10px 20px; background: #666; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; margin-left: 10px;">🖨️ Imprimir</button>
+            <div style="margin-bottom: 15px; display: flex; gap: 10px; align-items: center;">
+                <label style="font-weight: 600;">Semana:</label>
+                <select id="sel_sem_nom" onchange="generarNomina()" style="padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px;">
+                    <option value="">-- Seleccionar semana --</option>
+                </select>
+                <button onclick="imprimirNomina()" style="padding: 10px 20px; background: #2d5a3d; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">🖨️ Imprimir</button>
             </div>
             <div id="t_nom" style="overflow-x: auto;"></div>
         </div>
@@ -186,7 +189,23 @@
             });
             document.getElementById('t1').innerHTML = html || '<tr><td colspan="4">Sin datos</td></tr>';
             
-            html = Object.keys(sem).sort().reverse().map(v => {
+            // Poblar dropdown de semanas en NÓMINA
+            const semanas = Object.keys(sem).sort().reverse();
+            let optionsHtml = '<option value="">-- Seleccionar semana --</option>';
+            semanas.forEach(v => {
+                const [year, month, day] = v.split('-');
+                const fridayDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+                const thursdayDate = new Date(fridayDate);
+                thursdayDate.setDate(thursdayDate.getDate() + 6);
+                
+                const thuDay = String(thursdayDate.getDate()).padStart(2, '0');
+                const thuMonth = String(thursdayDate.getMonth() + 1).padStart(2, '0');
+                
+                optionsHtml += `<option value="${v}">${v} a ${thursdayDate.getFullYear()}-${thuMonth}-${thuDay}</option>`;
+            });
+            document.getElementById('sel_sem_nom').innerHTML = optionsHtml;
+            
+            html = semanas.map(v => {
                 const [year, month, day] = v.split('-');
                 const fridayDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
                 const thursdayDate = new Date(fridayDate);
@@ -366,14 +385,36 @@
         }
         
         function generarNomina() {
+            const semanaSelec = document.getElementById('sel_sem_nom').value;
+            if (!semanaSelec) {
+                document.getElementById('t_nom').innerHTML = '<div style="padding: 20px; text-align: center; color: #999;">Selecciona una semana</div>';
+                return;
+            }
+            
+            const [y, m, d] = semanaSelec.split('-');
+            const mDate = new Date(parseInt(y), parseInt(m), 0).getDate();
+            let jd = parseInt(d) + 6;
+            if (jd > mDate) jd -= mDate;
+            
+            // Filtrar datos de la semana seleccionada
+            const datosSem = datos.filter(r => {
+                const [rd, rm, ry] = r.Fecha.split('/');
+                return ry === y && rm === m && parseInt(rd) >= parseInt(d) && parseInt(rd) <= jd;
+            });
+            
             const datosOps = {};
-            datos.forEach(r => {
+            datosSem.forEach(r => {
                 const op = r.OP || r.Operador;
                 const carg = parseInt(r['M Cargados']) || 0;
                 if (!datosOps[op]) datosOps[op] = {c: 0, dias: 0, prefil: 0, adelanto: 0, penalizacion: 0};
                 datosOps[op].c += carg;
                 datosOps[op].dias += 1;
             });
+            
+            if (Object.keys(datosOps).length === 0) {
+                document.getElementById('t_nom').innerHTML = '<div style="padding: 20px; text-align: center; color: #999;">Sin datos para esta semana</div>';
+                return;
+            }
             
             let html = `<table style="width: 100%; border-collapse: collapse; background: white; font-size: 11px;">
                 <thead style="background: #2d5a3d; color: white; position: sticky; top: 0;">
@@ -421,8 +462,22 @@
         }
         
         function recalcNomina() {
+            const semanaSelec = document.getElementById('sel_sem_nom').value;
+            if (!semanaSelec) return;
+            
+            const [y, m, d] = semanaSelec.split('-');
+            const mDate = new Date(parseInt(y), parseInt(m), 0).getDate();
+            let jd = parseInt(d) + 6;
+            if (jd > mDate) jd -= mDate;
+            
+            // Filtrar datos de la semana seleccionada
+            const datosSem = datos.filter(r => {
+                const [rd, rm, ry] = r.Fecha.split('/');
+                return ry === y && rm === m && parseInt(rd) >= parseInt(d) && parseInt(rd) <= jd;
+            });
+            
             const datosOps = {};
-            datos.forEach(r => {
+            datosSem.forEach(r => {
                 const op = r.OP || r.Operador;
                 const carg = parseInt(r['M Cargados']) || 0;
                 if (!datosOps[op]) datosOps[op] = {c: 0, dias: 0};
