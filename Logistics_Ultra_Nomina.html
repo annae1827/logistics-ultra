@@ -115,7 +115,20 @@
                         header: true,
                         skipEmptyLines: true,
                         complete: (results) => {
-                            datos = results.data.filter(r => r.Operador && r.Fecha);
+                            // Normalizar nombres de columnas
+                            datos = results.data.map(r => {
+                                const row = {};
+                                Object.keys(r).forEach(key => {
+                                    const normalized = key.trim().toLowerCase();
+                                    row[key] = r[key];
+                                });
+                                return r;
+                            }).filter(r => {
+                                // Usar OP si existe, sino Operador
+                                const op = r.OP || r.Operador;
+                                return op && r.Fecha;
+                            });
+                            
                             datosFiltrados = [...datos];
                             init();
                         },
@@ -133,12 +146,18 @@
         function cargarFiltros() {
             const anos = new Set(), meses = new Set(), dias = new Set(), turnos = new Set(), coords = new Set(), ops = new Set();
             datos.forEach(r => {
-                if (r.año) anos.add(r.año);
-                if (r.mes) meses.add(r.mes);
-                if (r.día) dias.add(r.día);
-                if (r.Turno) turnos.add(r.Turno);
-                if (r.Coordinador) coords.add(r.Coordinador);
-                if (r.Operador) ops.add(r.Operador);
+                // Buscar columnas con encoding flexible
+                const año = r.año || r['año'] || r.Año || r['Año'];
+                const mes = r.mes || r['mes'] || r.Mes || r['Mes'];
+                const día = r.día || r['día'] || r.Día || r['Día'];
+                const op = r.OP || r.Operador;
+                
+                if (año) anos.add(año.trim());
+                if (mes) meses.add(mes.trim());
+                if (día) dias.add(día.trim());
+                if (r.Turno) turnos.add(r.Turno.trim());
+                if (r.Coordinador) coords.add(r.Coordinador.trim());
+                if (op) ops.add(op.trim());
             });
             
             document.getElementById('filtroAno').innerHTML = '<option value="">Todos</option>' + [...anos].sort().reverse().map(a => `<option>${a}</option>`).join('');
@@ -158,12 +177,17 @@
             const op = document.getElementById('filtroOperador').value;
             
             datosFiltrados = datos.filter(r => {
-                if (ano && r.año !== ano) return false;
-                if (mes && r.mes !== mes) return false;
-                if (dia && r.día !== dia) return false;
+                const año = r.año || r['año'] || r.Año || r['Año'];
+                const mes_col = r.mes || r['mes'] || r.Mes || r['Mes'];
+                const día_col = r.día || r['día'] || r.Día || r['Día'];
+                const op_col = r.OP || r.Operador;
+                
+                if (ano && año !== ano) return false;
+                if (mes && mes_col !== mes) return false;
+                if (dia && día_col !== dia) return false;
                 if (turno && r.Turno !== turno) return false;
                 if (coord && r.Coordinador !== coord) return false;
-                if (op && r.Operador !== op) return false;
+                if (op && op_col !== op) return false;
                 return true;
             });
             
@@ -179,6 +203,12 @@
                 const vac = parseInt(r['M Vacíos']) || 0;
                 const asist = r.Estatus.toLowerCase().includes('asist') || r.Estatus.toLowerCase().includes('si') ? 1 : 0;
                 const falt = r.Estatus.toLowerCase().includes('falta') ? 1 : 0;
+                const op_col = r.OP || r.Operador;
+                
+                // Leer año/mes/día flexiblemente
+                const año = r.año || r['año'] || r.Año || r['Año'];
+                const mes_col = r.mes || r['mes'] || r.Mes || r['Mes'];
+                const día_col = r.día || r['día'] || r.Día || r['Día'];
                 
                 c += carg; v += vac; a += asist; fa += falt;
                 
@@ -188,28 +218,31 @@
                 
                 if (!pC[r.Coordinador]) pC[r.Coordinador] = { c: 0, v: 0, a: 0, f: 0, ops: new Set() };
                 pC[r.Coordinador].c += carg; pC[r.Coordinador].v += vac; pC[r.Coordinador].a += asist; pC[r.Coordinador].f += falt;
-                pC[r.Coordinador].ops.add(r.Operador);
+                pC[r.Coordinador].ops.add(op_col);
                 
-                if (!pO[r.Operador]) pO[r.Operador] = { c: 0, v: 0, a: 0, f: 0, t: new Set() };
-                pO[r.Operador].c += carg; pO[r.Operador].v += vac; pO[r.Operador].a += asist; pO[r.Operador].f += falt;
-                pO[r.Operador].t.add(r.Turno);
+                if (!pO[op_col]) pO[op_col] = { c: 0, v: 0, a: 0, f: 0, t: new Set() };
+                pO[op_col].c += carg; pO[op_col].v += vac; pO[op_col].a += asist; pO[op_col].f += falt;
+                pO[op_col].t.add(r.Turno);
                 
                 if (!pT[r.Turno]) pT[r.Turno] = { c: 0, v: 0, a: 0, f: 0, ops: new Set() };
                 pT[r.Turno].c += carg; pT[r.Turno].v += vac; pT[r.Turno].a += asist; pT[r.Turno].f += falt;
-                pT[r.Turno].ops.add(r.Operador);
+                pT[r.Turno].ops.add(op_col);
                 
                 // Semana viernes a jueves usando columna día
-                const [fechaD, fechaM, fechaY] = r.Fecha.split('/');
-                const diaIdx = diasSemana.indexOf(r.día.toLowerCase());
-                let viernesD = parseInt(fechaD);
-                
-                if (diaIdx <= 3) viernesD -= (diaIdx + 1); // lunes a jueves: viernes anterior
-                else if (diaIdx === 4) viernesD = parseInt(fechaD); // viernes
-                else viernesD += (5 - diaIdx); // sábado, domingo: viernes esta semana
-                
-                const keySem = `${fechaY}-${fechaM}-${String(viernesD).padStart(2, '0')}`;
-                if (!sem[keySem]) sem[keySem] = new Set();
-                sem[keySem].add(r.Operador);
+                if (año && mes_col && día_col) {
+                    const diaIdx = diasSemana.indexOf(día_col.toLowerCase().trim());
+                    let viernesD = parseInt(r.Fecha.split('/')[0]);
+                    
+                    if (diaIdx >= 0) {
+                        if (diaIdx <= 3) viernesD -= (diaIdx + 1);
+                        else if (diaIdx === 4) viernesD = parseInt(r.Fecha.split('/')[0]);
+                        else viernesD += (5 - diaIdx);
+                    }
+                    
+                    const keySem = `${año}-${mes_col}-${String(viernesD).padStart(2, '0')}`;
+                    if (!sem[keySem]) sem[keySem] = new Set();
+                    sem[keySem].add(op_col);
+                }
             });
             
             document.getElementById('c1').textContent = c;
@@ -318,7 +351,15 @@
                     <div style="margin-bottom: 10px;">
                         <label style="display: flex; align-items: center; cursor: pointer;">
                             <input type="checkbox" id="chk_puntualidad" onchange="calcularTotal('${operador}', '${viernesParam || ''}')" style="margin-right: 8px;">
-                            <span>✓ Puntualidad y Asistencia</span>
+                            <span>✓ Puntualidad</span>
+                            <span style="margin-left: auto; color: #2d5a3d; font-weight: 600;">$250</span>
+                        </label>
+                    </div>
+                    
+                    <div style="margin-bottom: 10px;">
+                        <label style="display: flex; align-items: center; cursor: pointer;">
+                            <input type="checkbox" id="chk_asistencia" onchange="calcularTotal('${operador}', '${viernesParam || ''}')" style="margin-right: 8px;">
+                            <span>✓ Asistencia</span>
                             <span style="margin-left: auto; color: #2d5a3d; font-weight: 600;">$250</span>
                         </label>
                     </div>
@@ -364,7 +405,10 @@
         }
         
         function calcularTotal(operador, viernesParam) {
-            let datosRecibo = datos.filter(r => r.Operador === operador);
+            let datosRecibo = datos.filter(r => r.OP || r.Operador === operador);
+            const op_col = r => r.OP || r.Operador;
+            datosRecibo = datosRecibo.filter(r => op_col(r) === operador);
+            
             if (viernesParam) {
                 const [year, month, day] = viernesParam.split('-');
                 const jDay = parseInt(day) + 6;
@@ -388,6 +432,7 @@
             let total = pagoPorMovimientos + sueldoFijo;
             
             if (document.getElementById('chk_puntualidad').checked) total += 250;
+            if (document.getElementById('chk_asistencia').checked) total += 250;
             if (document.getElementById('chk_descanso').checked) total += 500;
             
             const diaCompletar = document.getElementById('sel_completar').value;
