@@ -295,24 +295,30 @@
                 return;
             }
             
-            const y = partes[0];
-            const m = partes[1];
-            const d = partes[2];
+            const y = parseInt(partes[0]);
+            const m = parseInt(partes[1]);
+            const d = parseInt(partes[2]);
             
             // Validar que sean números
-            if (isNaN(parseInt(y)) || isNaN(parseInt(m)) || isNaN(parseInt(d))) {
+            if (isNaN(y) || isNaN(m) || isNaN(d)) {
                 document.getElementById('t_nom').innerHTML = '<div style="padding: 20px; text-align: center; color: #c62828;">Error: formato de semana inválido</div>';
                 return;
             }
-            const mDate = new Date(parseInt(y), parseInt(m), 0).getDate();
-            let jd = parseInt(d) + 6;
-            if (jd > mDate) jd -= mDate;
-
+            
+            // Calcular fecha de inicio y fin de la semana
+            const fridayDate = new Date(y, m - 1, d);
+            const thursdayDate = new Date(fridayDate);
+            thursdayDate.setDate(thursdayDate.getDate() + 6);
+            
+            // Filtrar datos que estén entre la semana (viernes a jueves)
             const datosSem = datos.filter(r => {
                 const [rd, rm, ry] = r.Fecha.split('/');
-                return ry === y && rm === m && parseInt(rd) >= parseInt(d) && parseInt(rd) <= jd;
+                const fecha = new Date(parseInt(ry), parseInt(rm) - 1, parseInt(rd));
+                
+                // Incluir si está entre viernes y jueves (inclusive)
+                return fecha >= fridayDate && fecha <= thursdayDate;
             });
-
+            
             const datosOps = {};
             datosSem.forEach(r => {
                 const op = r.OP || r.Operador;
@@ -419,14 +425,22 @@
             const semanaSelec = document.getElementById('sel_sem_nom').value;
             if (!semanaSelec) return;
 
-            const [y, m, d] = semanaSelec.split('-');
-            const mDate = new Date(parseInt(y), parseInt(m), 0).getDate();
-            let jd = parseInt(d) + 6;
-            if (jd > mDate) jd -= mDate;
+            const partes = semanaSelec.split('-');
+            const y = parseInt(partes[0]);
+            const m = parseInt(partes[1]);
+            const d = parseInt(partes[2]);
+            
+            if (isNaN(y) || isNaN(m) || isNaN(d)) return;
+
+            // Calcular fecha de inicio y fin de la semana
+            const fridayDate = new Date(y, m - 1, d);
+            const thursdayDate = new Date(fridayDate);
+            thursdayDate.setDate(thursdayDate.getDate() + 6);
 
             const datosSem = datos.filter(r => {
                 const [rd, rm, ry] = r.Fecha.split('/');
-                return ry === y && rm === m && parseInt(rd) >= parseInt(d) && parseInt(rd) <= jd;
+                const fecha = new Date(parseInt(ry), parseInt(rm) - 1, parseInt(rd));
+                return fecha >= fridayDate && fecha <= thursdayDate;
             });
 
             const datosOps = {};
@@ -495,14 +509,20 @@
                 return;
             }
 
-            const [y, m, d] = semanaSelec.split('-');
-            const mDate = new Date(parseInt(y), parseInt(m), 0).getDate();
-            let jd = parseInt(d) + 6;
-            if (jd > mDate) jd -= mDate;
+            const partes = semanaSelec.split('-');
+            const y = parseInt(partes[0]);
+            const m = parseInt(partes[1]);
+            const d = parseInt(partes[2]);
+
+            // Calcular fecha de inicio y fin de la semana
+            const fridayDate = new Date(y, m - 1, d);
+            const thursdayDate = new Date(fridayDate);
+            thursdayDate.setDate(thursdayDate.getDate() + 6);
 
             const datosSem = datos.filter(r => {
                 const [rd, rm, ry] = r.Fecha.split('/');
-                return ry === y && rm === m && parseInt(rd) >= parseInt(d) && parseInt(rd) <= jd;
+                const fecha = new Date(parseInt(ry), parseInt(rm) - 1, parseInt(rd));
+                return fecha >= fridayDate && fecha <= thursdayDate;
             });
 
             const datosOps = {};
@@ -599,14 +619,20 @@
                 return;
             }
 
-            const [y, m, d] = semanaSelec.split('-');
-            const mDate = new Date(parseInt(y), parseInt(m), 0).getDate();
-            let jd = parseInt(d) + 6;
-            if (jd > mDate) jd -= mDate;
+            const partes = semanaSelec.split('-');
+            const y = parseInt(partes[0]);
+            const m = parseInt(partes[1]);
+            const d = parseInt(partes[2]);
+
+            // Calcular fecha de inicio y fin de la semana
+            const fridayDate = new Date(y, m - 1, d);
+            const thursdayDate = new Date(fridayDate);
+            thursdayDate.setDate(thursdayDate.getDate() + 6);
 
             const datosSem = datos.filter(r => {
                 const [rd, rm, ry] = r.Fecha.split('/');
-                return ry === y && rm === m && parseInt(rd) >= parseInt(d) && parseInt(rd) <= jd;
+                const fecha = new Date(parseInt(ry), parseInt(rm) - 1, parseInt(rd));
+                return fecha >= fridayDate && fecha <= thursdayDate;
             });
 
             const datosOps = {};
@@ -713,14 +739,20 @@
 
         function rec(op, sem) {
             // Obtener datos de la semana para este operador
-            const [y, m, d] = sem.split('-');
-            const mDate = new Date(parseInt(y), parseInt(m), 0).getDate();
-            let jd = parseInt(d) + 6;
-            if (jd > mDate) jd -= mDate;
+            const partes = sem.split('-');
+            const y = parseInt(partes[0]);
+            const m = parseInt(partes[1]);
+            const d = parseInt(partes[2]);
+            
+            // Calcular fecha de inicio y fin de la semana
+            const fridayDate = new Date(y, m - 1, d);
+            const thursdayDate = new Date(fridayDate);
+            thursdayDate.setDate(thursdayDate.getDate() + 6);
 
             const datosSem = datos.filter(r => {
                 const [rd, rm, ry] = r.Fecha.split('/');
-                return ry === y && rm === m && parseInt(rd) >= parseInt(d) && parseInt(rd) <= jd && (r.OP || r.Operador) === op;
+                const fecha = new Date(parseInt(ry), parseInt(rm) - 1, parseInt(rd));
+                return fecha >= fridayDate && fecha <= thursdayDate && (r.OP || r.Operador) === op;
             });
 
             // Construir tabla de recibo
