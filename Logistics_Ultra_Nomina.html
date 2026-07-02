@@ -3,104 +3,117 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🚛 Alen IP - Dashboard</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <title>Alen IP - Dashboard Operacional</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto; background: #f5f5f5; color: #333; }
-        .header { background: linear-gradient(135deg, #2d5a3d 0%, #1a3a2a 100%); color: white; padding: 25px 30px; }
-        .header h1 { font-size: 32px; margin-bottom: 5px; }
-        .container { max-width: 1800px; margin: 20px auto; padding: 0 20px; }
-        .filtros { background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f5f5f5; color: #333; }
+        .container { max-width: 1600px; margin: 0 auto; padding: 20px; }
+        .header { background: #1a1a1a; color: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+        .header h1 { font-size: 24px; margin-bottom: 5px; }
+        .filtros { display: flex; gap: 15px; flex-wrap: wrap; background: white; padding: 15px; border-radius: 8px; margin-bottom: 20px; align-items: center; }
+        .filtros > div { display: flex; flex-direction: column; gap: 5px; }
+        .filtros label { font-weight: 600; font-size: 12px; color: #666; }
         .filtros select { padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px; }
-        .tabs { display: flex; gap: 0; margin-bottom: 20px; background: white; border-radius: 8px; overflow: hidden; flex-wrap: wrap; }
-        .tab-btn { flex: 1; min-width: 100px; padding: 12px; background: #f5f5f5; border: none; cursor: pointer; font-weight: 600; font-size: 12px; }
-        .tab-btn.active { background: #2d5a3d; color: white; }
-        .tab-content { display: none; }
+        .filtros button { padding: 8px 12px; background: #999; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        .tabs { display: flex; gap: 5px; margin-bottom: 20px; }
+        .tab-btn { padding: 12px 20px; background: #ddd; border: none; border-radius: 4px 4px 0 0; cursor: pointer; font-weight: 600; }
+        .tab-btn.active { background: white; border-bottom: 3px solid #1976d2; }
+        .tab-content { background: white; padding: 20px; border-radius: 0 8px 8px 8px; display: none; }
         .tab-content.active { display: block; }
-        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin-bottom: 15px; }
-        .stat { background: white; padding: 15px; border-radius: 8px; border-left: 4px solid #2d5a3d; text-align: center; }
-        .stat-label { font-size: 11px; color: #999; text-transform: uppercase; margin-bottom: 8px; }
-        .stat-value { font-size: 24px; font-weight: bold; color: #2d5a3d; }
-        table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; margin-bottom: 20px; }
-        th { padding: 10px; background: #f5f5f5; font-weight: 600; text-align: center; border-bottom: 2px solid #2d5a3d; font-size: 12px; }
-        td { padding: 8px; border-bottom: 1px solid #eee; text-align: center; font-size: 12px; }
-        td:first-child { text-align: left; }
-        tbody tr:hover { background: #f9f9f9; }
-        .verde { color: #2e7d32; font-weight: 600; }
-        .rojo { color: #c62828; font-weight: 600; }
-        .btn-rec { padding: 6px 12px; background: #2d5a3d; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 11px; margin: 3px; }
-        .btn-rec:hover { background: #1a3a2a; }
-        .modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
-        .modal.active { display: flex; }
-        .modal-content { background: white; border-radius: 8px; padding: 30px; max-width: 600px; width: 100%; max-height: 90vh; overflow-y: auto; }
-        .recibo-row { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 12px; }
-        .recibo-total { font-weight: bold; font-size: 14px; color: #2d5a3d; border-top: 2px solid #2d5a3d; padding-top: 10px; }
+        .stats { display: flex; gap: 15px; margin-bottom: 20px; }
+        .stat { background: #f9f9f9; padding: 15px; border-radius: 8px; flex: 1; text-align: center; border-left: 4px solid #1976d2; }
+        .stat-label { font-size: 12px; color: #999; font-weight: 600; }
+        .stat-value { font-size: 28px; font-weight: bold; color: #1976d2; margin-top: 5px; }
+        table { width: 100%; border-collapse: collapse; background: white; }
+        table thead { background: #f0f0f0; }
+        table th { padding: 12px; text-align: left; font-weight: 600; border-bottom: 2px solid #ddd; }
+        table td { padding: 10px 12px; border-bottom: 1px solid #eee; }
+        table tr:hover { background: #f9f9f9; }
+        .verde { color: #27ae60; font-weight: 600; }
+        .btn-rec { padding: 6px 12px; background: #1976d2; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; }
+        .modal.active { display: flex; justify-content: center; align-items: center; }
+        .modal-content { background: white; padding: 30px; border-radius: 8px; max-width: 900px; max-height: 90vh; overflow: auto; }
+        .modal-header { font-size: 18px; font-weight: bold; color: #1a1a1a; margin-bottom: 20px; }
+        .close-modal { float: right; background: #ddd; border: none; width: 30px; height: 30px; border-radius: 50%; cursor: pointer; font-weight: bold; }
+        .nom-buttons { display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; }
+        .nom-buttons button { padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; color: white; }
+        .btn-pdf { background: #d32f2f; }
+        .btn-excel { background: #1976d2; }
+        .btn-print { background: #2d5a3d; }
+        .nom-table { overflow-x: auto; border-radius: 8px; margin-top: 15px; }
+        .nom-table table { font-size: 11px; }
+        .nom-table thead { background: #1a1a1a; color: white; }
+        .nom-table th { color: white; font-weight: bold; padding: 12px 6px; font-size: 11px; border: 1px solid #333; }
+        .nom-table td { padding: 8px 6px; border: 1px solid #ddd; }
+        .nom-table input { width: 60px; padding: 4px; border: 1px solid #ddd; border-radius: 3px; text-align: center; }
+        input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>🚛 ALEN IP - DASHBOARD</h1>
-        <div>📊 Movimientos, Turnos y Operadores</div>
-    </div>
-    
     <div class="container">
-        <div class="filtros">
-            <div><label style="font-weight: 600; font-size: 11px;">AÑO</label><select id="ano" onchange="aplicar()"><option value="">Todos</option></select></div>
-            <div><label style="font-weight: 600; font-size: 11px;">MES</label><select id="mes" onchange="aplicar()"><option value="">Todos</option></select></div>
-            <div><label style="font-weight: 600; font-size: 11px;">DÍA</label><select id="dia" onchange="aplicar()"><option value="">Todos</option></select></div>
-            <div><label style="font-weight: 600; font-size: 11px;">TURNO</label><select id="turno" onchange="aplicar()"><option value="">Todos</option></select></div>
-            <div><label style="font-weight: 600; font-size: 11px;">COORDINADOR</label><select id="coord" onchange="aplicar()"><option value="">Todos</option></select></div>
-            <div><label style="font-weight: 600; font-size: 11px;">OPERADOR</label><select id="op" onchange="aplicar()"><option value="">Todos</option></select></div>
-            <button onclick="limpiar()" style="padding: 8px 12px; background: #999; color: white; border: none; border-radius: 4px; cursor: pointer;">🔄</button>
+        <div class="header">
+            <h1>🚚 Alen IP - Dashboard Operacional</h1>
+            <p>Gestión de nómina, viajes y operadores</p>
         </div>
-        
+
+        <div class="filtros">
+            <div><label>AÑO</label><select id="ano" onchange="aplicar()"><option value="">Todos</option></select></div>
+            <div><label>MES</label><select id="mes" onchange="aplicar()"><option value="">Todos</option></select></div>
+            <div><label>DÍA</label><select id="dia" onchange="aplicar()"><option value="">Todos</option></select></div>
+            <div><label>TURNO</label><select id="turno" onchange="aplicar()"><option value="">Todos</option></select></div>
+            <div><label>COORDINADOR</label><select id="coord" onchange="aplicar()"><option value="">Todos</option></select></div>
+            <div><label>OPERADOR</label><select id="op" onchange="aplicar()"><option value="">Todos</option></select></div>
+            <button onclick="limpiar()">🔄 Limpiar</button>
+        </div>
+
         <div class="tabs">
             <button class="tab-btn active" onclick="tab('res')">📈 RESUMEN</button>
             <button class="tab-btn" onclick="tab('nom')">💼 NÓMINA</button>
             <button class="tab-btn" onclick="tab('rec')">📋 RECIBOS</button>
         </div>
-        
+
         <div id="res" class="tab-content active">
             <div class="stats">
                 <div class="stat"><div class="stat-label">📦 Cargados</div><div class="stat-value" id="c1">0</div></div>
                 <div class="stat"><div class="stat-label">👤 Operadores</div><div class="stat-value" id="c3">0</div></div>
             </div>
-            <table><thead><tr><th>Operador</th><th class="verde">Cargados</th><th>Días</th><th></th></tr></thead><tbody id="t1"></tbody></table>
+            <table><thead><tr><th>Operador</th><th class="verde">Cargados</th><th>Días</th></tr></thead><tbody id="t1"></tbody></table>
         </div>
-        
+
         <div id="nom" class="tab-content">
-            <div style="margin-bottom: 15px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-                <label style="font-weight: 600;">Semana:</label>
+            <div class="nom-buttons">
+                <label style="font-weight: 600; align-self: center;">Semana:</label>
                 <select id="sel_sem_nom" onchange="generarNomina()" style="padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px;">
                     <option value="">-- Seleccionar semana --</option>
                 </select>
-                <button onclick="generarPDFNomina()" style="padding: 10px 20px; background: #d32f2f; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">📄 PDF</button>
-                <button onclick="generarExcelNomina()" style="padding: 10px 20px; background: #1976d2; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">📊 EXCEL</button>
-                <button onclick="imprimirNomina()" style="padding: 10px 20px; background: #2d5a3d; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">🖨️ Imprimir</button>
+                <button class="btn-pdf" onclick="generarPDFNomina()">📄 PDF</button>
+                <button class="btn-excel" onclick="generarExcelNomina()">📊 EXCEL</button>
+                <button class="btn-print" onclick="imprimirNomina()">🖨️ Imprimir</button>
             </div>
-            <div id="t_nom" style="overflow-x: auto;"></div>
+            <div id="t_nom" class="nom-table"></div>
         </div>
-        
+
         <div id="rec" class="tab-content">
-            <div id="t5" style="padding: 20px; background: white; border-radius: 8px;"></div>
+            <div id="t5"></div>
         </div>
     </div>
-    
+
     <div class="modal" id="modal">
         <div class="modal-content">
-            <button onclick="cerrar()" style="float: right; background: #ddd; border: none; width: 25px; height: 25px; border-radius: 50%; cursor: pointer;">✕</button>
+            <button class="close-modal" onclick="cerrarModal()">✕</button>
             <div id="recibo"></div>
         </div>
     </div>
-    
+
     <script>
         let datos = [];
         const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTE1ZJZ8PzqGMNdj0MLHbfmcFQngQlP0PQVmK_FFTfI9Kmzk3EO8EWAAb6T4d-oCTPrEThpf-g8Roq3/pub?gid=0&single=true&output=csv';
-        
+
         window.addEventListener('load', () => {
             fetch(CSV_URL)
                 .then(r => r.text())
@@ -110,12 +123,14 @@
                         skipEmptyLines: true,
                         complete: (r) => {
                             datos = r.data.filter(x => x.Operador && x.Fecha);
+                            console.log('Datos cargados:', datos.length);
                             init();
                         }
                     });
-                });
+                })
+                .catch(e => console.error('Error cargando datos:', e));
         });
-        
+
         function init() {
             const s1 = new Set(), s2 = new Set(), s3 = new Set(), s4 = new Set(), s5 = new Set(), s6 = new Set();
             datos.forEach(r => {
@@ -127,74 +142,80 @@
                 const op = r.OP || r.Operador;
                 if (op) s6.add(op);
             });
-            
+
             document.getElementById('ano').innerHTML = '<option value="">Todos</option>' + [...s1].sort().reverse().map(x => `<option>${x}</option>`).join('');
             document.getElementById('mes').innerHTML = '<option value="">Todos</option>' + [...s2].sort().map(x => `<option>${x}</option>`).join('');
             document.getElementById('dia').innerHTML = '<option value="">Todos</option>' + [...s3].sort().map(x => `<option>${x}</option>`).join('');
             document.getElementById('turno').innerHTML = '<option value="">Todos</option>' + [...s4].sort().map(x => `<option>${x}</option>`).join('');
             document.getElementById('coord').innerHTML = '<option value="">Todos</option>' + [...s5].sort().map(x => `<option>${x}</option>`).join('');
             document.getElementById('op').innerHTML = '<option value="">Todos</option>' + [...s6].sort().map(x => `<option>${x}</option>`).join('');
-            
+
             aplicar();
         }
-        
+
         function aplicar() {
             const ano = document.getElementById('ano').value;
             const mes = document.getElementById('mes').value;
             const dia = document.getElementById('dia').value;
-            
+
             let f = datos.filter(r => {
                 if (ano && r.año !== ano) return false;
                 if (mes && r.mes !== mes) return false;
                 if (dia && r.día !== dia) return false;
                 return true;
             });
-            
+
             render(f);
         }
-        
+
+        function limpiar() {
+            document.getElementById('ano').value = '';
+            document.getElementById('mes').value = '';
+            document.getElementById('dia').value = '';
+            document.getElementById('turno').value = '';
+            document.getElementById('coord').value = '';
+            document.getElementById('op').value = '';
+            aplicar();
+        }
+
         function render(f) {
             let c = 0, pO = {}, sem = {};
-            
+
             f.forEach(r => {
                 const carg = parseInt(r['M Cargados']) || 0;
                 const op = r.OP || r.Operador;
                 c += carg;
-                
+
                 if (!pO[op]) pO[op] = {c: 0, dias: 0};
                 pO[op].c += carg;
                 pO[op].dias += 1;
-                
-                // Calcular viernes de la semana usando la fecha directamente
+
                 const [día_num, mes_num, año] = r.Fecha.split('/');
                 const fecha = new Date(parseInt(año), parseInt(mes_num) - 1, parseInt(día_num));
-                const dayOfWeek = fecha.getDay(); // 0=dom, 1=lun, ..., 5=vie, 6=sab
-                
-                // Calcular cuántos días atrás fue el viernes
+                const dayOfWeek = fecha.getDay();
                 const diff = (dayOfWeek - 5 + 7) % 7;
                 const fridayDate = new Date(fecha);
                 fridayDate.setDate(fridayDate.getDate() - diff);
-                
+
                 const fridayDay = String(fridayDate.getDate()).padStart(2, '0');
                 const fridayMonth = String(fridayDate.getMonth() + 1).padStart(2, '0');
                 const fridayYear = fridayDate.getFullYear();
-                
+
                 const key = `${fridayYear}-${fridayMonth}-${fridayDay}`;
                 if (!sem[key]) sem[key] = new Set();
                 sem[key].add(op);
             });
-            
+
             document.getElementById('c1').textContent = c;
             document.getElementById('c3').textContent = Object.keys(pO).length;
-            
+
             let html = '';
             Object.keys(pO).sort().forEach(x => {
                 const d = pO[x];
-                html += `<tr><td>${x}</td><td class="verde">${d.c}</td><td>${d.dias}</td><td><button class="btn-rec" onclick="rec('${x}')">📄</button></td></tr>`;
+                html += `<tr><td>${x}</td><td class="verde">${d.c}</td><td>${d.dias}</td></tr>`;
             });
-            document.getElementById('t1').innerHTML = html || '<tr><td colspan="4">Sin datos</td></tr>';
-            
-            // Poblar dropdown de semanas en NÓMINA
+            document.getElementById('t1').innerHTML = html || '<tr><td colspan="3">Sin datos</td></tr>';
+
             const semanas = Object.keys(sem).sort().reverse();
             let optionsHtml = '<option value="">-- Seleccionar semana --</option>';
             semanas.forEach(v => {
@@ -202,318 +223,164 @@
                 const fridayDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
                 const thursdayDate = new Date(fridayDate);
                 thursdayDate.setDate(thursdayDate.getDate() + 6);
-                
+
                 const thuDay = String(thursdayDate.getDate()).padStart(2, '0');
                 const thuMonth = String(thursdayDate.getMonth() + 1).padStart(2, '0');
-                
+
                 optionsHtml += `<option value="${v}">${v} a ${thursdayDate.getFullYear()}-${thuMonth}-${thuDay}</option>`;
             });
             document.getElementById('sel_sem_nom').innerHTML = optionsHtml;
-            
+
             html = semanas.map(v => {
                 const [year, month, day] = v.split('-');
                 const fridayDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
                 const thursdayDate = new Date(fridayDate);
                 thursdayDate.setDate(thursdayDate.getDate() + 6);
-                
+
                 const thuDay = String(thursdayDate.getDate()).padStart(2, '0');
                 const thuMonth = String(thursdayDate.getMonth() + 1).padStart(2, '0');
-                const thuYear = thursdayDate.getFullYear();
-                
-                const ops = Array.from(sem[v]).sort().map(o => `<button class="btn-rec" onclick="rec('${o}', '${v}')">${o}</button>`).join('');
-                const fin = `${thuYear}-${thuMonth}-${thuDay}`;
-                return `<div style="margin-bottom: 20px;"><h3 style="color: #2d5a3d; margin-bottom: 10px;">📅 ${v} a ${fin}</h3>${ops}</div>`;
+
+                const fin = `${thursdayDate.getFullYear()}-${thuMonth}-${thuDay}`;
+                return `<div style="margin-bottom: 20px;"><h3 style="color: #2d5a3d; margin-bottom: 10px;">📅 ${v} a ${fin}</h3></div>`;
             }).join('');
             document.getElementById('t5').innerHTML = html || '<div>Sin datos</div>';
         }
-        
-        function rec(op, sem) {
-            let rf = datos.filter(r => (r.OP || r.Operador) === op);
-            if (sem) {
-                const [y, m, d] = sem.split('-');
-                const mDate = new Date(parseInt(y), parseInt(m), 0).getDate();
-                let jd = parseInt(d) + 6;
-                if (jd > mDate) jd -= mDate;
-                rf = rf.filter(r => {
-                    const [rd, rm, ry] = r.Fecha.split('/');
-                    return ry === y && rm === m && parseInt(rd) >= parseInt(d) && parseInt(rd) <= jd;
-                });
-            }
-            
-            const det = {};
-            rf.forEach(r => {
-                if (!det[r.Fecha]) det[r.Fecha] = {c: 0};
-                det[r.Fecha].c = Math.max(det[r.Fecha].c, parseInt(r['M Cargados']) || 0);
-            });
-            
-            const dias = Object.keys(det).length;
-            const tot = Object.values(det).reduce((a, b) => a + b.c, 0);
-            
-            let h = `
-                <div id="contenido_recibo">
-                <div style="text-align: center; margin-bottom: 20px;"><div style="font-size: 28px;">🚛</div><h3 style="color: #2d5a3d;">RECIBO NÓMINA</h3><div>${op}</div></div>
-                
-                <table style="font-size: 12px; margin-bottom: 15px; width: 100%; border-collapse: collapse;">
-                    <tr style="background: #e8e8e8;">
-                        <th style="padding: 8px; text-align: left;">Fecha</th>
-                        <th style="padding: 8px; text-align: center;">Viajes</th>
-                        <th style="padding: 8px; text-align: center;">Completar</th>
-                        <th style="padding: 8px; text-align: center;">Total</th>
-                    </tr>
-                    ${Object.keys(det).sort().map(f => `
-                    <tr style="border-bottom: 1px solid #ddd;">
-                        <td style="padding: 8px;">${f}</td>
-                        <td style="padding: 8px; text-align: center;"><strong>${det[f].c}</strong></td>
-                        <td style="padding: 8px; text-align: center;">
-                            ${det[f].c < 5 ? `<input type="checkbox" class="chk_comp" data-fecha="${f}" onchange="recalc('${op}', '${sem||''}')" style="cursor: pointer; width: 16px; height: 16px;">` : '—'}
-                        </td>
-                        <td style="padding: 8px; text-align: center;"><strong class="tot_${f.replace(/\//g, '_')}">${det[f].c}</strong></td>
-                    </tr>
-                    `).join('')}
-                </table>
-                
-                <div style="border: 1px solid #ddd; padding: 12px; border-radius: 4px; margin-bottom: 15px;">
-                    <div style="font-weight: 600; margin-bottom: 8px;">💰 BASE</div>
-                    <div class="recibo-row"><span>Movimientos:</span><span id="mov_val"><strong id="mov_num">${tot}</strong> × $200 = $<strong id="mov_total">${(tot * 200).toLocaleString('es-MX')}</strong></span></div>
-                    <div class="recibo-row"><span>Sueldo fijo:</span><span><strong>${dias}</strong> × $362.50 = $<strong>${(dias * 362.50).toLocaleString('es-MX')}</strong></span></div>
-                </div>
-                
-                <div style="border: 1px solid #ddd; padding: 12px; border-radius: 4px; margin-bottom: 15px;">
-                    <div style="font-weight: 600; margin-bottom: 8px;">🎁 BONOS</div>
-                    <div style="margin-bottom: 8px;"><label><input type="checkbox" id="chk_pun" onchange="recalc('${op}', '${sem||''}')"> Puntualidad $250</label></div>
-                    <div style="margin-bottom: 8px;"><label><input type="checkbox" id="chk_asis" onchange="recalc('${op}', '${sem||''}')"> Asistencia $250</label></div>
-                    <div style="margin-bottom: 8px;"><label><input type="checkbox" id="chk_des" onchange="recalc('${op}', '${sem||''}')"> No descanso 7 días $500</label></div>
-                    <div style="margin-bottom: 8px;"><input type="number" id="txt_otros" placeholder="Otros bonos" onchange="recalc('${op}', '${sem||''}')" style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px;"></div>
-                </div>
-                
-                <div style="padding: 12px; background: #f9f9f9; border-radius: 4px;">
-                    <div class="recibo-row" style="font-weight: 600; margin-bottom: 8px; padding-bottom: 8px; border-bottom: 2px solid #2d5a3d;">
-                        <span>SUBTOTAL</span>
-                        <span>$<strong id="subtotal_val">${(tot * 200 + dias * 362.50).toLocaleString('es-MX')}</strong></span>
-                    </div>
-                    <div class="recibo-row" style="margin-bottom: 8px; color: #c62828;">
-                        <span>ISR (7.5%)</span>
-                        <span>-$<strong id="isr_val">${((tot * 200 + dias * 362.50) * 0.075).toLocaleString('es-MX')}</strong></span>
-                    </div>
-                    <div class="recibo-row recibo-total" style="font-weight: 600; font-size: 14px;">
-                        <span>💰 TOTAL A PAGAR</span>
-                        <span>$<strong id="total_val">${((tot * 200 + dias * 362.50) * 0.925).toLocaleString('es-MX')}</strong></span>
-                    </div>
-                </div>
-                </div>
-                
-                <div style="margin-top: 15px; text-align: center;">
-                    <button onclick="imprimirRecibo()" style="padding: 10px 20px; background: #2d5a3d; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 13px;">🖨️ Imprimir</button>
-                </div>
-            `;
-            
-            document.getElementById('recibo').innerHTML = h;
-            document.getElementById('modal').classList.add('active');
+
+        function tab(n) {
+            document.querySelectorAll('.tab-content').forEach(e => e.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(e => e.classList.remove('active'));
+            document.getElementById(n).classList.add('active');
+            event.target.classList.add('active');
         }
-        
-        function recalc(op, sem) {
-            let rf = datos.filter(r => (r.OP || r.Operador) === op);
-            if (sem) {
-                const [y, m, d] = sem.split('-');
-                const mDate = new Date(parseInt(y), parseInt(m), 0).getDate();
-                let jd = parseInt(d) + 6;
-                if (jd > mDate) jd -= mDate;
-                rf = rf.filter(r => {
-                    const [rd, rm, ry] = r.Fecha.split('/');
-                    return ry === y && rm === m && parseInt(rd) >= parseInt(d) && parseInt(rd) <= jd;
-                });
-            }
-            
-            const det = {};
-            rf.forEach(r => {
-                if (!det[r.Fecha]) det[r.Fecha] = {c: 0};
-                det[r.Fecha].c = Math.max(det[r.Fecha].c, parseInt(r['M Cargados']) || 0);
-            });
-            
-            // Calcular completados
-            const completados = {};
-            document.querySelectorAll('.chk_comp:checked').forEach(chk => {
-                const fecha = chk.getAttribute('data-fecha');
-                completados[fecha] = 5 - det[fecha].c;
-                const totalKey = 'tot_' + fecha.replace(/\//g, '_');
-                document.querySelector('.' + totalKey).textContent = 5;
-            });
-            
-            // Resetear los no checkeados
-            document.querySelectorAll('.chk_comp:not(:checked)').forEach(chk => {
-                const fecha = chk.getAttribute('data-fecha');
-                const totalKey = 'tot_' + fecha.replace(/\//g, '_');
-                document.querySelector('.' + totalKey).textContent = det[fecha].c;
-            });
-            
-            const dias = Object.keys(det).length;
-            let tot = Object.values(det).reduce((a, b) => a + b.c, 0);
-            tot += Object.values(completados).reduce((a, b) => a + b, 0);
-            
-            let bonos = 0;
-            if (document.getElementById('chk_pun').checked) bonos += 250;
-            if (document.getElementById('chk_asis').checked) bonos += 250;
-            if (document.getElementById('chk_des').checked) bonos += 500;
-            bonos += parseInt(document.getElementById('txt_otros').value) || 0;
-            
-            const subtotal = tot * 200 + dias * 362.50 + bonos;
-            const isr = subtotal * 0.075;
-            const total = subtotal - isr;
-            
-            document.getElementById('mov_num').textContent = tot;
-            document.getElementById('mov_total').textContent = (tot * 200).toLocaleString('es-MX');
-            document.getElementById('subtotal_val').textContent = subtotal.toLocaleString('es-MX');
-            document.getElementById('isr_val').textContent = isr.toLocaleString('es-MX');
-            document.getElementById('total_val').textContent = total.toLocaleString('es-MX');
-        }
-        
-        function imprimirRecibo() {
-            const contenido = document.getElementById('contenido_recibo').innerHTML;
-            const ventana = window.open('', '', 'height=900,width=800');
-            ventana.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Recibo</title><style>
-                body{font-family: Arial, sans-serif; margin: 20px; color: #333;}
-                h3{color: #2d5a3d; text-align: center;}
-                table{width: 100%; border-collapse: collapse; margin-bottom: 15px;}
-                th, td{padding: 8px; border-bottom: 1px solid #ddd; text-align: center;}
-                th{background: #f5f5f5; font-weight: bold;}
-                td:first-child, th:first-child{text-align: left;}
-                .recibo-row{display: flex; justify-content: space-between; margin-bottom: 10px; padding: 5px 0;}
-                .recibo-total{font-weight: bold; font-size: 14px; border-top: 2px solid #333; padding-top: 10px;}
-                .section{border: 1px solid #ddd; padding: 12px; margin-bottom: 15px; border-radius: 4px;}
-                .final{padding: 12px; background: #f9f9f9; border-radius: 4px;}
-                @media print{body{margin: 0;}}
-            </style></head><body>`);
-            ventana.document.write(contenido);
-            ventana.document.write('</body></html>');
-            ventana.document.close();
-            setTimeout(() => ventana.print(), 500);
-        }
-        
+
         function generarNomina() {
             const semanaSelec = document.getElementById('sel_sem_nom').value;
             if (!semanaSelec) {
                 document.getElementById('t_nom').innerHTML = '<div style="padding: 20px; text-align: center; color: #999;">Selecciona una semana</div>';
                 return;
             }
-            
+
             const [y, m, d] = semanaSelec.split('-');
             const mDate = new Date(parseInt(y), parseInt(m), 0).getDate();
             let jd = parseInt(d) + 6;
             if (jd > mDate) jd -= mDate;
-            
-            // Filtrar datos de la semana seleccionada
+
             const datosSem = datos.filter(r => {
                 const [rd, rm, ry] = r.Fecha.split('/');
                 return ry === y && rm === m && parseInt(rd) >= parseInt(d) && parseInt(rd) <= jd;
             });
-            
+
             const datosOps = {};
             datosSem.forEach(r => {
                 const op = r.OP || r.Operador;
                 const carg = parseInt(r['M Cargados']) || 0;
-                if (!datosOps[op]) datosOps[op] = {c: 0, dias: 0, prefil: 0, adelanto: 0, penalizacion: 0};
+                if (!datosOps[op]) datosOps[op] = {c: 0, dias: 0};
                 datosOps[op].c += carg;
                 datosOps[op].dias += 1;
             });
-            
+
             if (Object.keys(datosOps).length === 0) {
                 document.getElementById('t_nom').innerHTML = '<div style="padding: 20px; text-align: center; color: #999;">Sin datos para esta semana</div>';
                 return;
             }
-            
-            let html = `<div style="overflow-x: auto; border-radius: 8px;">
-            <table style="width: 100%; border-collapse: collapse; background: white; font-size: 11px;">
-                <thead style="background: #1a1a1a; color: #ffffff; position: sticky; top: 0; z-index: 10;">
-                    <tr style="background: #1a1a1a;">
-                        <th style="padding: 14px 10px; text-align: left; border: 2px solid #333; min-width: 180px; font-weight: bold; font-size: 13px; color: #ffffff; background: #1a1a1a;">Operador</th>
-                        <th style="padding: 14px 10px; text-align: center; border: 2px solid #333; min-width: 70px; font-weight: bold; font-size: 13px; color: #ffffff; background: #1a1a1a;">Viajes Acumulados</th>
-                        <th style="padding: 14px 10px; text-align: center; border: 2px solid #333; min-width: 70px; font-weight: bold; font-size: 13px; color: #ffffff; background: #1a1a1a;">Días Trabajados</th>
-                        <th style="padding: 14px 10px; text-align: center; border: 2px solid #333; min-width: 80px; font-weight: bold; font-size: 13px; color: #ffffff; background: #1a1a1a;">Viajes a Completar</th>
-                        <th style="padding: 14px 10px; text-align: center; border: 2px solid #333; min-width: 60px; font-weight: bold; font-size: 13px; color: #ffffff; background: #1a1a1a;">Total Viajes</th>
-                        <th style="padding: 14px 10px; text-align: center; border: 2px solid #333; min-width: 80px; font-weight: bold; font-size: 13px; color: #ffffff; background: #1a1a1a;">Movimientos</th>
-                        <th style="padding: 14px 10px; text-align: center; border: 2px solid #333; min-width: 80px; font-weight: bold; font-size: 13px; color: #ffffff; background: #1a1a1a;">Sueldo Fijo</th>
-                        <th style="padding: 14px 10px; text-align: center; border: 2px solid #333; min-width: 70px; background: #333333; font-weight: bold; font-size: 13px; color: #ffeb3b;">Puntualidad</th>
-                        <th style="padding: 14px 10px; text-align: center; border: 2px solid #333; min-width: 70px; background: #333333; font-weight: bold; font-size: 13px; color: #ffeb3b;">Asistencia</th>
-                        <th style="padding: 14px 10px; text-align: center; border: 2px solid #333; min-width: 70px; background: #333333; font-weight: bold; font-size: 13px; color: #ffeb3b;">Otros Bonos</th>
-                        <th style="padding: 14px 10px; text-align: center; border: 2px solid #333; min-width: 80px; font-weight: bold; font-size: 13px; color: #ffffff; background: #1a1a1a;">Subtotal</th>
-                        <th style="padding: 14px 10px; text-align: center; border: 2px solid #333; min-width: 70px; background: #333333; font-weight: bold; font-size: 13px; color: #ffeb3b;">Préstamo</th>
-                        <th style="padding: 14px 10px; text-align: center; border: 2px solid #333; min-width: 70px; background: #333333; font-weight: bold; font-size: 13px; color: #ffeb3b;">Adelanto</th>
-                        <th style="padding: 14px 10px; text-align: center; border: 2px solid #333; min-width: 70px; background: #333333; font-weight: bold; font-size: 13px; color: #ff6b6b;">Penalización</th>
-                        <th style="padding: 14px 10px; text-align: center; border: 2px solid #333; min-width: 70px; font-weight: bold; font-size: 13px; color: #ff6b6b; background: #1a1a1a;">ISR (7.5%)</th>
-                        <th style="padding: 14px 10px; text-align: center; border: 2px solid #333; min-width: 90px; background: #1b5e20; font-weight: bold; font-size: 13px; color: #c8e6c9;">TOTAL A PAGAR</th>
+
+            let html = `<table style="width: 100%; border-collapse: collapse; background: white; font-size: 11px;">
+                <thead style="background: #1a1a1a; color: white; position: sticky; top: 0; z-index: 10;">
+                    <tr>
+                        <th style="padding: 12px 8px; text-align: left; border: 2px solid #333; min-width: 180px; font-weight: bold; font-size: 13px; color: #ffffff; background: #1a1a1a;">Operador</th>
+                        <th style="padding: 12px 8px; text-align: center; border: 2px solid #333; min-width: 70px; font-weight: bold; font-size: 13px; color: #ffffff; background: #1a1a1a;">Viajes</th>
+                        <th style="padding: 12px 8px; text-align: center; border: 2px solid #333; min-width: 70px; font-weight: bold; font-size: 13px; color: #ffffff; background: #1a1a1a;">Días</th>
+                        <th style="padding: 12px 8px; text-align: center; border: 2px solid #333; min-width: 80px; font-weight: bold; font-size: 13px; color: #ffffff; background: #1a1a1a;">Completar</th>
+                        <th style="padding: 12px 8px; text-align: center; border: 2px solid #333; min-width: 60px; font-weight: bold; font-size: 13px; color: #ffffff; background: #1a1a1a;">Total Viajes</th>
+                        <th style="padding: 12px 8px; text-align: center; border: 2px solid #333; min-width: 80px; font-weight: bold; font-size: 13px; color: #ffffff; background: #1a1a1a;">Movimientos</th>
+                        <th style="padding: 12px 8px; text-align: center; border: 2px solid #333; min-width: 80px; font-weight: bold; font-size: 13px; color: #ffffff; background: #1a1a1a;">Pago Fijo</th>
+                        <th style="padding: 12px 8px; text-align: center; border: 2px solid #333; min-width: 70px; background: #fff9c4; font-weight: bold; font-size: 13px; color: #333;">Bono2</th>
+                        <th style="padding: 12px 8px; text-align: center; border: 2px solid #333; min-width: 70px; background: #333333; font-weight: bold; font-size: 13px; color: #ffeb3b;">Puntualidad</th>
+                        <th style="padding: 12px 8px; text-align: center; border: 2px solid #333; min-width: 70px; background: #333333; font-weight: bold; font-size: 13px; color: #ffeb3b;">Asistencia</th>
+                        <th style="padding: 12px 8px; text-align: center; border: 2px solid #333; min-width: 70px; background: #fffde7; font-weight: bold; font-size: 13px; color: #333;">Bono Completar</th>
+                        <th style="padding: 12px 8px; text-align: center; border: 2px solid #333; min-width: 70px; background: #fffde7; font-weight: bold; font-size: 13px; color: #333;">Bono Coord</th>
+                        <th style="padding: 12px 8px; text-align: center; border: 2px solid #333; min-width: 70px; background: #fffde7; font-weight: bold; font-size: 13px; color: #333;">No Descanso</th>
+                        <th style="padding: 12px 8px; text-align: center; border: 2px solid #333; min-width: 80px; font-weight: bold; font-size: 13px; color: #ffffff; background: #1a1a1a;">Subtotal</th>
+                        <th style="padding: 12px 8px; text-align: center; border: 2px solid #333; min-width: 70px; background: #333333; font-weight: bold; font-size: 13px; color: #ffeb3b;">Préstamo</th>
+                        <th style="padding: 12px 8px; text-align: center; border: 2px solid #333; min-width: 70px; background: #333333; font-weight: bold; font-size: 13px; color: #ffeb3b;">Adelanto</th>
+                        <th style="padding: 12px 8px; text-align: center; border: 2px solid #333; min-width: 70px; background: #333333; font-weight: bold; font-size: 13px; color: #ff6b6b;">Penalización</th>
+                        <th style="padding: 12px 8px; text-align: center; border: 2px solid #333; min-width: 70px; font-weight: bold; font-size: 13px; color: #ff6b6b; background: #1a1a1a;">ISR (7.5%)</th>
+                        <th style="padding: 12px 8px; text-align: center; border: 2px solid #333; min-width: 90px; background: #1b5e20; font-weight: bold; font-size: 13px; color: #c8e6c9;">TOTAL A PAGAR</th>
                     </tr>
                 </thead>
-                <tbody id="nom_body">`;
-            
+                <tbody>`;
+
             Object.keys(datosOps).sort().forEach(op => {
                 const d = datosOps[op];
                 const viajesReales = d.c;
                 const diasTrabajados = d.dias;
                 const maxEsperado = diasTrabajados * 5;
                 const faltanParaCompletar = Math.max(0, maxEsperado - viajesReales);
-                
-                const mov = viajesReales * 200;
-                const sueldo = diasTrabajados * 362.50;
-                const subtotal = mov + sueldo;
-                const deducciones = d.prefil + d.adelanto + d.penalizacion;
-                const isr = subtotal * 0.075;
-                const total = subtotal - deducciones - isr;
-                
+
+                // NUEVA LÓGICA: Sueldo fijo NO acumulable
+                const movimientos = viajesReales * 200;
+                const pagoFijo = diasTrabajados * 362.50;
+                const bono2 = Math.max(0, movimientos - pagoFijo);
+
                 html += `<tr style="border-bottom: 1px solid #eee;">
                     <td style="padding: 8px; text-align: left; border: 1px solid #ddd;"><strong>${op}</strong></td>
                     <td style="padding: 8px; text-align: center; border: 1px solid #ddd;"><strong>${viajesReales}</strong></td>
                     <td style="padding: 8px; text-align: center; border: 1px solid #ddd;"><strong>${diasTrabajados}</strong></td>
                     <td style="padding: 8px; text-align: center; border: 1px solid #ddd;">
-                        <input type="number" class="comp_${op.replace(/\s/g,'_')}" value="0" min="0" max="${faltanParaCompletar}" onchange="recalcNomina()" style="width: 60px; text-align: center; border: 1px solid #ddd; padding: 4px; border-radius: 3px;" title="Máximo: ${faltanParaCompletar} viajes">
+                        <input type="number" class="comp_${op.replace(/\s/g,'_')}" value="0" min="0" onchange="recalcNomina()" style="width: 60px;" title="Max: ${faltanParaCompletar}">
                     </td>
                     <td style="padding: 8px; text-align: center; border: 1px solid #ddd;"><span class="tot_viajes_${op.replace(/\s/g,'_')}">${viajesReales}</span></td>
-                    <td style="padding: 8px; text-align: center; border: 1px solid #ddd;">$<span class="mov_${op.replace(/\s/g,'_')}">${mov.toLocaleString('es-MX')}</span></td>
-                    <td style="padding: 8px; text-align: center; border: 1px solid #ddd;">$${sueldo.toLocaleString('es-MX')}</td>
+                    <td style="padding: 8px; text-align: center; border: 1px solid #ddd;">$<span class="mov_${op.replace(/\s/g,'_')}">${movimientos.toLocaleString('es-MX')}</span></td>
+                    <td style="padding: 8px; text-align: center; border: 1px solid #ddd; background: #ffcdd2;">$<span class="pf_${op.replace(/\s/g,'_')}">${pagoFijo.toLocaleString('es-MX')}</span></td>
+                    <td style="padding: 8px; text-align: center; border: 1px solid #ddd; background: #fff9c4;">$<span class="b2_${op.replace(/\s/g,'_')}">${bono2.toLocaleString('es-MX')}</span></td>
                     <td style="padding: 8px; text-align: center; border: 1px solid #ddd; background: #fffde7;">
-                        <input type="checkbox" class="bon_punt_${op.replace(/\s/g,'_')}" onchange="recalcNomina()" style="width: 16px; height: 16px; cursor: pointer;">
-                        <span style="display: block; font-size: 10px;">$250</span>
+                        <input type="checkbox" class="bon_punt_${op.replace(/\s/g,'_')}" onchange="recalcNomina()"><span style="display: block; font-size: 10px;">$250</span>
                     </td>
                     <td style="padding: 8px; text-align: center; border: 1px solid #ddd; background: #fffde7;">
-                        <input type="checkbox" class="bon_asis_${op.replace(/\s/g,'_')}" onchange="recalcNomina()" style="width: 16px; height: 16px; cursor: pointer;">
-                        <span style="display: block; font-size: 10px;">$250</span>
+                        <input type="checkbox" class="bon_asis_${op.replace(/\s/g,'_')}" onchange="recalcNomina()"><span style="display: block; font-size: 10px;">$250</span>
                     </td>
                     <td style="padding: 8px; text-align: center; border: 1px solid #ddd; background: #fffde7;">
-                        $<input type="number" class="bon_otro_${op.replace(/\s/g,'_')}" value="0" onchange="recalcNomina()" style="width: 50px; text-align: center; border: none; background: transparent;">
+                        $<input type="number" class="bon_comp_${op.replace(/\s/g,'_')}" value="0" onchange="recalcNomina()" style="width: 50px; border: none; background: transparent;">
                     </td>
-                    <td style="padding: 8px; text-align: center; border: 1px solid #ddd;">$<span class="sub_${op.replace(/\s/g,'_')}">${subtotal.toLocaleString('es-MX')}</span></td>
+                    <td style="padding: 8px; text-align: center; border: 1px solid #ddd; background: #fffde7;">
+                        $<input type="number" class="bon_coord_${op.replace(/\s/g,'_')}" value="0" onchange="recalcNomina()" style="width: 50px; border: none; background: transparent;">
+                    </td>
+                    <td style="padding: 8px; text-align: center; border: 1px solid #ddd; background: ${diasTrabajados === 7 ? '#fffde7' : '#f0f0f0'};">
+                        ${diasTrabajados === 7 ? `<input type="checkbox" class="bon_desc_${op.replace(/\s/g,'_')}" onchange="recalcNomina()"><span style="display: block; font-size: 10px;">$500</span>` : '-'}
+                    </td>
+                    <td style="padding: 8px; text-align: center; border: 1px solid #ddd;">$<span class="sub_${op.replace(/\s/g,'_')}">0</span></td>
                     <td style="padding: 8px; text-align: center; border: 1px solid #ddd; background: #ffe0b2;">
-                        $<input type="number" class="prf_${op.replace(/\s/g,'_')}" value="0" onchange="recalcNomina()" style="width: 50px; text-align: center; border: none; background: transparent;">
+                        $<input type="number" class="prf_${op.replace(/\s/g,'_')}" value="0" onchange="recalcNomina()" style="width: 50px; border: none; background: transparent;">
                     </td>
                     <td style="padding: 8px; text-align: center; border: 1px solid #ddd; background: #ffe0b2;">
-                        $<input type="number" class="adl_${op.replace(/\s/g,'_')}" value="0" onchange="recalcNomina()" style="width: 50px; text-align: center; border: none; background: transparent;">
+                        $<input type="number" class="adl_${op.replace(/\s/g,'_')}" value="0" onchange="recalcNomina()" style="width: 50px; border: none; background: transparent;">
                     </td>
                     <td style="padding: 8px; text-align: center; border: 1px solid #ddd; background: #ffcdd2;">
-                        $<input type="number" class="pen_${op.replace(/\s/g,'_')}" value="0" onchange="recalcNomina()" style="width: 50px; text-align: center; border: none; background: transparent;">
+                        $<input type="number" class="pen_${op.replace(/\s/g,'_')}" value="0" onchange="recalcNomina()" style="width: 50px; border: none; background: transparent;">
                     </td>
-                    <td style="padding: 8px; text-align: center; border: 1px solid #ddd; color: #c62828;">-$<span class="isr_${op.replace(/\s/g,'_')}">${isr.toLocaleString('es-MX')}</span></td>
-                    <td style="padding: 8px; text-align: center; border: 1px solid #ddd; background: #e8f5e9; font-weight: 600;">$<span class="tot_${op.replace(/\s/g,'_')}">${total.toLocaleString('es-MX')}</span></td>
+                    <td style="padding: 8px; text-align: center; border: 1px solid #ddd; color: #c62828;">-$<span class="isr_${op.replace(/\s/g,'_')}">0</span></td>
+                    <td style="padding: 8px; text-align: center; border: 1px solid #ddd; background: #e8f5e9; font-weight: 600;">$<span class="tot_${op.replace(/\s/g,'_')}">0</span></td>
                 </tr>`;
             });
-            
-            html += `</tbody></table></div>`;
+
+            html += `</tbody></table>`;
             document.getElementById('t_nom').innerHTML = html;
         }
-        
+
         function recalcNomina() {
             const semanaSelec = document.getElementById('sel_sem_nom').value;
             if (!semanaSelec) return;
-            
+
             const [y, m, d] = semanaSelec.split('-');
             const mDate = new Date(parseInt(y), parseInt(m), 0).getDate();
             let jd = parseInt(d) + 6;
             if (jd > mDate) jd -= mDate;
-            
-            // Filtrar datos de la semana seleccionada
+
             const datosSem = datos.filter(r => {
                 const [rd, rm, ry] = r.Fecha.split('/');
                 return ry === y && rm === m && parseInt(rd) >= parseInt(d) && parseInt(rd) <= jd;
             });
-            
+
             const datosOps = {};
             datosSem.forEach(r => {
                 const op = r.OP || r.Operador;
@@ -522,60 +389,70 @@
                 datosOps[op].c += carg;
                 datosOps[op].dias += 1;
             });
-            
+
             Object.keys(datosOps).forEach(op => {
                 const d = datosOps[op];
                 const viajesReales = d.c;
                 const diasTrabajados = d.dias;
-                
-                // Leer cuántos viajes a completar ingresó el usuario
+
                 const viajesACompletar = parseInt(document.querySelector('.comp_' + op.replace(/\s/g,'_')).value) || 0;
                 const totalViajes = viajesReales + viajesACompletar;
-                
-                const mov = totalViajes * 200;
-                const sueldo = diasTrabajados * 362.50;
-                
-                // Bonos
+
+                // NUEVA LÓGICA: Sueldo fijo NO acumulable
+                const movimientos = totalViajes * 200;
+                const pagoFijo = diasTrabajados * 362.50;
+                const bono2 = Math.max(0, movimientos - pagoFijo);
+
                 const bonoPunt = document.querySelector('.bon_punt_' + op.replace(/\s/g,'_')).checked ? 250 : 0;
                 const bonoAsis = document.querySelector('.bon_asis_' + op.replace(/\s/g,'_')).checked ? 250 : 0;
-                const bonoOtro = parseInt(document.querySelector('.bon_otro_' + op.replace(/\s/g,'_')).value) || 0;
-                const bonos = bonoPunt + bonoAsis + bonoOtro;
+                const bonoComp = parseInt(document.querySelector('.bon_comp_' + op.replace(/\s/g,'_')).value) || 0;
+                const bonoCoord = parseInt(document.querySelector('.bon_coord_' + op.replace(/\s/g,'_')).value) || 0;
                 
-                const subtotal = mov + sueldo + bonos;
-                
+                // Bono no descanso solo si trabajó 7 días
+                let bonoDesc = 0;
+                if (diasTrabajados === 7) {
+                    const checkDesc = document.querySelector('.bon_desc_' + op.replace(/\s/g,'_'));
+                    if (checkDesc) {
+                        bonoDesc = checkDesc.checked ? 500 : 0;
+                    }
+                }
+
+                const subtotal = pagoFijo + bono2 + bonoPunt + bonoAsis + bonoComp + bonoCoord + bonoDesc;
+
                 const prefil = parseInt(document.querySelector('.prf_' + op.replace(/\s/g,'_')).value) || 0;
                 const adelanto = parseInt(document.querySelector('.adl_' + op.replace(/\s/g,'_')).value) || 0;
                 const penalizacion = parseInt(document.querySelector('.pen_' + op.replace(/\s/g,'_')).value) || 0;
-                
+
                 const isr = subtotal * 0.075;
                 const total = subtotal - prefil - adelanto - penalizacion - isr;
-                
+
                 document.querySelector('.tot_viajes_' + op.replace(/\s/g,'_')).textContent = totalViajes;
-                document.querySelector('.mov_' + op.replace(/\s/g,'_')).textContent = mov.toLocaleString('es-MX');
+                document.querySelector('.mov_' + op.replace(/\s/g,'_')).textContent = movimientos.toLocaleString('es-MX');
+                document.querySelector('.pf_' + op.replace(/\s/g,'_')).textContent = pagoFijo.toLocaleString('es-MX');
+                document.querySelector('.b2_' + op.replace(/\s/g,'_')).textContent = bono2.toLocaleString('es-MX');
                 document.querySelector('.sub_' + op.replace(/\s/g,'_')).textContent = subtotal.toLocaleString('es-MX');
                 document.querySelector('.isr_' + op.replace(/\s/g,'_')).textContent = isr.toLocaleString('es-MX');
                 document.querySelector('.tot_' + op.replace(/\s/g,'_')).textContent = total.toLocaleString('es-MX');
             });
         }
-        
+
         function generarPDFNomina() {
             const semanaSelec = document.getElementById('sel_sem_nom').value;
             if (!semanaSelec) {
                 alert('Selecciona una semana');
                 return;
             }
-            
+
             const [y, m, d] = semanaSelec.split('-');
             const mDate = new Date(parseInt(y), parseInt(m), 0).getDate();
             let jd = parseInt(d) + 6;
             if (jd > mDate) jd -= mDate;
-            
-            // Filtrar datos de la semana seleccionada
+
             const datosSem = datos.filter(r => {
                 const [rd, rm, ry] = r.Fecha.split('/');
                 return ry === y && rm === m && parseInt(rd) >= parseInt(d) && parseInt(rd) <= jd;
             });
-            
+
             const datosOps = {};
             datosSem.forEach(r => {
                 const op = r.OP || r.Operador;
@@ -584,134 +461,98 @@
                 datosOps[op].c += carg;
                 datosOps[op].dias += 1;
             });
-            
-            // Construir datos para el PDF
+
             const tableData = [];
             let totalGeneral = 0;
-            
+
             Object.keys(datosOps).sort().forEach(op => {
                 const d = datosOps[op];
                 const viajesReales = d.c;
                 const diasTrabajados = d.dias;
-                
+
                 const viajesACompletar = parseInt(document.querySelector('.comp_' + op.replace(/\s/g,'_')).value) || 0;
                 const totalViajes = viajesReales + viajesACompletar;
-                
-                const mov = totalViajes * 200;
-                const sueldo = diasTrabajados * 362.50;
-                
+
+                const movimientos = totalViajes * 200;
+                const pagoFijo = diasTrabajados * 362.50;
+                const bono2 = Math.max(0, movimientos - pagoFijo);
+
                 const bonoPunt = document.querySelector('.bon_punt_' + op.replace(/\s/g,'_')).checked ? 250 : 0;
                 const bonoAsis = document.querySelector('.bon_asis_' + op.replace(/\s/g,'_')).checked ? 250 : 0;
-                const bonoOtro = parseInt(document.querySelector('.bon_otro_' + op.replace(/\s/g,'_')).value) || 0;
-                const bonos = bonoPunt + bonoAsis + bonoOtro;
+                const bonoComp = parseInt(document.querySelector('.bon_comp_' + op.replace(/\s/g,'_')).value) || 0;
+                const bonoCoord = parseInt(document.querySelector('.bon_coord_' + op.replace(/\s/g,'_')).value) || 0;
                 
-                const subtotal = mov + sueldo + bonos;
-                
+                let bonoDesc = 0;
+                if (diasTrabajados === 7) {
+                    const checkDesc = document.querySelector('.bon_desc_' + op.replace(/\s/g,'_'));
+                    if (checkDesc) {
+                        bonoDesc = checkDesc.checked ? 500 : 0;
+                    }
+                }
+
+                const subtotal = pagoFijo + bono2 + bonoPunt + bonoAsis + bonoComp + bonoCoord + bonoDesc;
+
                 const prefil = parseInt(document.querySelector('.prf_' + op.replace(/\s/g,'_')).value) || 0;
                 const adelanto = parseInt(document.querySelector('.adl_' + op.replace(/\s/g,'_')).value) || 0;
                 const penalizacion = parseInt(document.querySelector('.pen_' + op.replace(/\s/g,'_')).value) || 0;
-                
+
                 const isr = subtotal * 0.075;
                 const total = subtotal - prefil - adelanto - penalizacion - isr;
                 totalGeneral += total;
-                
-                tableData.push([
-                    op,
-                    viajesReales,
-                    diasTrabajados,
-                    viajesACompletar,
-                    totalViajes,
-                    '$' + mov.toLocaleString('es-MX'),
-                    '$' + sueldo.toLocaleString('es-MX'),
-                    '$' + bonos.toLocaleString('es-MX'),
-                    '$' + prefil.toLocaleString('es-MX'),
-                    '$' + adelanto.toLocaleString('es-MX'),
-                    '$' + penalizacion.toLocaleString('es-MX'),
-                    '$' + isr.toLocaleString('es-MX'),
-                    '$' + total.toLocaleString('es-MX')
-                ]);
+
+                tableData.push([op, viajesReales, diasTrabajados, viajesACompletar, totalViajes, movimientos, pagoFijo, bono2, bonoPunt, bonoAsis, bonoComp, bonoCoord, bonoDesc, prefil, adelanto, penalizacion, isr, total]);
             });
-            
-            // Crear PDF
+
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF('l', 'mm', 'a4');
-            
+
             const fridayDate = new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
             const thursdayDate = new Date(fridayDate);
             thursdayDate.setDate(thursdayDate.getDate() + 6);
-            
+
             const thuDay = String(thursdayDate.getDate()).padStart(2, '0');
             const thuMonth = String(thursdayDate.getMonth() + 1).padStart(2, '0');
-            
+
             doc.setFontSize(16);
             doc.text('NÓMINA SEMANAL - ALEN IP', 14, 15);
             doc.setFontSize(11);
             doc.text(`Semana: ${y}-${m}-${d} a ${thursdayDate.getFullYear()}-${thuMonth}-${thuDay}`, 14, 22);
-            
+
             doc.autoTable({
-                head: [['Operador', 'Viajes', 'Días', 'Completar', 'Total V.', 'Movimientos', 'Sueldo Fijo', 'Bonos', 'Préstamo', 'Adelanto', 'Penalización', 'ISR', 'Total a Pagar']],
+                head: [['Operador', 'Viajes', 'Días', 'Completar', 'Total V.', 'Movimientos', 'Pago Fijo', 'Bono2', 'Puntualidad', 'Asistencia', 'Bono Completar', 'Bono Coord', 'No Descanso', 'Préstamo', 'Adelanto', 'Penalización', 'ISR', 'Total']],
                 body: tableData,
                 startY: 28,
-                headStyles: { 
-                    fillColor: [26, 26, 26],
-                    textColor: [255, 255, 255],
-                    fontStyle: 'bold',
-                    fontSize: 9,
-                    halign: 'center'
-                },
-                bodyStyles: {
-                    textColor: [0, 0, 0],
-                    fontSize: 9
-                },
-                columnStyles: {
-                    0: { halign: 'left' },
-                    1: { halign: 'center' },
-                    2: { halign: 'center' },
-                    3: { halign: 'center' },
-                    4: { halign: 'center' },
-                    5: { halign: 'right' },
-                    6: { halign: 'right' },
-                    7: { halign: 'right' },
-                    8: { halign: 'right' },
-                    9: { halign: 'right' },
-                    10: { halign: 'right' },
-                    11: { halign: 'right' },
-                    12: { halign: 'right', fillColor: [200, 230, 201] }
-                },
+                headStyles: { fillColor: [26, 26, 26], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 9 },
+                bodyStyles: { textColor: [0, 0, 0], fontSize: 9 },
+                columnStyles: { 17: { fillColor: [200, 230, 201] } },
                 margin: 10,
-                didDrawPage: function(data) {
-                    // Footer
-                    const pageSize = doc.internal.pageSize;
-                    const pageHeight = pageSize.getHeight();
-                    const pageWidth = pageSize.getWidth();
+                didDrawPage: (data) => {
                     doc.setFontSize(10);
-                    doc.text('TOTAL NÓMINA: $' + totalGeneral.toLocaleString('es-MX'), 14, pageHeight - 10);
+                    doc.text('TOTAL NÓMINA: $' + totalGeneral.toLocaleString('es-MX'), 14, doc.internal.pageSize.getHeight() - 10);
                 }
             });
-            
-            // Descargar PDF
+
             const nombrePDF = `Nomina_Alen_${y}-${m}-${d}.pdf`;
             doc.save(nombrePDF);
         }
-        
+
         function generarExcelNomina() {
             const semanaSelec = document.getElementById('sel_sem_nom').value;
             if (!semanaSelec) {
                 alert('Selecciona una semana');
                 return;
             }
-            
+
             const [y, m, d] = semanaSelec.split('-');
             const mDate = new Date(parseInt(y), parseInt(m), 0).getDate();
             let jd = parseInt(d) + 6;
             if (jd > mDate) jd -= mDate;
-            
-            // Filtrar datos de la semana seleccionada
+
             const datosSem = datos.filter(r => {
                 const [rd, rm, ry] = r.Fecha.split('/');
                 return ry === y && rm === m && parseInt(rd) >= parseInt(d) && parseInt(rd) <= jd;
             });
-            
+
             const datosOps = {};
             datosSem.forEach(r => {
                 const op = r.OP || r.Operador;
@@ -720,144 +561,94 @@
                 datosOps[op].c += carg;
                 datosOps[op].dias += 1;
             });
-            
-            // Construir datos para Excel
+
             const excelData = [];
             excelData.push(['NÓMINA SEMANAL - ALEN IP']);
-            
+
             const fridayDate = new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
             const thursdayDate = new Date(fridayDate);
             thursdayDate.setDate(thursdayDate.getDate() + 6);
-            
+
             const thuDay = String(thursdayDate.getDate()).padStart(2, '0');
             const thuMonth = String(thursdayDate.getMonth() + 1).padStart(2, '0');
-            
+
             excelData.push([`Semana: ${y}-${m}-${d} a ${thursdayDate.getFullYear()}-${thuMonth}-${thuDay}`]);
             excelData.push([]);
-            
-            excelData.push([
-                'Operador',
-                'Viajes',
-                'Días',
-                'Completar',
-                'Total Viajes',
-                'Movimientos',
-                'Sueldo Fijo',
-                'Bonos',
-                'Préstamo',
-                'Adelanto',
-                'Penalización',
-                'ISR (7.5%)',
-                'Total a Pagar'
-            ]);
-            
+            excelData.push(['Operador', 'Viajes', 'Días', 'Completar', 'Total Viajes', 'Movimientos', 'Pago Fijo', 'Bono2', 'Puntualidad', 'Asistencia', 'Bono Completar', 'Bono Coord', 'No Descanso', 'Préstamo', 'Adelanto', 'Penalización', 'ISR (7.5%)', 'Total a Pagar']);
+
             let totalGeneral = 0;
-            
+
             Object.keys(datosOps).sort().forEach(op => {
                 const d = datosOps[op];
                 const viajesReales = d.c;
                 const diasTrabajados = d.dias;
-                
+
                 const viajesACompletar = parseInt(document.querySelector('.comp_' + op.replace(/\s/g,'_')).value) || 0;
                 const totalViajes = viajesReales + viajesACompletar;
-                
-                const mov = totalViajes * 200;
-                const sueldo = diasTrabajados * 362.50;
-                
+
+                const movimientos = totalViajes * 200;
+                const pagoFijo = diasTrabajados * 362.50;
+                const bono2 = Math.max(0, movimientos - pagoFijo);
+
                 const bonoPunt = document.querySelector('.bon_punt_' + op.replace(/\s/g,'_')).checked ? 250 : 0;
                 const bonoAsis = document.querySelector('.bon_asis_' + op.replace(/\s/g,'_')).checked ? 250 : 0;
-                const bonoOtro = parseInt(document.querySelector('.bon_otro_' + op.replace(/\s/g,'_')).value) || 0;
-                const bonos = bonoPunt + bonoAsis + bonoOtro;
+                const bonoComp = parseInt(document.querySelector('.bon_comp_' + op.replace(/\s/g,'_')).value) || 0;
+                const bonoCoord = parseInt(document.querySelector('.bon_coord_' + op.replace(/\s/g,'_')).value) || 0;
                 
-                const subtotal = mov + sueldo + bonos;
-                
+                let bonoDesc = 0;
+                if (diasTrabajados === 7) {
+                    const checkDesc = document.querySelector('.bon_desc_' + op.replace(/\s/g,'_'));
+                    if (checkDesc) {
+                        bonoDesc = checkDesc.checked ? 500 : 0;
+                    }
+                }
+
+                const subtotal = pagoFijo + bono2 + bonoPunt + bonoAsis + bonoComp + bonoCoord + bonoDesc;
+
                 const prefil = parseInt(document.querySelector('.prf_' + op.replace(/\s/g,'_')).value) || 0;
                 const adelanto = parseInt(document.querySelector('.adl_' + op.replace(/\s/g,'_')).value) || 0;
                 const penalizacion = parseInt(document.querySelector('.pen_' + op.replace(/\s/g,'_')).value) || 0;
-                
+
                 const isr = subtotal * 0.075;
                 const total = subtotal - prefil - adelanto - penalizacion - isr;
                 totalGeneral += total;
-                
-                excelData.push([
-                    op,
-                    viajesReales,
-                    diasTrabajados,
-                    viajesACompletar,
-                    totalViajes,
-                    mov,
-                    sueldo,
-                    bonos,
-                    prefil,
-                    adelanto,
-                    penalizacion,
-                    isr,
-                    total
-                ]);
+
+                excelData.push([op, viajesReales, diasTrabajados, viajesACompletar, totalViajes, movimientos, pagoFijo, bono2, bonoPunt, bonoAsis, bonoComp, bonoCoord, bonoDesc, prefil, adelanto, penalizacion, isr, total]);
             });
-            
+
             excelData.push([]);
-            excelData.push(['TOTAL NÓMINA:', '', '', '', '', '', '', '', '', '', '', '', totalGeneral]);
-            
-            // Crear workbook
+            excelData.push(['TOTAL NÓMINA:', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', totalGeneral]);
+
             const ws = XLSX.utils.aoa_to_sheet(excelData);
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, 'Nómina');
-            
-            // Configurar ancho de columnas
+
             ws['!cols'] = [
-                { wch: 25 },
-                { wch: 12 },
-                { wch: 10 },
-                { wch: 12 },
-                { wch: 12 },
-                { wch: 14 },
-                { wch: 14 },
-                { wch: 12 },
-                { wch: 12 },
-                { wch: 12 },
-                { wch: 14 },
-                { wch: 12 },
-                { wch: 14 }
+                { wch: 25 }, { wch: 12 }, { wch: 10 }, { wch: 12 }, { wch: 12 },
+                { wch: 14 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 },
+                { wch: 12 }, { wch: 14 }, { wch: 12 }, { wch: 12 }, { wch: 12 },
+                { wch: 14 }, { wch: 12 }, { wch: 14 }
             ];
-            
-            // Descargar
+
             const nombreExcel = `Nomina_Alen_${y}-${m}-${d}.xlsx`;
             XLSX.writeFile(wb, nombreExcel);
         }
-        
+
         function imprimirNomina() {
+            const contenido = document.getElementById('t_nom').innerHTML;
             const ventana = window.open('', '', 'height=900,width=1400');
             ventana.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Nómina</title><style>
                 body{font-family: Arial, sans-serif; margin: 10px; color: #333;}
-                h2{color: #2d5a3d; text-align: center; margin-bottom: 20px;}
-                table{width: 100%; border-collapse: collapse; font-size: 10px;}
-                th, td{padding: 6px; border: 1px solid #ccc; text-align: center;}
-                th{background: #2d5a3d; color: white; font-weight: bold;}
-                td:first-child, th:first-child{text-align: left;}
-                .total{background: #e8f5e9; font-weight: bold;}
-                input{border: none !important; background: none !important; text-align: center; font-weight: bold;}
-                @media print{body{margin: 0;} input{display: none;}}
-            </style></head><body>`);
-            ventana.document.write('<h2>📊 NÓMINA DE OPERADORES - ALEN IP</h2>');
-            ventana.document.write(contenido);
-            ventana.document.write('</body></html>');
+                table{border-collapse: collapse; width: 100%;}
+                th,td{border: 1px solid #999; padding: 8px; text-align: center;}
+                th{background: #1a1a1a; color: white; font-weight: bold;}
+            </style></head><body>${contenido}</body></html>`);
             ventana.document.close();
-            setTimeout(() => ventana.print(), 500);
+            ventana.print();
         }
-        
-        function cerrar() { document.getElementById('modal').classList.remove('active'); }
-        function tab(id) {
-            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.tab-btn').forEach(t => t.classList.remove('active'));
-            document.getElementById(id).classList.add('active');
-            event.target.classList.add('active');
-        }
-        function limpiar() {
-            document.getElementById('ano').value = '';
-            document.getElementById('mes').value = '';
-            document.getElementById('dia').value = '';
-            aplicar();
+
+        function cerrarModal() {
+            document.getElementById('modal').classList.remove('active');
         }
     </script>
 </body>
