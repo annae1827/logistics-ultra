@@ -190,8 +190,25 @@
                 pO[op].c += carg;
                 pO[op].dias += 1;
 
-                const [día_num, mes_num, año] = r.Fecha.split('/');
-                const fecha = new Date(parseInt(año), parseInt(mes_num) - 1, parseInt(día_num));
+                // Parsear fecha con validación estricta
+                const fechaStr = r.Fecha ? r.Fecha.trim() : '';
+                if (!fechaStr) return;
+                
+                const partes = fechaStr.split('/');
+                if (partes.length !== 3) return;
+                
+                const día_num = parseInt(partes[0].trim());
+                const mes_num = parseInt(partes[1].trim());
+                const año = parseInt(partes[2].trim());
+                
+                // Validar rangos
+                if (isNaN(día_num) || isNaN(mes_num) || isNaN(año)) return;
+                if (día_num < 1 || día_num > 31 || mes_num < 1 || mes_num > 12 || año < 2020 || año > 2030) return;
+                
+                const fecha = new Date(año, mes_num - 1, día_num);
+                // Verificar que la fecha es válida (no May 32, etc)
+                if (fecha.getDate() !== día_num || fecha.getMonth() !== mes_num - 1) return;
+                
                 const dayOfWeek = fecha.getDay();
                 const diff = (dayOfWeek - 5 + 7) % 7;
                 const fridayDate = new Date(fecha);
@@ -219,8 +236,16 @@
             const semanas = Object.keys(sem).sort().reverse();
             let optionsHtml = '<option value="">-- Seleccionar semana --</option>';
             semanas.forEach(v => {
-                const [year, month, day] = v.split('-');
-                const fridayDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+                const partes = v.split('-');
+                if (partes.length !== 3) return;
+                
+                const year = parseInt(partes[0]);
+                const month = parseInt(partes[1]);
+                const day = parseInt(partes[2]);
+                
+                if (isNaN(year) || isNaN(month) || isNaN(day)) return;
+                
+                const fridayDate = new Date(year, month - 1, day);
                 const thursdayDate = new Date(fridayDate);
                 thursdayDate.setDate(thursdayDate.getDate() + 6);
 
@@ -241,7 +266,11 @@
                 const thuMonth = String(thursdayDate.getMonth() + 1).padStart(2, '0');
 
                 const fin = `${thursdayDate.getFullYear()}-${thuMonth}-${thuDay}`;
-                return `<div style="margin-bottom: 20px;"><h3 style="color: #2d5a3d; margin-bottom: 10px;">📅 ${v} a ${fin}</h3></div>`;
+                
+                // Agregar botones de recibos para cada operador de la semana
+                const ops = Array.from(sem[v]).sort().map(o => `<button class="btn-rec" onclick="rec('${o}', '${v}')" style="margin: 5px 5px 5px 0;">${o}</button>`).join('');
+                
+                return `<div style="margin-bottom: 20px;"><h3 style="color: #2d5a3d; margin-bottom: 10px;">📅 ${v} a ${fin}</h3><div style="display: flex; flex-wrap: wrap;">${ops}</div></div>`;
             }).join('');
             document.getElementById('t5').innerHTML = html || '<div>Sin datos</div>';
         }
@@ -260,7 +289,21 @@
                 return;
             }
 
-            const [y, m, d] = semanaSelec.split('-');
+            const partes = semanaSelec.split('-');
+            if (partes.length !== 3) {
+                document.getElementById('t_nom').innerHTML = '<div style="padding: 20px; text-align: center; color: #c62828;">Error: formato de semana inválido</div>';
+                return;
+            }
+            
+            const y = partes[0];
+            const m = partes[1];
+            const d = partes[2];
+            
+            // Validar que sean números
+            if (isNaN(parseInt(y)) || isNaN(parseInt(m)) || isNaN(parseInt(d))) {
+                document.getElementById('t_nom').innerHTML = '<div style="padding: 20px; text-align: center; color: #c62828;">Error: formato de semana inválido</div>';
+                return;
+            }
             const mDate = new Date(parseInt(y), parseInt(m), 0).getDate();
             let jd = parseInt(d) + 6;
             if (jd > mDate) jd -= mDate;
@@ -314,8 +357,13 @@
                 const d = datosOps[op];
                 const viajesReales = d.c;
                 const diasTrabajados = d.dias;
-                const maxEsperado = diasTrabajados * 5;
-                const faltanParaCompletar = Math.max(0, maxEsperado - viajesReales);
+                
+                // Completar viajes se activa automáticamente si tiene 6 o 7 asistencias
+                let viajesACompletar = 0;
+                if (diasTrabajados >= 6) {
+                    viajesACompletar = Math.max(0, 30 - viajesReales);
+                }
+                const totalViajes = viajesReales + viajesACompletar;
 
                 // NUEVA LÓGICA: Sueldo fijo NO acumulable
                 const movimientos = viajesReales * 200;
@@ -326,10 +374,10 @@
                     <td style="padding: 8px; text-align: left; border: 1px solid #ddd;"><strong>${op}</strong></td>
                     <td style="padding: 8px; text-align: center; border: 1px solid #ddd;"><strong>${viajesReales}</strong></td>
                     <td style="padding: 8px; text-align: center; border: 1px solid #ddd;"><strong>${diasTrabajados}</strong></td>
-                    <td style="padding: 8px; text-align: center; border: 1px solid #ddd;">
-                        <input type="number" class="comp_${op.replace(/\s/g,'_')}" value="0" min="0" onchange="recalcNomina()" style="width: 60px;" title="Max: ${faltanParaCompletar}">
+                    <td style="padding: 8px; text-align: center; border: 1px solid #ddd; background: ${diasTrabajados >= 6 ? '#c8e6c9' : '#f0f0f0'};">
+                        <span class="comp_${op.replace(/\s/g,'_')}" style="font-weight: ${diasTrabajados >= 6 ? 'bold' : 'normal'}; color: ${diasTrabajados >= 6 ? '#1b5e20' : '#999'};">${viajesACompletar}</span>
                     </td>
-                    <td style="padding: 8px; text-align: center; border: 1px solid #ddd;"><span class="tot_viajes_${op.replace(/\s/g,'_')}">${viajesReales}</span></td>
+                    <td style="padding: 8px; text-align: center; border: 1px solid #ddd;"><span class="tot_viajes_${op.replace(/\s/g,'_')}">${totalViajes}</span></td>
                     <td style="padding: 8px; text-align: center; border: 1px solid #ddd;">$<span class="mov_${op.replace(/\s/g,'_')}">${movimientos.toLocaleString('es-MX')}</span></td>
                     <td style="padding: 8px; text-align: center; border: 1px solid #ddd; background: #ffcdd2;">$<span class="pf_${op.replace(/\s/g,'_')}">${pagoFijo.toLocaleString('es-MX')}</span></td>
                     <td style="padding: 8px; text-align: center; border: 1px solid #ddd; background: #fff9c4;">$<span class="b2_${op.replace(/\s/g,'_')}">${bono2.toLocaleString('es-MX')}</span></td>
@@ -395,7 +443,11 @@
                 const viajesReales = d.c;
                 const diasTrabajados = d.dias;
 
-                const viajesACompletar = parseInt(document.querySelector('.comp_' + op.replace(/\s/g,'_')).value) || 0;
+                // Completar viajes se calcula automáticamente si tiene 6 o 7 asistencias
+                let viajesACompletar = 0;
+                if (diasTrabajados >= 6) {
+                    viajesACompletar = Math.max(0, 30 - viajesReales);
+                }
                 const totalViajes = viajesReales + viajesACompletar;
 
                 // NUEVA LÓGICA: Sueldo fijo NO acumulable
@@ -470,7 +522,11 @@
                 const viajesReales = d.c;
                 const diasTrabajados = d.dias;
 
-                const viajesACompletar = parseInt(document.querySelector('.comp_' + op.replace(/\s/g,'_')).value) || 0;
+                // Completar viajes se calcula automáticamente si tiene 6 o 7 asistencias
+                let viajesACompletar = 0;
+                if (diasTrabajados >= 6) {
+                    viajesACompletar = Math.max(0, 30 - viajesReales);
+                }
                 const totalViajes = viajesReales + viajesACompletar;
 
                 const movimientos = totalViajes * 200;
@@ -583,7 +639,11 @@
                 const viajesReales = d.c;
                 const diasTrabajados = d.dias;
 
-                const viajesACompletar = parseInt(document.querySelector('.comp_' + op.replace(/\s/g,'_')).value) || 0;
+                // Completar viajes se calcula automáticamente si tiene 6 o 7 asistencias
+                let viajesACompletar = 0;
+                if (diasTrabajados >= 6) {
+                    viajesACompletar = Math.max(0, 30 - viajesReales);
+                }
                 const totalViajes = viajesReales + viajesACompletar;
 
                 const movimientos = totalViajes * 200;
@@ -649,6 +709,51 @@
 
         function cerrarModal() {
             document.getElementById('modal').classList.remove('active');
+        }
+
+        function rec(op, sem) {
+            // Obtener datos de la semana para este operador
+            const [y, m, d] = sem.split('-');
+            const mDate = new Date(parseInt(y), parseInt(m), 0).getDate();
+            let jd = parseInt(d) + 6;
+            if (jd > mDate) jd -= mDate;
+
+            const datosSem = datos.filter(r => {
+                const [rd, rm, ry] = r.Fecha.split('/');
+                return ry === y && rm === m && parseInt(rd) >= parseInt(d) && parseInt(rd) <= jd && (r.OP || r.Operador) === op;
+            });
+
+            // Construir tabla de recibo
+            let html = `<div class="modal-header">📋 Recibo - ${op}</div>
+            <table style="width: 100%; margin: 20px 0; border-collapse: collapse;">
+                <thead style="background: #f0f0f0;">
+                    <tr>
+                        <th style="padding: 10px; text-align: left; border: 1px solid #ddd;">Fecha</th>
+                        <th style="padding: 10px; text-align: center; border: 1px solid #ddd;">Viajes</th>
+                        <th style="padding: 10px; text-align: center; border: 1px solid #ddd;">Pago</th>
+                    </tr>
+                </thead>
+                <tbody>`;
+
+            let totalPago = 0;
+            datosSem.forEach(r => {
+                const viajes = parseInt(r['M Cargados']) || 0;
+                const pago = viajes * 200;
+                totalPago += pago;
+                html += `<tr>
+                    <td style="padding: 10px; border: 1px solid #ddd;">${r.Fecha}</td>
+                    <td style="padding: 10px; text-align: center; border: 1px solid #ddd;">${viajes}</td>
+                    <td style="padding: 10px; text-align: right; border: 1px solid #ddd;">$${pago.toLocaleString('es-MX')}</td>
+                </tr>`;
+            });
+
+            html += `</tbody></table>
+            <div style="text-align: right; padding: 20px; border-top: 2px solid #2d5a3d;">
+                <strong>TOTAL VIAJES: $${totalPago.toLocaleString('es-MX')}</strong>
+            </div>`;
+
+            document.getElementById('recibo').innerHTML = html;
+            document.getElementById('modal').classList.add('active');
         }
     </script>
 </body>
