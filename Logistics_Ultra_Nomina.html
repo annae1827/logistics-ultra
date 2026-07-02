@@ -411,7 +411,7 @@
                     <td style="background: #fffde7;"><input type="checkbox" class="chk-punt" onchange="recalcNomina()" style="width: 18px;"></td>
                     <td style="background: #fffde7;"><input type="checkbox" class="chk-asis" onchange="recalcNomina()" style="width: 18px;"></td>
                     <td style="background: #fffde7;"><input type="number" value="0" class="inp-boncomp" onchange="recalcNomina()" style="width: 45px;"></td>
-                    <td style="background: #fffde7;"><input type="number" value="0" class="inp-boncoord" onchange="recalcNomina()" style="width: 45px;"></td>
+                    <td style="background: #fffde7;"><input type="checkbox" class="chk-boncoord" onchange="recalcNomina()" style="width: 18px;"></td>
                     <td style="background: ${elegibleNoDesc ? '#fffde7' : '#f0f0f0'};">${elegibleNoDesc ? '<input type="checkbox" class="chk-nodesc" onchange="recalcNomina()" style="width: 18px;">' : '-'}</td>
                     <td class="td-subtotal" style="font-weight: bold;">$0</td>
                     <td style="background: #ffe0b2;"><input type="number" value="0" class="inp-prestamo" onchange="recalcNomina()" style="width: 45px;"></td>
@@ -442,7 +442,8 @@
                 const noDesc = (chkNoDesc && chkNoDesc.checked) ? 500 : 0;
 
                 const bonComp = parseFloat(tr.querySelector('.inp-boncomp').value) || 0;
-                const bonCoord = parseFloat(tr.querySelector('.inp-boncoord').value) || 0;
+                const chkBonCoord = tr.querySelector('.chk-boncoord');
+                const bonCoord = (chkBonCoord && chkBonCoord.checked) ? 300 : 0;
 
                 const prestamo = parseFloat(tr.querySelector('.inp-prestamo').value) || 0;
                 const adelanto = parseFloat(tr.querySelector('.inp-adelanto').value) || 0;
@@ -467,6 +468,7 @@
             const chkPunt = tr.querySelector('.chk-punt');
             const chkAsis = tr.querySelector('.chk-asis');
             const chkNoDesc = tr.querySelector('.chk-nodesc');
+            const chkBonCoord = tr.querySelector('.chk-boncoord');
             return {
                 op: tr.querySelector('td').textContent.trim(),
                 viajesReales: tr.children[1].textContent.trim(),
@@ -479,7 +481,7 @@
                 punt: (chkPunt && chkPunt.checked) ? 'Sí' : 'No',
                 asis: (chkAsis && chkAsis.checked) ? 'Sí' : 'No',
                 bonComp: tr.querySelector('.inp-boncomp').value || '0',
-                bonCoord: tr.querySelector('.inp-boncoord').value || '0',
+                bonCoord: (chkBonCoord && chkBonCoord.checked) ? 'Sí' : 'No',
                 noDesc: (chkNoDesc && chkNoDesc.checked) ? 'Sí' : (chkNoDesc ? 'No' : '-'),
                 subtotal: tr.querySelector('.td-subtotal').textContent.trim(),
                 prestamo: tr.querySelector('.inp-prestamo').value || '0',
@@ -541,8 +543,135 @@
             window.print();
         }
 
-        function rec(op, sem) {
-            alert(`Recibo de ${op} - ${sem}`);
+        function rec(opNombre, semanaKey) {
+            const partes = semanaKey.split('-');
+            const y = parseInt(partes[0]), m = parseInt(partes[1]), d = parseInt(partes[2]);
+            const fridayDate = new Date(y, m - 1, d);
+            const thursdayDate = new Date(fridayDate);
+            thursdayDate.setDate(thursdayDate.getDate() + 6);
+
+            const opNorm = normalizarNombre(opNombre);
+            const registros = datos.filter(r => {
+                const opOriginal = (r.OP && r.OP.trim()) ? r.OP : (r.Operador || '');
+                if (normalizarNombre(opOriginal) !== opNorm) return false;
+                if (!r.Fecha) return false;
+                const [rd, rm, ry] = r.Fecha.split('/');
+                const fecha = new Date(parseInt(ry), parseInt(rm) - 1, parseInt(rd));
+                return fecha >= fridayDate && fecha <= thursdayDate;
+            }).sort((a, b) => {
+                const [ad, am, ay] = a.Fecha.split('/');
+                const [bd, bm, by] = b.Fecha.split('/');
+                return new Date(parseInt(ay), parseInt(am) - 1, parseInt(ad)) - new Date(parseInt(by), parseInt(bm) - 1, parseInt(bd));
+            });
+
+            // Intentar usar los valores ya editados en la tabla NÓMINA si esa misma semana está cargada ahí
+            let filaData = null;
+            if (document.getElementById('sel_sem_nom').value === semanaKey) {
+                document.querySelectorAll('#t_nom tbody tr').forEach(tr => {
+                    const nombreFila = tr.querySelector('td').textContent.trim();
+                    if (nombreFila === opNombre) filaData = _leerFilaNomina(tr);
+                });
+            }
+
+            // Si no hay datos editados, calcular con valores base (bonos en 0, checkboxes sin marcar)
+            if (!filaData) {
+                let viajesReales = 0;
+                const diasSet = new Set();
+                registros.forEach(r => {
+                    viajesReales += parseInt(r['M Cargados']) || 0;
+                    diasSet.add(r.Fecha);
+                });
+                const diasTrabajados = diasSet.size;
+                let viajesACompletar = 0;
+                if (diasTrabajados >= 6) viajesACompletar = Math.max(0, 30 - viajesReales);
+                const totalViajes = viajesReales + viajesACompletar;
+                const movimientos = totalViajes * 200;
+                const pagoFijo = diasTrabajados * 362.50;
+                const bono2 = Math.max(0, movimientos - pagoFijo);
+                const subtotal = pagoFijo + bono2;
+                const isr = subtotal * 0.075;
+                const total = subtotal - isr;
+
+                filaData = {
+                    op: opNombre,
+                    viajesReales: String(viajesReales),
+                    diasTrabajados: String(diasTrabajados),
+                    viajesACompletar: String(viajesACompletar),
+                    totalViajes: String(totalViajes),
+                    movimientos: '$' + movimientos.toLocaleString('es-MX'),
+                    pagoFijo: '$' + pagoFijo.toLocaleString('es-MX'),
+                    bono2: '$' + bono2.toLocaleString('es-MX'),
+                    punt: 'No', asis: 'No', bonComp: '0', bonCoord: 'No',
+                    noDesc: diasTrabajados === 7 ? 'No' : '-',
+                    subtotal: '$' + subtotal.toLocaleString('es-MX', {maximumFractionDigits: 2}),
+                    prestamo: '0', adelanto: '0', penalizacion: '0',
+                    isr: '-$' + isr.toLocaleString('es-MX', {maximumFractionDigits: 2}),
+                    total: '$' + total.toLocaleString('es-MX', {maximumFractionDigits: 2})
+                };
+            }
+
+            let filasMov = '';
+            registros.forEach(r => {
+                filasMov += `<tr>
+                    <td style="padding:6px;border:1px solid #ddd;">${r.Fecha}</td>
+                    <td style="padding:6px;border:1px solid #ddd;">${r.Turno || '-'}</td>
+                    <td style="padding:6px;border:1px solid #ddd;">${r.Unidad || '-'}</td>
+                    <td style="padding:6px;border:1px solid #ddd;">${r['M Cargados'] || '0'}</td>
+                    <td style="padding:6px;border:1px solid #ddd;">${r['M Vacíos'] || '0'}</td>
+                    <td style="padding:6px;border:1px solid #ddd;">${r.Estatus || '-'}</td>
+                </tr>`;
+            });
+
+            const fin = `${thursdayDate.getFullYear()}-${String(thursdayDate.getMonth() + 1).padStart(2, '0')}-${String(thursdayDate.getDate()).padStart(2, '0')}`;
+
+            const html = `
+                <div style="font-family: Arial, sans-serif;">
+                    <h2 style="margin-bottom: 5px;">📄 Recibo de Nómina - Alen IP</h2>
+                    <p style="margin: 0 0 15px 0; color: #666;">Operador: <strong>${filaData.op}</strong><br>Semana: ${semanaKey} a ${fin}</p>
+
+                    <h3 style="margin-bottom: 5px; font-size: 14px;">Movimientos diarios</h3>
+                    <table style="width:100%; font-size: 12px; margin-bottom: 20px; border-collapse: collapse;">
+                        <thead><tr>
+                            <th style="background:#1a1a1a;color:#fff;padding:6px;border:1px solid #ddd;">Fecha</th>
+                            <th style="background:#1a1a1a;color:#fff;padding:6px;border:1px solid #ddd;">Turno</th>
+                            <th style="background:#1a1a1a;color:#fff;padding:6px;border:1px solid #ddd;">Unidad</th>
+                            <th style="background:#1a1a1a;color:#fff;padding:6px;border:1px solid #ddd;">Cargados</th>
+                            <th style="background:#1a1a1a;color:#fff;padding:6px;border:1px solid #ddd;">Vacíos</th>
+                            <th style="background:#1a1a1a;color:#fff;padding:6px;border:1px solid #ddd;">Estatus</th>
+                        </tr></thead>
+                        <tbody>${filasMov || '<tr><td colspan="6" style="padding:6px;border:1px solid #ddd;">Sin movimientos registrados</td></tr>'}</tbody>
+                    </table>
+
+                    <h3 style="margin-bottom: 5px; font-size: 14px;">Desglose de pago</h3>
+                    <table style="width:100%; font-size: 13px;">
+                        <tr><td>Viajes realizados</td><td style="text-align:right;">${filaData.viajesReales}</td></tr>
+                        <tr><td>Días trabajados</td><td style="text-align:right;">${filaData.diasTrabajados}</td></tr>
+                        <tr><td>Viajes a completar</td><td style="text-align:right;">${filaData.viajesACompletar}</td></tr>
+                        <tr><td>Total viajes</td><td style="text-align:right;">${filaData.totalViajes}</td></tr>
+                        <tr><td>Movimientos ($200 c/u)</td><td style="text-align:right;">${filaData.movimientos}</td></tr>
+                        <tr><td>Pago fijo</td><td style="text-align:right;">${filaData.pagoFijo}</td></tr>
+                        <tr><td>Bono2</td><td style="text-align:right;">${filaData.bono2}</td></tr>
+                        <tr><td>Puntualidad</td><td style="text-align:right;">${filaData.punt === 'Sí' ? '$250' : '$0'}</td></tr>
+                        <tr><td>Asistencia</td><td style="text-align:right;">${filaData.asis === 'Sí' ? '$250' : '$0'}</td></tr>
+                        <tr><td>Bono completar</td><td style="text-align:right;">$${filaData.bonComp}</td></tr>
+                        <tr><td>Bono coordinación</td><td style="text-align:right;">${filaData.bonCoord === 'Sí' ? '$300' : '$0'}</td></tr>
+                        <tr><td>No descanso</td><td style="text-align:right;">${filaData.noDesc === 'Sí' ? '$500' : '$0'}</td></tr>
+                        <tr style="border-top: 2px solid #333;"><td><strong>Subtotal</strong></td><td style="text-align:right;"><strong>${filaData.subtotal}</strong></td></tr>
+                        <tr><td>Préstamo</td><td style="text-align:right;">-$${filaData.prestamo}</td></tr>
+                        <tr><td>Adelanto</td><td style="text-align:right;">-$${filaData.adelanto}</td></tr>
+                        <tr><td>Penalización</td><td style="text-align:right;">-$${filaData.penalizacion}</td></tr>
+                        <tr><td>ISR (7.5%)</td><td style="text-align:right;">${filaData.isr}</td></tr>
+                        <tr style="border-top: 2px solid #333; background:#e8f5e9;"><td><strong>TOTAL A PAGAR</strong></td><td style="text-align:right;"><strong>${filaData.total}</strong></td></tr>
+                    </table>
+
+                    <div style="margin-top: 20px; text-align: right;">
+                        <button class="btn btn-primary" onclick="window.print()">🖨️ Imprimir</button>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('recibo').innerHTML = html;
+            document.getElementById('modal').classList.add('active');
         }
 
         function cerrarModal() {
