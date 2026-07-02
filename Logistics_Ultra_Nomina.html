@@ -112,32 +112,13 @@
 
     <script>
         let datos = [];
-        const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTE1ZJZ8PzqGMNdj0MLHbfmcFQngQlP0PQVmK_FFTfI9Kmzk3EO8EWAAb6T4d-oCTPrEThpf-g8Roq3/pub?gid=0&single=true&output=csv';
+        const DATOS_ALEN = [{"Operación":"Alen IP","Coordinador":"Abdiel Garcia","Fecha":"12/06/2026","Turno":"07:00-19:00","Operador":"Primitivo Zavala","Estatus":"asistió","Unidad":"11001","M Cargados":"5","M Vacíos":"3","Entrada":"7:50","Salida":"19:00","Comentario":"Se recibe 11001 7 dedos (5.5 puntos); Se entrega 11001 no se puede checar por desnivel","año":"2026","mes":"junio","día":"viernes"},{"Operación":"Alen IP","Coordinador":"Abdiel Garcia","Fecha":"12/06/2026","Turno":"07:00-19:00","Operador":"Daniel Zavala","Estatus":"asistió","Unidad":"105","M Cargados":"0","M Vacíos":"1","Entrada":"7:50","Salida":"19:00","Comentario":"No hubo movimientos por falla de la unidad; Se recibe 105 10 dedos (8.5 puntos); Se entrega 105 9 dedos (5 puntos); Unidad 105 se queda tirado en planta 2","año":"2026","mes":"junio","día":"viernes"},{"Operación":"Alen IP","Coordinador":"Abdiel Garcia","Fecha":"12/06/2026","Turno":"07:00-19:00","Operador":"Jorge Castañeda","Estatus":"asistió","Unidad":"750","M Cargados":"2","M Vacíos":"2","Entrada":"8:50","Salida":"19:00","Comentario":"Unidad 750 foco fundido de lado del copiloto","año":"2026","mes":"junio","día":"viernes"},{"Operación":"Alen IP","Coordinador":"Abdiel Garcia","Fecha":"12/06/2026","Turno":"07:00-19:00","Operador":"Ricardo Obregón","Estatus":"asistió","Unidad":"9002","M Cargados":"4","M Vacíos":"4","Entrada":"7:40","Salida":"19:00","Comentario":"Se corrió una de la rampa; Se recibe 9002 5 dedos (2 puntos); Se entrega 9002 estan de subida no se puede revisar","año":"2026","mes":"junio","día":"viernes"},{"Operación":"Alen IP","Coordinador":"Abdiel Garcia","Fecha":"26/06/2026","Turno":"07:00-19:00","Operador":"Primitivo Zavala","Estatus":"asistió","Unidad":"11001","M Cargados":"4","M Vacíos":"3","Entrada":"8:20","Salida":"19:00","Comentario":"","año":"2026","mes":"junio","día":"viernes"},{"Operación":"Alen IP","Coordinador":"Francisco Ramirez","Fecha":"26/06/2026","Turno":"07:00-19:00","Operador":"Jesús Rodríguez","Estatus":"asistió","Unidad":"750","M Cargados":"1","M Vacíos":"1","Entrada":"7:00","Salida":"19:00","Comentario":"","año":"2026","mes":"junio","día":"viernes"},{"Operación":"Alen IP","Coordinador":"Francisco Ramirez","Fecha":"26/06/2026","Turno":"07:00-19:00","Operador":"César Proa","Estatus":"asistió","Unidad":"750","M Cargados":"2","M Vacíos":"3","Entrada":"9:00","Salida":"19:00","Comentario":"","año":"2026","mes":"junio","día":"viernes"},{"Operación":"Alen IP","Coordinador":"Francisco Ramirez","Fecha":"26/06/2026","Turno":"07:00-19:00","Operador":"Ricardo Obregón","Estatus":"asistió","Unidad":"9002","M Cargados":"2","M Vacíos":"1","Entrada":"7:30","Salida":"19:00","Comentario":"","año":"2026","mes":"junio","día":"viernes"},{"Operación":"Alen IP","Coordinador":"Abdiel Garcia","Fecha":"26/06/2026","Turno":"19:00-07:00","Operador":"Julio Campos","Estatus":"Asistió","Unidad":"750","M Cargados":"","M Vacíos":"","Entrada":"19:15","Salida":"7:20","Comentario":"","año":"2026","mes":"junio","día":"viernes"},{"Operación":"Alen IP","Coordinador":"Abdiel Garcia","Fecha":"26/06/2026","Turno":"19:00-07:00","Operador":"Edgar Vargas","Estatus":"Asistió","Unidad":"9002","M Cargados":"","M Vacíos":"","Entrada":"20:10","Salida":"7:00","Comentario":"","año":"2026","mes":"junio","día":"viernes"},{"Operación":"Alen IP","Coordinador":"Abdiel Garcia","Fecha":"26/06/2026","Turno":"19:00-07:00","Operador":"Juan Villanueva","Estatus":"Asistió","Unidad":"11001","M Cargados":"6","M Vacíos":"4","Entrada":"19:40","Salida":"7:20","Comentario":"","año":"2026","mes":"junio","día":"viernes"},{"Operación":"Alen IP","Coordinador":"Manolo Martínez","Fecha":"27/06/2026","Turno":"07:00-19:00","Operador":"Ricardo Obregón","Estatus":"asistió","Unidad":"9002","M Cargados":"5","M Vacíos":"5","Entrada":"7:46","Salida":"18:50","Comentario":"","año":"2026","mes":"junio","día":"sábado"},{"Operación":"Alen IP","Coordinador":"Francisco Ramirez","Fecha":"02/07/2026","Turno":"19:00-07:00","Operador":"Ricardo Obregón","Estatus":"asistió","Unidad":"9002","M Cargados":"3","M Vacíos":"2","Entrada":"19:00","Salida":"7:00","Comentario":"","año":"2026","mes":"julio","día":"lunes"}];
 
         window.addEventListener('load', () => {
-            fetch(CSV_URL)
-                .then(r => {
-                    console.log('Respuesta fetch:', r.status, r.statusText);
-                    return r.text();
-                })
-                .then(csv => {
-                    console.log('CSV recibido, longitud:', csv.length);
-                    Papa.parse(csv, {
-                        header: true,
-                        skipEmptyLines: true,
-                        complete: (r) => {
-                            console.log('PapaParse completado. Total registros:', r.data.length);
-                            datos = r.data.filter(x => x.Operador && x.Fecha);
-                            console.log('Datos cargados (con Operador y Fecha):', datos.length);
-                            init();
-                        },
-                        error: (err) => console.error('Error en PapaParse:', err)
-                    });
-                })
-                .catch(e => {
-                    console.error('Error cargando CSV:', e);
-                    alert('Error cargando datos. Revisa la consola (F12)');
-                });
+            console.log('Datos embebidos cargados:', DATOS_ALEN.length);
+            datos = DATOS_ALEN.filter(x => x.Operador && x.Fecha);
+            console.log('Datos listos:', datos.length);
+            init();
         });
 
         function init() {
