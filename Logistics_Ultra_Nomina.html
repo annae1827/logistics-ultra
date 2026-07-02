@@ -142,6 +142,9 @@
                     </thead>
                     <tbody></tbody>
                 </table>
+                <div style="text-align: right; margin-top: 10px; font-size: 16px; font-weight: bold;">
+                    Total General: <span id="total_general_nom">$0</span>
+                </div>
             </div>
 
             <!-- RECIBOS -->
@@ -394,44 +397,144 @@
                 const movimientos = totalViajes * 200;
                 const pagoFijo = diasTrabajados * 362.50;
                 const bono2 = Math.max(0, movimientos - pagoFijo);
+                const elegibleNoDesc = diasTrabajados === 7;
 
-                html += `<tr style="border-bottom: 1px solid #eee;">
+                html += `<tr data-pagofijo="${pagoFijo}" data-bono2="${bono2}" style="border-bottom: 1px solid #eee;">
                     <td><strong>${opNombre}</strong></td>
                     <td>${viajesReales}</td>
                     <td>${diasTrabajados}</td>
-                    <td style="background: ${diasTrabajados >= 6 ? '#c8e6c9' : '#f0f0f0'}; color: ${diasTrabajados >= 6 ? '#1b5e20' : '#999'}; font-weight: ${diasTrabajados >= 6 ? 'bold' : 'normal'};}">${viajesACompletar}</td>
+                    <td style="background: ${diasTrabajados >= 6 ? '#c8e6c9' : '#f0f0f0'}; color: ${diasTrabajados >= 6 ? '#1b5e20' : '#999'}; font-weight: ${diasTrabajados >= 6 ? 'bold' : 'normal'};">${viajesACompletar}</td>
                     <td>${totalViajes}</td>
                     <td>$${movimientos.toLocaleString('es-MX')}</td>
                     <td style="background: #ffcdd2;">$${pagoFijo.toLocaleString('es-MX')}</td>
                     <td style="background: #fff9c4;">$${bono2.toLocaleString('es-MX')}</td>
-                    <td style="background: #fffde7;"><input type="checkbox" onchange="recalcNomina()" style="width: 18px;"></td>
-                    <td style="background: #fffde7;"><input type="checkbox" onchange="recalcNomina()" style="width: 18px;"></td>
-                    <td style="background: #fffde7;"><input type="number" value="0" onchange="recalcNomina()" style="width: 45px;"></td>
-                    <td style="background: #fffde7;"><input type="number" value="0" onchange="recalcNomina()" style="width: 45px;"></td>
-                    <td style="background: ${diasTrabajados === 7 ? '#fffde7' : '#f0f0f0'};">${diasTrabajados === 7 ? '<input type="checkbox" onchange="recalcNomina()" style="width: 18px;">' : '-'}</td>
-                    <td style="font-weight: bold;">$0</td>
-                    <td style="background: #ffe0b2;"><input type="number" value="0" onchange="recalcNomina()" style="width: 45px;"></td>
-                    <td style="background: #ffe0b2;"><input type="number" value="0" onchange="recalcNomina()" style="width: 45px;"></td>
-                    <td style="background: #ffcdd2;"><input type="number" value="0" onchange="recalcNomina()" style="width: 45px;"></td>
-                    <td>-$0</td>
-                    <td style="background: #e8f5e9; font-weight: 600;">$0</td>
+                    <td style="background: #fffde7;"><input type="checkbox" class="chk-punt" onchange="recalcNomina()" style="width: 18px;"></td>
+                    <td style="background: #fffde7;"><input type="checkbox" class="chk-asis" onchange="recalcNomina()" style="width: 18px;"></td>
+                    <td style="background: #fffde7;"><input type="number" value="0" class="inp-boncomp" onchange="recalcNomina()" style="width: 45px;"></td>
+                    <td style="background: #fffde7;"><input type="number" value="0" class="inp-boncoord" onchange="recalcNomina()" style="width: 45px;"></td>
+                    <td style="background: ${elegibleNoDesc ? '#fffde7' : '#f0f0f0'};">${elegibleNoDesc ? '<input type="checkbox" class="chk-nodesc" onchange="recalcNomina()" style="width: 18px;">' : '-'}</td>
+                    <td class="td-subtotal" style="font-weight: bold;">$0</td>
+                    <td style="background: #ffe0b2;"><input type="number" value="0" class="inp-prestamo" onchange="recalcNomina()" style="width: 45px;"></td>
+                    <td style="background: #ffe0b2;"><input type="number" value="0" class="inp-adelanto" onchange="recalcNomina()" style="width: 45px;"></td>
+                    <td style="background: #ffcdd2;"><input type="number" value="0" class="inp-penalizacion" onchange="recalcNomina()" style="width: 45px;"></td>
+                    <td class="td-isr">-$0</td>
+                    <td class="td-total" style="background: #e8f5e9; font-weight: 600;">$0</td>
                 </tr>`;
             });
 
             html += '</tbody>';
             document.getElementById('t_nom').innerHTML = html;
+            recalcNomina();
         }
 
         function recalcNomina() {
-            // Placeholder - implementar si es necesario
+            let totalGeneral = 0;
+            document.querySelectorAll('#t_nom tbody tr').forEach(tr => {
+                const pagoFijo = parseFloat(tr.dataset.pagofijo) || 0;
+                const bono2 = parseFloat(tr.dataset.bono2) || 0;
+
+                const chkPunt = tr.querySelector('.chk-punt');
+                const chkAsis = tr.querySelector('.chk-asis');
+                const chkNoDesc = tr.querySelector('.chk-nodesc');
+
+                const punt = (chkPunt && chkPunt.checked) ? 250 : 0;
+                const asis = (chkAsis && chkAsis.checked) ? 250 : 0;
+                const noDesc = (chkNoDesc && chkNoDesc.checked) ? 500 : 0;
+
+                const bonComp = parseFloat(tr.querySelector('.inp-boncomp').value) || 0;
+                const bonCoord = parseFloat(tr.querySelector('.inp-boncoord').value) || 0;
+
+                const prestamo = parseFloat(tr.querySelector('.inp-prestamo').value) || 0;
+                const adelanto = parseFloat(tr.querySelector('.inp-adelanto').value) || 0;
+                const penalizacion = parseFloat(tr.querySelector('.inp-penalizacion').value) || 0;
+
+                const subtotal = pagoFijo + bono2 + punt + asis + bonComp + bonCoord + noDesc;
+                const isr = subtotal * 0.075;
+                const total = subtotal - prestamo - adelanto - penalizacion - isr;
+
+                tr.querySelector('.td-subtotal').textContent = '$' + subtotal.toLocaleString('es-MX', {maximumFractionDigits: 2});
+                tr.querySelector('.td-isr').textContent = '-$' + isr.toLocaleString('es-MX', {maximumFractionDigits: 2});
+                tr.querySelector('.td-total').textContent = '$' + total.toLocaleString('es-MX', {maximumFractionDigits: 2});
+
+                totalGeneral += total;
+            });
+
+            const elTotal = document.getElementById('total_general_nom');
+            if (elTotal) elTotal.textContent = '$' + totalGeneral.toLocaleString('es-MX', {maximumFractionDigits: 2});
+        }
+
+        function _leerFilaNomina(tr) {
+            const chkPunt = tr.querySelector('.chk-punt');
+            const chkAsis = tr.querySelector('.chk-asis');
+            const chkNoDesc = tr.querySelector('.chk-nodesc');
+            return {
+                op: tr.querySelector('td').textContent.trim(),
+                viajesReales: tr.children[1].textContent.trim(),
+                diasTrabajados: tr.children[2].textContent.trim(),
+                viajesACompletar: tr.children[3].textContent.trim(),
+                totalViajes: tr.children[4].textContent.trim(),
+                movimientos: tr.children[5].textContent.trim(),
+                pagoFijo: tr.children[6].textContent.trim(),
+                bono2: tr.children[7].textContent.trim(),
+                punt: (chkPunt && chkPunt.checked) ? 'Sí' : 'No',
+                asis: (chkAsis && chkAsis.checked) ? 'Sí' : 'No',
+                bonComp: tr.querySelector('.inp-boncomp').value || '0',
+                bonCoord: tr.querySelector('.inp-boncoord').value || '0',
+                noDesc: (chkNoDesc && chkNoDesc.checked) ? 'Sí' : (chkNoDesc ? 'No' : '-'),
+                subtotal: tr.querySelector('.td-subtotal').textContent.trim(),
+                prestamo: tr.querySelector('.inp-prestamo').value || '0',
+                adelanto: tr.querySelector('.inp-adelanto').value || '0',
+                penalizacion: tr.querySelector('.inp-penalizacion').value || '0',
+                isr: tr.querySelector('.td-isr').textContent.trim(),
+                total: tr.querySelector('.td-total').textContent.trim()
+            };
         }
 
         function generarPDFNomina() {
-            alert('Función en desarrollo');
+            const semanaSelec = document.getElementById('sel_sem_nom').value;
+            if (!semanaSelec) { alert('Selecciona una semana primero'); return; }
+            if (typeof window.jspdf === 'undefined') { alert('Librería PDF no disponible'); return; }
+
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF({ orientation: 'landscape' });
+
+            doc.setFontSize(14);
+            doc.text('Nómina Alen IP - Semana ' + semanaSelec, 14, 15);
+
+            const filas = [];
+            document.querySelectorAll('#t_nom tbody tr').forEach(tr => {
+                const f = _leerFilaNomina(tr);
+                filas.push([f.op, f.viajesReales, f.diasTrabajados, f.viajesACompletar, f.totalViajes, f.movimientos, f.pagoFijo, f.bono2, f.punt, f.asis, f.bonComp, f.bonCoord, f.noDesc, f.subtotal, f.prestamo, f.adelanto, f.penalizacion, f.isr, f.total]);
+            });
+
+            doc.autoTable({
+                head: [['Operador', 'Viajes', 'Días', 'Completar', 'Total V.', 'Movimientos', 'Pago Fijo', 'Bono2', 'Punt.', 'Asis.', 'Bon.Comp.', 'Bon.Coord.', 'No Desc.', 'Subtotal', 'Préstamo', 'Adelanto', 'Penalización', 'ISR', 'TOTAL']],
+                body: filas,
+                startY: 20,
+                styles: { fontSize: 7 },
+                headStyles: { fillColor: [26, 26, 26] }
+            });
+
+            doc.save(`Nomina_AlenIP_${semanaSelec}.pdf`);
         }
 
         function generarExcelNomina() {
-            alert('Función en desarrollo');
+            const semanaSelec = document.getElementById('sel_sem_nom').value;
+            if (!semanaSelec) { alert('Selecciona una semana primero'); return; }
+            if (typeof XLSX === 'undefined') { alert('Librería Excel no disponible'); return; }
+
+            const encabezado = ['Operador', 'Viajes', 'Días', 'Completar', 'Total Viajes', 'Movimientos', 'Pago Fijo', 'Bono2', 'Puntualidad', 'Asistencia', 'Bono Completar', 'Bono Coordinación', 'No Descanso', 'Subtotal', 'Préstamo', 'Adelanto', 'Penalización', 'ISR', 'TOTAL'];
+            const filas = [encabezado];
+
+            document.querySelectorAll('#t_nom tbody tr').forEach(tr => {
+                const f = _leerFilaNomina(tr);
+                filas.push([f.op, f.viajesReales, f.diasTrabajados, f.viajesACompletar, f.totalViajes, f.movimientos, f.pagoFijo, f.bono2, f.punt, f.asis, f.bonComp, f.bonCoord, f.noDesc, f.subtotal, f.prestamo, f.adelanto, f.penalizacion, f.isr, f.total]);
+            });
+
+            const ws = XLSX.utils.aoa_to_sheet(filas);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Nomina');
+            XLSX.writeFile(wb, `Nomina_AlenIP_${semanaSelec}.xlsx`);
         }
 
         function imprimirNomina() {
