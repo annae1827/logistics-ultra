@@ -271,7 +271,7 @@
 
                 const key = `${fridayYear}-${fridayMonth}-${fridayDay}`;
                 if (!sem[key]) sem[key] = new Set();
-                sem[key].add(op);
+                sem[key].add(opNorm);
             });
 
             document.getElementById('c1').textContent = c;
@@ -316,7 +316,10 @@
                 const thuMonth = String(thursdayDate.getMonth() + 1).padStart(2, '0');
 
                 const fin = `${thursdayDate.getFullYear()}-${thuMonth}-${thuDay}`;
-                const ops = Array.from(sem[v]).sort().map(o => `<button class="btn btn-primary" onclick="rec('${o}', '${v}')" style="margin: 5px 5px 5px 0;">${o}</button>`).join('');
+                const ops = Array.from(sem[v]).sort().map(o => {
+                    const nombreBonito = mapaNormalizado[o] || o;
+                    return `<button class="btn btn-primary" onclick="rec('${nombreBonito.replace(/'/g, "\\'")}', '${v}')" style="margin: 5px 5px 5px 0;">${nombreBonito}</button>`;
+                }).join('');
                 
                 return `<div style="margin-bottom: 20px;"><h3 style="color: #2d5a3d; margin-bottom: 10px;">📅 ${v} a ${fin}</h3><div style="display: flex; flex-wrap: wrap;">${ops}</div></div>`;
             }).join('');
