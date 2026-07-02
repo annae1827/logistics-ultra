@@ -4,7 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🚛 Alen IP - Dashboard</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto; background: #f5f5f5; color: #333; }
@@ -70,11 +73,13 @@
         </div>
         
         <div id="nom" class="tab-content">
-            <div style="margin-bottom: 15px; display: flex; gap: 10px; align-items: center;">
+            <div style="margin-bottom: 15px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
                 <label style="font-weight: 600;">Semana:</label>
                 <select id="sel_sem_nom" onchange="generarNomina()" style="padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px;">
                     <option value="">-- Seleccionar semana --</option>
                 </select>
+                <button onclick="generarPDFNomina()" style="padding: 10px 20px; background: #d32f2f; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">📄 PDF</button>
+                <button onclick="generarExcelNomina()" style="padding: 10px 20px; background: #1976d2; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">📊 EXCEL</button>
                 <button onclick="imprimirNomina()" style="padding: 10px 20px; background: #2d5a3d; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">🖨️ Imprimir</button>
             </div>
             <div id="t_nom" style="overflow-x: auto;"></div>
@@ -553,8 +558,275 @@
             });
         }
         
+        function generarPDFNomina() {
+            const semanaSelec = document.getElementById('sel_sem_nom').value;
+            if (!semanaSelec) {
+                alert('Selecciona una semana');
+                return;
+            }
+            
+            const [y, m, d] = semanaSelec.split('-');
+            const mDate = new Date(parseInt(y), parseInt(m), 0).getDate();
+            let jd = parseInt(d) + 6;
+            if (jd > mDate) jd -= mDate;
+            
+            // Filtrar datos de la semana seleccionada
+            const datosSem = datos.filter(r => {
+                const [rd, rm, ry] = r.Fecha.split('/');
+                return ry === y && rm === m && parseInt(rd) >= parseInt(d) && parseInt(rd) <= jd;
+            });
+            
+            const datosOps = {};
+            datosSem.forEach(r => {
+                const op = r.OP || r.Operador;
+                const carg = parseInt(r['M Cargados']) || 0;
+                if (!datosOps[op]) datosOps[op] = {c: 0, dias: 0};
+                datosOps[op].c += carg;
+                datosOps[op].dias += 1;
+            });
+            
+            // Construir datos para el PDF
+            const tableData = [];
+            let totalGeneral = 0;
+            
+            Object.keys(datosOps).sort().forEach(op => {
+                const d = datosOps[op];
+                const viajesReales = d.c;
+                const diasTrabajados = d.dias;
+                
+                const viajesACompletar = parseInt(document.querySelector('.comp_' + op.replace(/\s/g,'_')).value) || 0;
+                const totalViajes = viajesReales + viajesACompletar;
+                
+                const mov = totalViajes * 200;
+                const sueldo = diasTrabajados * 362.50;
+                
+                const bonoPunt = document.querySelector('.bon_punt_' + op.replace(/\s/g,'_')).checked ? 250 : 0;
+                const bonoAsis = document.querySelector('.bon_asis_' + op.replace(/\s/g,'_')).checked ? 250 : 0;
+                const bonoOtro = parseInt(document.querySelector('.bon_otro_' + op.replace(/\s/g,'_')).value) || 0;
+                const bonos = bonoPunt + bonoAsis + bonoOtro;
+                
+                const subtotal = mov + sueldo + bonos;
+                
+                const prefil = parseInt(document.querySelector('.prf_' + op.replace(/\s/g,'_')).value) || 0;
+                const adelanto = parseInt(document.querySelector('.adl_' + op.replace(/\s/g,'_')).value) || 0;
+                const penalizacion = parseInt(document.querySelector('.pen_' + op.replace(/\s/g,'_')).value) || 0;
+                
+                const isr = subtotal * 0.075;
+                const total = subtotal - prefil - adelanto - penalizacion - isr;
+                totalGeneral += total;
+                
+                tableData.push([
+                    op,
+                    viajesReales,
+                    diasTrabajados,
+                    viajesACompletar,
+                    totalViajes,
+                    '$' + mov.toLocaleString('es-MX'),
+                    '$' + sueldo.toLocaleString('es-MX'),
+                    '$' + bonos.toLocaleString('es-MX'),
+                    '$' + prefil.toLocaleString('es-MX'),
+                    '$' + adelanto.toLocaleString('es-MX'),
+                    '$' + penalizacion.toLocaleString('es-MX'),
+                    '$' + isr.toLocaleString('es-MX'),
+                    '$' + total.toLocaleString('es-MX')
+                ]);
+            });
+            
+            // Crear PDF
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('l', 'mm', 'a4');
+            
+            const fridayDate = new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
+            const thursdayDate = new Date(fridayDate);
+            thursdayDate.setDate(thursdayDate.getDate() + 6);
+            
+            const thuDay = String(thursdayDate.getDate()).padStart(2, '0');
+            const thuMonth = String(thursdayDate.getMonth() + 1).padStart(2, '0');
+            
+            doc.setFontSize(16);
+            doc.text('NÓMINA SEMANAL - ALEN IP', 14, 15);
+            doc.setFontSize(11);
+            doc.text(`Semana: ${y}-${m}-${d} a ${thursdayDate.getFullYear()}-${thuMonth}-${thuDay}`, 14, 22);
+            
+            doc.autoTable({
+                head: [['Operador', 'Viajes', 'Días', 'Completar', 'Total V.', 'Movimientos', 'Sueldo Fijo', 'Bonos', 'Préstamo', 'Adelanto', 'Penalización', 'ISR', 'Total a Pagar']],
+                body: tableData,
+                startY: 28,
+                headStyles: { 
+                    fillColor: [26, 26, 26],
+                    textColor: [255, 255, 255],
+                    fontStyle: 'bold',
+                    fontSize: 9,
+                    halign: 'center'
+                },
+                bodyStyles: {
+                    textColor: [0, 0, 0],
+                    fontSize: 9
+                },
+                columnStyles: {
+                    0: { halign: 'left' },
+                    1: { halign: 'center' },
+                    2: { halign: 'center' },
+                    3: { halign: 'center' },
+                    4: { halign: 'center' },
+                    5: { halign: 'right' },
+                    6: { halign: 'right' },
+                    7: { halign: 'right' },
+                    8: { halign: 'right' },
+                    9: { halign: 'right' },
+                    10: { halign: 'right' },
+                    11: { halign: 'right' },
+                    12: { halign: 'right', fillColor: [200, 230, 201] }
+                },
+                margin: 10,
+                didDrawPage: function(data) {
+                    // Footer
+                    const pageSize = doc.internal.pageSize;
+                    const pageHeight = pageSize.getHeight();
+                    const pageWidth = pageSize.getWidth();
+                    doc.setFontSize(10);
+                    doc.text('TOTAL NÓMINA: $' + totalGeneral.toLocaleString('es-MX'), 14, pageHeight - 10);
+                }
+            });
+            
+            // Descargar PDF
+            const nombrePDF = `Nomina_Alen_${y}-${m}-${d}.pdf`;
+            doc.save(nombrePDF);
+        }
+        
+        function generarExcelNomina() {
+            const semanaSelec = document.getElementById('sel_sem_nom').value;
+            if (!semanaSelec) {
+                alert('Selecciona una semana');
+                return;
+            }
+            
+            const [y, m, d] = semanaSelec.split('-');
+            const mDate = new Date(parseInt(y), parseInt(m), 0).getDate();
+            let jd = parseInt(d) + 6;
+            if (jd > mDate) jd -= mDate;
+            
+            // Filtrar datos de la semana seleccionada
+            const datosSem = datos.filter(r => {
+                const [rd, rm, ry] = r.Fecha.split('/');
+                return ry === y && rm === m && parseInt(rd) >= parseInt(d) && parseInt(rd) <= jd;
+            });
+            
+            const datosOps = {};
+            datosSem.forEach(r => {
+                const op = r.OP || r.Operador;
+                const carg = parseInt(r['M Cargados']) || 0;
+                if (!datosOps[op]) datosOps[op] = {c: 0, dias: 0};
+                datosOps[op].c += carg;
+                datosOps[op].dias += 1;
+            });
+            
+            // Construir datos para Excel
+            const excelData = [];
+            excelData.push(['NÓMINA SEMANAL - ALEN IP']);
+            
+            const fridayDate = new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
+            const thursdayDate = new Date(fridayDate);
+            thursdayDate.setDate(thursdayDate.getDate() + 6);
+            
+            const thuDay = String(thursdayDate.getDate()).padStart(2, '0');
+            const thuMonth = String(thursdayDate.getMonth() + 1).padStart(2, '0');
+            
+            excelData.push([`Semana: ${y}-${m}-${d} a ${thursdayDate.getFullYear()}-${thuMonth}-${thuDay}`]);
+            excelData.push([]);
+            
+            excelData.push([
+                'Operador',
+                'Viajes',
+                'Días',
+                'Completar',
+                'Total Viajes',
+                'Movimientos',
+                'Sueldo Fijo',
+                'Bonos',
+                'Préstamo',
+                'Adelanto',
+                'Penalización',
+                'ISR (7.5%)',
+                'Total a Pagar'
+            ]);
+            
+            let totalGeneral = 0;
+            
+            Object.keys(datosOps).sort().forEach(op => {
+                const d = datosOps[op];
+                const viajesReales = d.c;
+                const diasTrabajados = d.dias;
+                
+                const viajesACompletar = parseInt(document.querySelector('.comp_' + op.replace(/\s/g,'_')).value) || 0;
+                const totalViajes = viajesReales + viajesACompletar;
+                
+                const mov = totalViajes * 200;
+                const sueldo = diasTrabajados * 362.50;
+                
+                const bonoPunt = document.querySelector('.bon_punt_' + op.replace(/\s/g,'_')).checked ? 250 : 0;
+                const bonoAsis = document.querySelector('.bon_asis_' + op.replace(/\s/g,'_')).checked ? 250 : 0;
+                const bonoOtro = parseInt(document.querySelector('.bon_otro_' + op.replace(/\s/g,'_')).value) || 0;
+                const bonos = bonoPunt + bonoAsis + bonoOtro;
+                
+                const subtotal = mov + sueldo + bonos;
+                
+                const prefil = parseInt(document.querySelector('.prf_' + op.replace(/\s/g,'_')).value) || 0;
+                const adelanto = parseInt(document.querySelector('.adl_' + op.replace(/\s/g,'_')).value) || 0;
+                const penalizacion = parseInt(document.querySelector('.pen_' + op.replace(/\s/g,'_')).value) || 0;
+                
+                const isr = subtotal * 0.075;
+                const total = subtotal - prefil - adelanto - penalizacion - isr;
+                totalGeneral += total;
+                
+                excelData.push([
+                    op,
+                    viajesReales,
+                    diasTrabajados,
+                    viajesACompletar,
+                    totalViajes,
+                    mov,
+                    sueldo,
+                    bonos,
+                    prefil,
+                    adelanto,
+                    penalizacion,
+                    isr,
+                    total
+                ]);
+            });
+            
+            excelData.push([]);
+            excelData.push(['TOTAL NÓMINA:', '', '', '', '', '', '', '', '', '', '', '', totalGeneral]);
+            
+            // Crear workbook
+            const ws = XLSX.utils.aoa_to_sheet(excelData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Nómina');
+            
+            // Configurar ancho de columnas
+            ws['!cols'] = [
+                { wch: 25 },
+                { wch: 12 },
+                { wch: 10 },
+                { wch: 12 },
+                { wch: 12 },
+                { wch: 14 },
+                { wch: 14 },
+                { wch: 12 },
+                { wch: 12 },
+                { wch: 12 },
+                { wch: 14 },
+                { wch: 12 },
+                { wch: 14 }
+            ];
+            
+            // Descargar
+            const nombreExcel = `Nomina_Alen_${y}-${m}-${d}.xlsx`;
+            XLSX.writeFile(wb, nombreExcel);
+        }
+        
         function imprimirNomina() {
-            const contenido = document.getElementById('t_nom').innerHTML;
             const ventana = window.open('', '', 'height=900,width=1400');
             ventana.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Nómina</title><style>
                 body{font-family: Arial, sans-serif; margin: 10px; color: #333;}
