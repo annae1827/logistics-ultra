@@ -116,22 +116,33 @@
 
         window.addEventListener('load', () => {
             fetch(CSV_URL)
-                .then(r => r.text())
+                .then(r => {
+                    console.log('Respuesta fetch:', r.status, r.statusText);
+                    return r.text();
+                })
                 .then(csv => {
+                    console.log('CSV recibido, longitud:', csv.length);
                     Papa.parse(csv, {
                         header: true,
                         skipEmptyLines: true,
                         complete: (r) => {
+                            console.log('PapaParse completado. Total registros:', r.data.length);
                             datos = r.data.filter(x => x.Operador && x.Fecha);
-                            console.log('Datos cargados:', datos.length);
+                            console.log('Datos cargados (con Operador y Fecha):', datos.length);
                             init();
-                        }
+                        },
+                        error: (err) => console.error('Error en PapaParse:', err)
                     });
                 })
-                .catch(e => console.error('Error cargando datos:', e));
+                .catch(e => {
+                    console.error('Error cargando CSV:', e);
+                    alert('Error cargando datos. Revisa la consola (F12)');
+                });
         });
 
         function init() {
+            console.log('init() ejecutado. Datos disponibles:', datos.length);
+            
             const s1 = new Set(), s2 = new Set(), s3 = new Set(), s4 = new Set(), s5 = new Set(), s6 = new Set();
             datos.forEach(r => {
                 if (r.año) s1.add(r.año);
@@ -142,6 +153,11 @@
                 const op = r.OP || r.Operador;
                 if (op) s6.add(op);
             });
+
+            console.log('Años encontrados:', [...s1]);
+            console.log('Meses encontrados:', [...s2]);
+            console.log('Días encontrados:', [...s3]);
+            console.log('Operadores encontrados:', [...s6].length);
 
             document.getElementById('ano').innerHTML = '<option value="">Todos</option>' + [...s1].sort().reverse().map(x => `<option>${x}</option>`).join('');
             document.getElementById('mes').innerHTML = '<option value="">Todos</option>' + [...s2].sort().map(x => `<option>${x}</option>`).join('');
@@ -310,14 +326,20 @@
             const thursdayDate = new Date(fridayDate);
             thursdayDate.setDate(thursdayDate.getDate() + 6);
             
+            console.log('Buscando datos entre', fridayDate, 'y', thursdayDate);
+            console.log('Total datos global:', datos.length);
+            
             // Filtrar datos que estén entre la semana (viernes a jueves)
             const datosSem = datos.filter(r => {
                 const [rd, rm, ry] = r.Fecha.split('/');
                 const fecha = new Date(parseInt(ry), parseInt(rm) - 1, parseInt(rd));
                 
-                // Incluir si está entre viernes y jueves (inclusive)
-                return fecha >= fridayDate && fecha <= thursdayDate;
+                const match = fecha >= fridayDate && fecha <= thursdayDate;
+                if (match) console.log('Encontrado:', r.Operador, r.Fecha, fecha);
+                return match;
             });
+            
+            console.log('Datos encontrados en semana:', datosSem.length);
             
             const datosOps = {};
             datosSem.forEach(r => {
