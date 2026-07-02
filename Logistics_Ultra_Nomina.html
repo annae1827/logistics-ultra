@@ -218,7 +218,9 @@
 
             f.forEach(r => {
                 const carg = parseInt(r['M Cargados']) || 0;
-                const op = r.OP || r.Operador;
+                const op = (r.OP && r.OP.trim()) ? r.OP : (r.Operador || '');
+                if (!op) return; // Skip si no hay operador
+                
                 c += carg;
 
                 if (!pO[op]) pO[op] = {c: 0, dias: 0};
@@ -325,19 +327,30 @@
                 return fecha >= fridayDate && fecha <= thursdayDate;
             });
 
+            // DEDUPLICAR POR OPERADOR: sumar viajes y contar días únicos
             const datosOps = {};
             datosSem.forEach(r => {
-                const op = r.OP || r.Operador;
+                const op = (r.OP && r.OP.trim()) ? r.OP : (r.Operador || '');
+                if (!op) return; // Skip si no hay operador
+                
                 const carg = parseInt(r['M Cargados']) || 0;
-                if (!datosOps[op]) datosOps[op] = {c: 0, dias: 0};
+                
+                if (!datosOps[op]) {
+                    datosOps[op] = {c: 0, dias: new Set()};
+                }
                 datosOps[op].c += carg;
-                datosOps[op].dias += 1;
+                datosOps[op].dias.add(r.Fecha); // Agregar fecha única
             });
 
-            let html = '<thead><tr style="background: #1a1a1a; color: white;">' +
+            // Convertir Set a count
+            Object.keys(datosOps).forEach(op => {
+                datosOps[op].dias = datosOps[op].dias.size;
+            });
+
+            let html = '<thead><tr style="background: #1a1a1a; color: white; font-size: 11px;">' +
                 '<th>Operador</th><th>Viajes</th><th>Días</th><th>Completar</th><th>Total Viajes</th><th>Movimientos</th><th>Pago Fijo</th><th>Bono2</th>' +
                 '<th>Punt.</th><th>Asis.</th><th>Bon.Comp.</th><th>Bon.Coord.</th><th>No Desc.</th><th>Subtotal</th><th>Préstamo</th><th>Adelanto</th><th>Penalización</th><th>ISR</th><th>TOTAL</th>' +
-                '</tr></thead><tbody>';
+                '</tr></thead><tbody style="font-size: 12px;">';
 
             Object.keys(datosOps).sort().forEach(op => {
                 const d = datosOps[op];
@@ -362,15 +375,15 @@
                     <td>$${movimientos.toLocaleString('es-MX')}</td>
                     <td style="background: #ffcdd2;">$${pagoFijo.toLocaleString('es-MX')}</td>
                     <td style="background: #fff9c4;">$${bono2.toLocaleString('es-MX')}</td>
-                    <td style="background: #fffde7;"><input type="checkbox" onchange="recalcNomina()" style="width: 20px;"></td>
-                    <td style="background: #fffde7;"><input type="checkbox" onchange="recalcNomina()" style="width: 20px;"></td>
-                    <td style="background: #fffde7;"><input type="number" value="0" onchange="recalcNomina()" style="width: 50px;"></td>
-                    <td style="background: #fffde7;"><input type="number" value="0" onchange="recalcNomina()" style="width: 50px;"></td>
-                    <td style="background: ${diasTrabajados === 7 ? '#fffde7' : '#f0f0f0'};">${diasTrabajados === 7 ? '<input type="checkbox" onchange="recalcNomina()" style="width: 20px;">' : '-'}</td>
-                    <td>$0</td>
-                    <td style="background: #ffe0b2;"><input type="number" value="0" onchange="recalcNomina()" style="width: 50px;"></td>
-                    <td style="background: #ffe0b2;"><input type="number" value="0" onchange="recalcNomina()" style="width: 50px;"></td>
-                    <td style="background: #ffcdd2;"><input type="number" value="0" onchange="recalcNomina()" style="width: 50px;"></td>
+                    <td style="background: #fffde7;"><input type="checkbox" onchange="recalcNomina()" style="width: 18px;"></td>
+                    <td style="background: #fffde7;"><input type="checkbox" onchange="recalcNomina()" style="width: 18px;"></td>
+                    <td style="background: #fffde7;"><input type="number" value="0" onchange="recalcNomina()" style="width: 45px;"></td>
+                    <td style="background: #fffde7;"><input type="number" value="0" onchange="recalcNomina()" style="width: 45px;"></td>
+                    <td style="background: ${diasTrabajados === 7 ? '#fffde7' : '#f0f0f0'};">${diasTrabajados === 7 ? '<input type="checkbox" onchange="recalcNomina()" style="width: 18px;">' : '-'}</td>
+                    <td style="font-weight: bold;">$0</td>
+                    <td style="background: #ffe0b2;"><input type="number" value="0" onchange="recalcNomina()" style="width: 45px;"></td>
+                    <td style="background: #ffe0b2;"><input type="number" value="0" onchange="recalcNomina()" style="width: 45px;"></td>
+                    <td style="background: #ffcdd2;"><input type="number" value="0" onchange="recalcNomina()" style="width: 45px;"></td>
                     <td>-$0</td>
                     <td style="background: #e8f5e9; font-weight: 600;">$0</td>
                 </tr>`;
