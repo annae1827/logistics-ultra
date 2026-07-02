@@ -1,151 +1,198 @@
 <!DOCTYPE html>
-<html lang="es">
+<html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Alen IP - Dashboard Operacional</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f5f5f5; color: #333; }
-        .container { max-width: 1600px; margin: 0 auto; padding: 20px; }
-        .header { background: #1a1a1a; color: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
-        .header h1 { font-size: 24px; margin-bottom: 5px; }
-        .filtros { display: flex; gap: 15px; flex-wrap: wrap; background: white; padding: 15px; border-radius: 8px; margin-bottom: 20px; align-items: center; }
-        .filtros > div { display: flex; flex-direction: column; gap: 5px; }
-        .filtros label { font-weight: 600; font-size: 12px; color: #666; }
-        .filtros select { padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px; }
-        .filtros button { padding: 8px 12px; background: #999; color: white; border: none; border-radius: 4px; cursor: pointer; }
-        .tabs { display: flex; gap: 5px; margin-bottom: 20px; }
-        .tab-btn { padding: 12px 20px; background: #ddd; border: none; border-radius: 4px 4px 0 0; cursor: pointer; font-weight: 600; }
-        .tab-btn.active { background: white; border-bottom: 3px solid #1976d2; }
-        .tab-content { background: white; padding: 20px; border-radius: 0 8px 8px 8px; display: none; }
-        .tab-content.active { display: block; }
-        .stats { display: flex; gap: 15px; margin-bottom: 20px; }
-        .stat { background: #f9f9f9; padding: 15px; border-radius: 8px; flex: 1; text-align: center; border-left: 4px solid #1976d2; }
-        .stat-label { font-size: 12px; color: #999; font-weight: 600; }
-        .stat-value { font-size: 28px; font-weight: bold; color: #1976d2; margin-top: 5px; }
-        table { width: 100%; border-collapse: collapse; background: white; }
-        table thead { background: #f0f0f0; }
-        table th { padding: 12px; text-align: left; font-weight: 600; border-bottom: 2px solid #ddd; }
-        table td { padding: 10px 12px; border-bottom: 1px solid #eee; }
-        table tr:hover { background: #f9f9f9; }
-        .verde { color: #27ae60; font-weight: 600; }
-        .btn-rec { padding: 6px 12px; background: #1976d2; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; }
+        
+        .header { background: #1a1a1a; color: white; padding: 20px; text-align: center; border-radius: 5px; margin: 20px; }
+        .header h1 { font-size: 28px; margin-bottom: 5px; }
+        .header p { font-size: 14px; opacity: 0.9; }
+        
+        .container { max-width: 1400px; margin: 20px auto; }
+        
+        .filters { background: white; padding: 20px; margin: 20px; border-radius: 5px; display: flex; gap: 15px; flex-wrap: wrap; align-items: center; }
+        .filter-group { display: flex; flex-direction: column; gap: 5px; }
+        .filter-group label { font-weight: bold; font-size: 12px; color: #666; }
+        .filter-group select { padding: 8px 10px; border: 1px solid #ddd; border-radius: 4px; }
+        .btn { padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .btn-primary { background: #2d5a3d; color: white; }
+        .btn-primary:hover { background: #1f3f2a; }
+        
+        .tabs { display: flex; gap: 10px; background: white; margin: 0 20px; padding: 15px 20px; border-radius: 5px 5px 0 0; }
+        .tab { padding: 10px 20px; cursor: pointer; background: #e0e0e0; border: none; border-radius: 4px 4px 0 0; font-weight: bold; }
+        .tab.active { background: #2d5a3d; color: white; }
+        
+        .content { background: white; margin: 0 20px 20px 20px; padding: 20px; border-radius: 0 0 5px 5px; min-height: 400px; }
+        .content-section { display: none; }
+        .content-section.active { display: block; }
+        
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        th, td { padding: 12px; text-align: left; border: 1px solid #ddd; }
+        th { background: #f0f0f0; font-weight: bold; }
+        tr:hover { background: #f9f9f9; }
+        
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin: 20px 0; }
+        .stat-box { background: #f0f0f0; padding: 15px; border-radius: 5px; text-align: center; }
+        .stat-box .number { font-size: 28px; font-weight: bold; color: #2d5a3d; }
+        .stat-box .label { font-size: 12px; color: #666; margin-top: 5px; }
+        
+        input[type="number"] { width: 60px; padding: 5px; border: 1px solid #ddd; }
+        .green { color: #2d5a3d; font-weight: bold; }
+        
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; }
-        .modal.active { display: flex; justify-content: center; align-items: center; }
-        .modal-content { background: white; padding: 30px; border-radius: 8px; max-width: 900px; max-height: 90vh; overflow: auto; }
-        .modal-header { font-size: 18px; font-weight: bold; color: #1a1a1a; margin-bottom: 20px; }
-        .close-modal { float: right; background: #ddd; border: none; width: 30px; height: 30px; border-radius: 50%; cursor: pointer; font-weight: bold; }
-        .nom-buttons { display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; }
-        .nom-buttons button { padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; color: white; }
-        .btn-pdf { background: #d32f2f; }
-        .btn-excel { background: #1976d2; }
-        .btn-print { background: #2d5a3d; }
-        .nom-table { overflow-x: auto; border-radius: 8px; margin-top: 15px; }
-        .nom-table table { font-size: 11px; }
-        .nom-table thead { background: #1a1a1a; color: white; }
-        .nom-table th { color: white; font-weight: bold; padding: 12px 6px; font-size: 11px; border: 1px solid #333; }
-        .nom-table td { padding: 8px 6px; border: 1px solid #ddd; }
-        .nom-table input { width: 60px; padding: 4px; border: 1px solid #ddd; border-radius: 3px; text-align: center; }
-        input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; }
+        .modal.active { display: flex; align-items: center; justify-content: center; }
+        .modal-content { background: white; padding: 30px; border-radius: 5px; max-width: 600px; width: 90%; max-height: 80vh; overflow-y: auto; }
+        .modal-header { font-size: 18px; font-weight: bold; margin-bottom: 20px; }
+        .close-btn { float: right; cursor: pointer; font-size: 24px; color: #999; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>🚚 Alen IP - Dashboard Operacional</h1>
-            <p>Gestión de nómina, viajes y operadores</p>
-        </div>
+    <div class="header">
+        <h1>📦 Alen IP - Dashboard Operacional</h1>
+        <p>Gestión de nómina, viajes y operadores</p>
+    </div>
 
-        <div class="filtros">
-            <div><label>AÑO</label><select id="ano" onchange="aplicar()"><option value="">Todos</option></select></div>
-            <div><label>MES</label><select id="mes" onchange="aplicar()"><option value="">Todos</option></select></div>
-            <div><label>DÍA</label><select id="dia" onchange="aplicar()"><option value="">Todos</option></select></div>
-            <div><label>TURNO</label><select id="turno" onchange="aplicar()"><option value="">Todos</option></select></div>
-            <div><label>COORDINADOR</label><select id="coord" onchange="aplicar()"><option value="">Todos</option></select></div>
-            <div><label>OPERADOR</label><select id="op" onchange="aplicar()"><option value="">Todos</option></select></div>
-            <button onclick="limpiar()">🔄 Limpiar</button>
+    <div class="container">
+        <div class="filters">
+            <div class="filter-group">
+                <label>AÑO</label>
+                <select id="ano"></select>
+            </div>
+            <div class="filter-group">
+                <label>MES</label>
+                <select id="mes"></select>
+            </div>
+            <div class="filter-group">
+                <label>DÍA</label>
+                <select id="dia"></select>
+            </div>
+            <button class="btn btn-primary" onclick="limpiar()">🔄 Limpiar Filtros</button>
         </div>
 
         <div class="tabs">
-            <button class="tab-btn active" onclick="tab('res')">📈 RESUMEN</button>
-            <button class="tab-btn" onclick="tab('nom')">💼 NÓMINA</button>
-            <button class="tab-btn" onclick="tab('rec')">📋 RECIBOS</button>
+            <button class="tab active" onclick="mostrarTab('resumen')">📊 RESUMEN</button>
+            <button class="tab" onclick="mostrarTab('nomina')">💰 NÓMINA</button>
+            <button class="tab" onclick="mostrarTab('recibos')">📋 RECIBOS</button>
         </div>
 
-        <div id="res" class="tab-content active">
-            <div class="stats">
-                <div class="stat"><div class="stat-label">📦 Cargados</div><div class="stat-value" id="c1">0</div></div>
-                <div class="stat"><div class="stat-label">👤 Operadores</div><div class="stat-value" id="c3">0</div></div>
+        <div class="content">
+            <!-- RESUMEN -->
+            <div id="resumen" class="content-section active">
+                <div class="stats">
+                    <div class="stat-box">
+                        <div class="label">Total Viajes</div>
+                        <div class="number" id="c1">0</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="label">Operadores</div>
+                        <div class="number" id="c3">0</div>
+                    </div>
+                </div>
+                <h3>Operadores y Viajes</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Operador</th>
+                            <th class="green">Viajes</th>
+                            <th>Días</th>
+                        </tr>
+                    </thead>
+                    <tbody id="t1">
+                        <tr><td colspan="3">Sin datos</td></tr>
+                    </tbody>
+                </table>
             </div>
-            <table><thead><tr><th>Operador</th><th class="verde">Cargados</th><th>Días</th></tr></thead><tbody id="t1"></tbody></table>
-        </div>
 
-        <div id="nom" class="tab-content">
-            <div class="nom-buttons">
-                <label style="font-weight: 600; align-self: center;">Semana:</label>
-                <select id="sel_sem_nom" onchange="generarNomina()" style="padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 13px;">
-                    <option value="">-- Seleccionar semana --</option>
-                </select>
-                <button class="btn-pdf" onclick="generarPDFNomina()">📄 PDF</button>
-                <button class="btn-excel" onclick="generarExcelNomina()">📊 EXCEL</button>
-                <button class="btn-print" onclick="imprimirNomina()">🖨️ Imprimir</button>
+            <!-- NÓMINA -->
+            <div id="nomina" class="content-section">
+                <div style="margin-bottom: 20px;">
+                    <label>Selecciona Semana:</label>
+                    <select id="sel_sem_nom" onchange="generarNomina()"></select>
+                    <button class="btn btn-primary" onclick="generarPDFNomina()" style="margin-left: 10px;">📥 PDF</button>
+                    <button class="btn btn-primary" onclick="generarExcelNomina()">📊 EXCEL</button>
+                    <button class="btn btn-primary" onclick="imprimirNomina()">🖨️ Imprimir</button>
+                </div>
+                <table id="t_nom" style="font-size: 12px;">
+                    <thead>
+                        <tr style="background: #1a1a1a; color: white;">
+                            <th>Operador</th>
+                            <th>Viajes</th>
+                            <th>Días</th>
+                            <th>Completar</th>
+                            <th>Total Viajes</th>
+                            <th>Movimientos</th>
+                            <th>Pago Fijo</th>
+                            <th>Bono2</th>
+                            <th>Punt.</th>
+                            <th>Asis.</th>
+                            <th>Bon.Comp.</th>
+                            <th>Bon.Coord.</th>
+                            <th>No Desc.</th>
+                            <th>Subtotal</th>
+                            <th>Préstamo</th>
+                            <th>Adelanto</th>
+                            <th>Penalización</th>
+                            <th>ISR</th>
+                            <th>TOTAL</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
             </div>
-            <div id="t_nom" class="nom-table"></div>
-        </div>
 
-        <div id="rec" class="tab-content">
-            <div id="t5"></div>
+            <!-- RECIBOS -->
+            <div id="recibos" class="content-section">
+                <div id="t5">Sin datos</div>
+            </div>
         </div>
     </div>
 
-    <div class="modal" id="modal">
+    <!-- Modal para recibos -->
+    <div id="modal" class="modal">
         <div class="modal-content">
-            <button class="close-modal" onclick="cerrarModal()">✕</button>
+            <span class="close-btn" onclick="cerrarModal()">&times;</span>
             <div id="recibo"></div>
         </div>
     </div>
 
-    <script>
-        let datos = [];
-        const DATOS_ALEN = [{"Operación":"Alen IP","Coordinador":"Abdiel Garcia","Fecha":"12/06/2026","Turno":"07:00-19:00","Operador":"Primitivo Zavala","Estatus":"asistió","Unidad":"11001","M Cargados":"5","M Vacíos":"3","Entrada":"7:50","Salida":"19:00","Comentario":"Se recibe 11001 7 dedos (5.5 puntos); Se entrega 11001 no se puede checar por desnivel","año":"2026","mes":"junio","día":"viernes"},{"Operación":"Alen IP","Coordinador":"Abdiel Garcia","Fecha":"12/06/2026","Turno":"07:00-19:00","Operador":"Daniel Zavala","Estatus":"asistió","Unidad":"105","M Cargados":"0","M Vacíos":"1","Entrada":"7:50","Salida":"19:00","Comentario":"No hubo movimientos por falla de la unidad; Se recibe 105 10 dedos (8.5 puntos); Se entrega 105 9 dedos (5 puntos); Unidad 105 se queda tirado en planta 2","año":"2026","mes":"junio","día":"viernes"},{"Operación":"Alen IP","Coordinador":"Abdiel Garcia","Fecha":"12/06/2026","Turno":"07:00-19:00","Operador":"Jorge Castañeda","Estatus":"asistió","Unidad":"750","M Cargados":"2","M Vacíos":"2","Entrada":"8:50","Salida":"19:00","Comentario":"Unidad 750 foco fundido de lado del copiloto","año":"2026","mes":"junio","día":"viernes"},{"Operación":"Alen IP","Coordinador":"Abdiel Garcia","Fecha":"12/06/2026","Turno":"07:00-19:00","Operador":"Ricardo Obregón","Estatus":"asistió","Unidad":"9002","M Cargados":"4","M Vacíos":"4","Entrada":"7:40","Salida":"19:00","Comentario":"Se corrió una de la rampa; Se recibe 9002 5 dedos (2 puntos); Se entrega 9002 estan de subida no se puede revisar","año":"2026","mes":"junio","día":"viernes"},{"Operación":"Alen IP","Coordinador":"Abdiel Garcia","Fecha":"26/06/2026","Turno":"07:00-19:00","Operador":"Primitivo Zavala","Estatus":"asistió","Unidad":"11001","M Cargados":"4","M Vacíos":"3","Entrada":"8:20","Salida":"19:00","Comentario":"","año":"2026","mes":"junio","día":"viernes"},{"Operación":"Alen IP","Coordinador":"Francisco Ramirez","Fecha":"26/06/2026","Turno":"07:00-19:00","Operador":"Jesús Rodríguez","Estatus":"asistió","Unidad":"750","M Cargados":"1","M Vacíos":"1","Entrada":"7:00","Salida":"19:00","Comentario":"","año":"2026","mes":"junio","día":"viernes"},{"Operación":"Alen IP","Coordinador":"Francisco Ramirez","Fecha":"26/06/2026","Turno":"07:00-19:00","Operador":"César Proa","Estatus":"asistió","Unidad":"750","M Cargados":"2","M Vacíos":"3","Entrada":"9:00","Salida":"19:00","Comentario":"","año":"2026","mes":"junio","día":"viernes"},{"Operación":"Alen IP","Coordinador":"Francisco Ramirez","Fecha":"26/06/2026","Turno":"07:00-19:00","Operador":"Ricardo Obregón","Estatus":"asistió","Unidad":"9002","M Cargados":"2","M Vacíos":"1","Entrada":"7:30","Salida":"19:00","Comentario":"","año":"2026","mes":"junio","día":"viernes"},{"Operación":"Alen IP","Coordinador":"Abdiel Garcia","Fecha":"26/06/2026","Turno":"19:00-07:00","Operador":"Julio Campos","Estatus":"Asistió","Unidad":"750","M Cargados":"","M Vacíos":"","Entrada":"19:15","Salida":"7:20","Comentario":"","año":"2026","mes":"junio","día":"viernes"},{"Operación":"Alen IP","Coordinador":"Abdiel Garcia","Fecha":"26/06/2026","Turno":"19:00-07:00","Operador":"Edgar Vargas","Estatus":"Asistió","Unidad":"9002","M Cargados":"","M Vacíos":"","Entrada":"20:10","Salida":"7:00","Comentario":"","año":"2026","mes":"junio","día":"viernes"},{"Operación":"Alen IP","Coordinador":"Abdiel Garcia","Fecha":"26/06/2026","Turno":"19:00-07:00","Operador":"Juan Villanueva","Estatus":"Asistió","Unidad":"11001","M Cargados":"6","M Vacíos":"4","Entrada":"19:40","Salida":"7:20","Comentario":"","año":"2026","mes":"junio","día":"viernes"},{"Operación":"Alen IP","Coordinador":"Manolo Martínez","Fecha":"27/06/2026","Turno":"07:00-19:00","Operador":"Ricardo Obregón","Estatus":"asistió","Unidad":"9002","M Cargados":"5","M Vacíos":"5","Entrada":"7:46","Salida":"18:50","Comentario":"","año":"2026","mes":"junio","día":"sábado"},{"Operación":"Alen IP","Coordinador":"Francisco Ramirez","Fecha":"02/07/2026","Turno":"19:00-07:00","Operador":"Ricardo Obregón","Estatus":"asistió","Unidad":"9002","M Cargados":"3","M Vacíos":"2","Entrada":"19:00","Salida":"7:00","Comentario":"","año":"2026","mes":"julio","día":"lunes"}];
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.min.js"></script>
 
-        window.addEventListener('load', () => {
-            console.log('Datos embebidos cargados:', DATOS_ALEN.length);
-            datos = DATOS_ALEN.filter(x => x.Operador && x.Fecha);
-            console.log('Datos listos:', datos.length);
-            init();
-        });
+    <script>
+        const DATOS_ALEN = [
+            {"Operación":"Alen IP","Coordinador":"Abdiel Garcia","Fecha":"12/06/2026","Turno":"07:00-19:00","Operador":"Primitivo Zavala","Estatus":"asistió","Unidad":"11001","M Cargados":"5","M Vacíos":"3","Entrada":"7:50","Salida":"19:00","Comentario":"Se recibe 11001 7 dedos (5.5 puntos); Se entrega 11001 no se puede checar por desnivel","año":"2026","mes":"junio","día":"viernes"},
+            {"Operación":"Alen IP","Coordinador":"Abdiel Garcia","Fecha":"12/06/2026","Turno":"07:00-19:00","Operador":"Daniel Zavala","Estatus":"asistió","Unidad":"105","M Cargados":"0","M Vacíos":"1","Entrada":"7:50","Salida":"19:00","Comentario":"No hubo movimientos por falla de la unidad; Se recibe 105 10 dedos (8.5 puntos); Se entrega 105 9 dedos (5 puntos); Unidad 105 se queda tirado en planta 2","año":"2026","mes":"junio","día":"viernes"},
+            {"Operación":"Alen IP","Coordinador":"Abdiel Garcia","Fecha":"26/06/2026","Turno":"07:00-19:00","Operador":"Primitivo Zavala","Estatus":"asistió","Unidad":"11001","M Cargados":"4","M Vacíos":"3","Entrada":"8:20","Salida":"19:00","Comentario":"","año":"2026","mes":"junio","día":"viernes"},
+            {"Operación":"Alen IP","Coordinador":"Abdiel Garcia","Fecha":"26/06/2026","Turno":"19:00-07:00","Operador":"Juan Villanueva","Estatus":"Asistió","Unidad":"11001","M Cargados":"6","M Vacíos":"4","Entrada":"19:40","Salida":"7:20","Comentario":"","año":"2026","mes":"junio","día":"viernes"},
+            {"Operación":"Alen IP","Coordinador":"Francisco Ramirez","Fecha":"02/07/2026","Turno":"19:00-07:00","Operador":"Ricardo Obregón","Estatus":"asistió","Unidad":"9002","M Cargados":"3","M Vacíos":"2","Entrada":"19:00","Salida":"7:00","Comentario":"","año":"2026","mes":"julio","día":"lunes"}
+        ];
+
+        let datos = [];
+
+        function mostrarTab(tab) {
+            document.querySelectorAll('.content-section').forEach(e => e.classList.remove('active'));
+            document.querySelectorAll('.tab').forEach(e => e.classList.remove('active'));
+            document.getElementById(tab).classList.add('active');
+            event.target.classList.add('active');
+        }
 
         function init() {
-            console.log('init() ejecutado. Datos disponibles:', datos.length);
-            
-            const s1 = new Set(), s2 = new Set(), s3 = new Set(), s4 = new Set(), s5 = new Set(), s6 = new Set();
+            const s1 = new Set(), s2 = new Set(), s3 = new Set();
             datos.forEach(r => {
                 if (r.año) s1.add(r.año);
                 if (r.mes) s2.add(r.mes);
                 if (r.día) s3.add(r.día);
-                if (r.Turno) s4.add(r.Turno);
-                if (r.Coordinador) s5.add(r.Coordinador);
-                const op = r.OP || r.Operador;
-                if (op) s6.add(op);
             });
-
-            console.log('Años encontrados:', [...s1]);
-            console.log('Meses encontrados:', [...s2]);
-            console.log('Días encontrados:', [...s3]);
-            console.log('Operadores encontrados:', [...s6].length);
 
             document.getElementById('ano').innerHTML = '<option value="">Todos</option>' + [...s1].sort().reverse().map(x => `<option>${x}</option>`).join('');
             document.getElementById('mes').innerHTML = '<option value="">Todos</option>' + [...s2].sort().map(x => `<option>${x}</option>`).join('');
             document.getElementById('dia').innerHTML = '<option value="">Todos</option>' + [...s3].sort().map(x => `<option>${x}</option>`).join('');
-            document.getElementById('turno').innerHTML = '<option value="">Todos</option>' + [...s4].sort().map(x => `<option>${x}</option>`).join('');
-            document.getElementById('coord').innerHTML = '<option value="">Todos</option>' + [...s5].sort().map(x => `<option>${x}</option>`).join('');
-            document.getElementById('op').innerHTML = '<option value="">Todos</option>' + [...s6].sort().map(x => `<option>${x}</option>`).join('');
 
             aplicar();
         }
@@ -169,9 +216,6 @@
             document.getElementById('ano').value = '';
             document.getElementById('mes').value = '';
             document.getElementById('dia').value = '';
-            document.getElementById('turno').value = '';
-            document.getElementById('coord').value = '';
-            document.getElementById('op').value = '';
             aplicar();
         }
 
@@ -187,7 +231,6 @@
                 pO[op].c += carg;
                 pO[op].dias += 1;
 
-                // Parsear fecha con validación estricta
                 const fechaStr = r.Fecha ? r.Fecha.trim() : '';
                 if (!fechaStr) return;
                 
@@ -198,12 +241,10 @@
                 const mes_num = parseInt(partes[1].trim());
                 const año = parseInt(partes[2].trim());
                 
-                // Validar rangos
                 if (isNaN(día_num) || isNaN(mes_num) || isNaN(año)) return;
                 if (día_num < 1 || día_num > 31 || mes_num < 1 || mes_num > 12 || año < 2020 || año > 2030) return;
                 
                 const fecha = new Date(año, mes_num - 1, día_num);
-                // Verificar que la fecha es válida (no May 32, etc)
                 if (fecha.getDate() !== día_num || fecha.getMonth() !== mes_num - 1) return;
                 
                 const dayOfWeek = fecha.getDay();
@@ -226,7 +267,7 @@
             let html = '';
             Object.keys(pO).sort().forEach(x => {
                 const d = pO[x];
-                html += `<tr><td>${x}</td><td class="verde">${d.c}</td><td>${d.dias}</td></tr>`;
+                html += `<tr><td>${x}</td><td class="green">${d.c}</td><td>${d.dias}</td></tr>`;
             });
             document.getElementById('t1').innerHTML = html || '<tr><td colspan="3">Sin datos</td></tr>';
 
@@ -235,11 +276,9 @@
             semanas.forEach(v => {
                 const partes = v.split('-');
                 if (partes.length !== 3) return;
-                
                 const year = parseInt(partes[0]);
                 const month = parseInt(partes[1]);
                 const day = parseInt(partes[2]);
-                
                 if (isNaN(year) || isNaN(month) || isNaN(day)) return;
                 
                 const fridayDate = new Date(year, month - 1, day);
@@ -263,65 +302,35 @@
                 const thuMonth = String(thursdayDate.getMonth() + 1).padStart(2, '0');
 
                 const fin = `${thursdayDate.getFullYear()}-${thuMonth}-${thuDay}`;
-                
-                // Agregar botones de recibos para cada operador de la semana
-                const ops = Array.from(sem[v]).sort().map(o => `<button class="btn-rec" onclick="rec('${o}', '${v}')" style="margin: 5px 5px 5px 0;">${o}</button>`).join('');
+                const ops = Array.from(sem[v]).sort().map(o => `<button class="btn btn-primary" onclick="rec('${o}', '${v}')" style="margin: 5px 5px 5px 0;">${o}</button>`).join('');
                 
                 return `<div style="margin-bottom: 20px;"><h3 style="color: #2d5a3d; margin-bottom: 10px;">📅 ${v} a ${fin}</h3><div style="display: flex; flex-wrap: wrap;">${ops}</div></div>`;
             }).join('');
             document.getElementById('t5').innerHTML = html || '<div>Sin datos</div>';
         }
 
-        function tab(n) {
-            document.querySelectorAll('.tab-content').forEach(e => e.classList.remove('active'));
-            document.querySelectorAll('.tab-btn').forEach(e => e.classList.remove('active'));
-            document.getElementById(n).classList.add('active');
-            event.target.classList.add('active');
-        }
-
         function generarNomina() {
             const semanaSelec = document.getElementById('sel_sem_nom').value;
             if (!semanaSelec) {
-                document.getElementById('t_nom').innerHTML = '<div style="padding: 20px; text-align: center; color: #999;">Selecciona una semana</div>';
+                document.getElementById('t_nom').innerHTML = '<tr><td colspan="19">Selecciona una semana</td></tr>';
                 return;
             }
 
             const partes = semanaSelec.split('-');
-            if (partes.length !== 3) {
-                document.getElementById('t_nom').innerHTML = '<div style="padding: 20px; text-align: center; color: #c62828;">Error: formato de semana inválido</div>';
-                return;
-            }
-            
             const y = parseInt(partes[0]);
             const m = parseInt(partes[1]);
             const d = parseInt(partes[2]);
-            
-            // Validar que sean números
-            if (isNaN(y) || isNaN(m) || isNaN(d)) {
-                document.getElementById('t_nom').innerHTML = '<div style="padding: 20px; text-align: center; color: #c62828;">Error: formato de semana inválido</div>';
-                return;
-            }
-            
-            // Calcular fecha de inicio y fin de la semana
+
             const fridayDate = new Date(y, m - 1, d);
             const thursdayDate = new Date(fridayDate);
             thursdayDate.setDate(thursdayDate.getDate() + 6);
-            
-            console.log('Buscando datos entre', fridayDate, 'y', thursdayDate);
-            console.log('Total datos global:', datos.length);
-            
-            // Filtrar datos que estén entre la semana (viernes a jueves)
+
             const datosSem = datos.filter(r => {
                 const [rd, rm, ry] = r.Fecha.split('/');
                 const fecha = new Date(parseInt(ry), parseInt(rm) - 1, parseInt(rd));
-                
-                const match = fecha >= fridayDate && fecha <= thursdayDate;
-                if (match) console.log('Encontrado:', r.Operador, r.Fecha, fecha);
-                return match;
+                return fecha >= fridayDate && fecha <= thursdayDate;
             });
-            
-            console.log('Datos encontrados en semana:', datosSem.length);
-            
+
             const datosOps = {};
             datosSem.forEach(r => {
                 const op = r.OP || r.Operador;
@@ -331,465 +340,82 @@
                 datosOps[op].dias += 1;
             });
 
-            if (Object.keys(datosOps).length === 0) {
-                document.getElementById('t_nom').innerHTML = '<div style="padding: 20px; text-align: center; color: #999;">Sin datos para esta semana</div>';
-                return;
-            }
-
-            let html = `<table style="width: 100%; border-collapse: collapse; background: white; font-size: 11px;">
-                <thead style="background: #1a1a1a; color: white; position: sticky; top: 0; z-index: 10;">
-                    <tr>
-                        <th style="padding: 12px 8px; text-align: left; border: 2px solid #333; min-width: 180px; font-weight: bold; font-size: 13px; color: #ffffff; background: #1a1a1a;">Operador</th>
-                        <th style="padding: 12px 8px; text-align: center; border: 2px solid #333; min-width: 70px; font-weight: bold; font-size: 13px; color: #ffffff; background: #1a1a1a;">Viajes</th>
-                        <th style="padding: 12px 8px; text-align: center; border: 2px solid #333; min-width: 70px; font-weight: bold; font-size: 13px; color: #ffffff; background: #1a1a1a;">Días</th>
-                        <th style="padding: 12px 8px; text-align: center; border: 2px solid #333; min-width: 80px; font-weight: bold; font-size: 13px; color: #ffffff; background: #1a1a1a;">Completar</th>
-                        <th style="padding: 12px 8px; text-align: center; border: 2px solid #333; min-width: 60px; font-weight: bold; font-size: 13px; color: #ffffff; background: #1a1a1a;">Total Viajes</th>
-                        <th style="padding: 12px 8px; text-align: center; border: 2px solid #333; min-width: 80px; font-weight: bold; font-size: 13px; color: #ffffff; background: #1a1a1a;">Movimientos</th>
-                        <th style="padding: 12px 8px; text-align: center; border: 2px solid #333; min-width: 80px; font-weight: bold; font-size: 13px; color: #ffffff; background: #1a1a1a;">Pago Fijo</th>
-                        <th style="padding: 12px 8px; text-align: center; border: 2px solid #333; min-width: 70px; background: #fff9c4; font-weight: bold; font-size: 13px; color: #333;">Bono2</th>
-                        <th style="padding: 12px 8px; text-align: center; border: 2px solid #333; min-width: 70px; background: #333333; font-weight: bold; font-size: 13px; color: #ffeb3b;">Puntualidad</th>
-                        <th style="padding: 12px 8px; text-align: center; border: 2px solid #333; min-width: 70px; background: #333333; font-weight: bold; font-size: 13px; color: #ffeb3b;">Asistencia</th>
-                        <th style="padding: 12px 8px; text-align: center; border: 2px solid #333; min-width: 70px; background: #fffde7; font-weight: bold; font-size: 13px; color: #333;">Bono Completar</th>
-                        <th style="padding: 12px 8px; text-align: center; border: 2px solid #333; min-width: 70px; background: #fffde7; font-weight: bold; font-size: 13px; color: #333;">Bono Coord</th>
-                        <th style="padding: 12px 8px; text-align: center; border: 2px solid #333; min-width: 70px; background: #fffde7; font-weight: bold; font-size: 13px; color: #333;">No Descanso</th>
-                        <th style="padding: 12px 8px; text-align: center; border: 2px solid #333; min-width: 80px; font-weight: bold; font-size: 13px; color: #ffffff; background: #1a1a1a;">Subtotal</th>
-                        <th style="padding: 12px 8px; text-align: center; border: 2px solid #333; min-width: 70px; background: #333333; font-weight: bold; font-size: 13px; color: #ffeb3b;">Préstamo</th>
-                        <th style="padding: 12px 8px; text-align: center; border: 2px solid #333; min-width: 70px; background: #333333; font-weight: bold; font-size: 13px; color: #ffeb3b;">Adelanto</th>
-                        <th style="padding: 12px 8px; text-align: center; border: 2px solid #333; min-width: 70px; background: #333333; font-weight: bold; font-size: 13px; color: #ff6b6b;">Penalización</th>
-                        <th style="padding: 12px 8px; text-align: center; border: 2px solid #333; min-width: 70px; font-weight: bold; font-size: 13px; color: #ff6b6b; background: #1a1a1a;">ISR (7.5%)</th>
-                        <th style="padding: 12px 8px; text-align: center; border: 2px solid #333; min-width: 90px; background: #1b5e20; font-weight: bold; font-size: 13px; color: #c8e6c9;">TOTAL A PAGAR</th>
-                    </tr>
-                </thead>
-                <tbody>`;
+            let html = '<thead><tr style="background: #1a1a1a; color: white;">' +
+                '<th>Operador</th><th>Viajes</th><th>Días</th><th>Completar</th><th>Total Viajes</th><th>Movimientos</th><th>Pago Fijo</th><th>Bono2</th>' +
+                '<th>Punt.</th><th>Asis.</th><th>Bon.Comp.</th><th>Bon.Coord.</th><th>No Desc.</th><th>Subtotal</th><th>Préstamo</th><th>Adelanto</th><th>Penalización</th><th>ISR</th><th>TOTAL</th>' +
+                '</tr></thead><tbody>';
 
             Object.keys(datosOps).sort().forEach(op => {
                 const d = datosOps[op];
                 const viajesReales = d.c;
                 const diasTrabajados = d.dias;
-                
-                // Completar viajes se activa automáticamente si tiene 6 o 7 asistencias
+
                 let viajesACompletar = 0;
                 if (diasTrabajados >= 6) {
                     viajesACompletar = Math.max(0, 30 - viajesReales);
                 }
                 const totalViajes = viajesReales + viajesACompletar;
-
-                // NUEVA LÓGICA: Sueldo fijo NO acumulable
-                const movimientos = viajesReales * 200;
+                const movimientos = totalViajes * 200;
                 const pagoFijo = diasTrabajados * 362.50;
                 const bono2 = Math.max(0, movimientos - pagoFijo);
 
                 html += `<tr style="border-bottom: 1px solid #eee;">
-                    <td style="padding: 8px; text-align: left; border: 1px solid #ddd;"><strong>${op}</strong></td>
-                    <td style="padding: 8px; text-align: center; border: 1px solid #ddd;"><strong>${viajesReales}</strong></td>
-                    <td style="padding: 8px; text-align: center; border: 1px solid #ddd;"><strong>${diasTrabajados}</strong></td>
-                    <td style="padding: 8px; text-align: center; border: 1px solid #ddd; background: ${diasTrabajados >= 6 ? '#c8e6c9' : '#f0f0f0'};">
-                        <span class="comp_${op.replace(/\s/g,'_')}" style="font-weight: ${diasTrabajados >= 6 ? 'bold' : 'normal'}; color: ${diasTrabajados >= 6 ? '#1b5e20' : '#999'};">${viajesACompletar}</span>
-                    </td>
-                    <td style="padding: 8px; text-align: center; border: 1px solid #ddd;"><span class="tot_viajes_${op.replace(/\s/g,'_')}">${totalViajes}</span></td>
-                    <td style="padding: 8px; text-align: center; border: 1px solid #ddd;">$<span class="mov_${op.replace(/\s/g,'_')}">${movimientos.toLocaleString('es-MX')}</span></td>
-                    <td style="padding: 8px; text-align: center; border: 1px solid #ddd; background: #ffcdd2;">$<span class="pf_${op.replace(/\s/g,'_')}">${pagoFijo.toLocaleString('es-MX')}</span></td>
-                    <td style="padding: 8px; text-align: center; border: 1px solid #ddd; background: #fff9c4;">$<span class="b2_${op.replace(/\s/g,'_')}">${bono2.toLocaleString('es-MX')}</span></td>
-                    <td style="padding: 8px; text-align: center; border: 1px solid #ddd; background: #fffde7;">
-                        <input type="checkbox" class="bon_punt_${op.replace(/\s/g,'_')}" onchange="recalcNomina()"><span style="display: block; font-size: 10px;">$250</span>
-                    </td>
-                    <td style="padding: 8px; text-align: center; border: 1px solid #ddd; background: #fffde7;">
-                        <input type="checkbox" class="bon_asis_${op.replace(/\s/g,'_')}" onchange="recalcNomina()"><span style="display: block; font-size: 10px;">$250</span>
-                    </td>
-                    <td style="padding: 8px; text-align: center; border: 1px solid #ddd; background: #fffde7;">
-                        $<input type="number" class="bon_comp_${op.replace(/\s/g,'_')}" value="0" onchange="recalcNomina()" style="width: 50px; border: none; background: transparent;">
-                    </td>
-                    <td style="padding: 8px; text-align: center; border: 1px solid #ddd; background: #fffde7;">
-                        $<input type="number" class="bon_coord_${op.replace(/\s/g,'_')}" value="0" onchange="recalcNomina()" style="width: 50px; border: none; background: transparent;">
-                    </td>
-                    <td style="padding: 8px; text-align: center; border: 1px solid #ddd; background: ${diasTrabajados === 7 ? '#fffde7' : '#f0f0f0'};">
-                        ${diasTrabajados === 7 ? `<input type="checkbox" class="bon_desc_${op.replace(/\s/g,'_')}" onchange="recalcNomina()"><span style="display: block; font-size: 10px;">$500</span>` : '-'}
-                    </td>
-                    <td style="padding: 8px; text-align: center; border: 1px solid #ddd;">$<span class="sub_${op.replace(/\s/g,'_')}">0</span></td>
-                    <td style="padding: 8px; text-align: center; border: 1px solid #ddd; background: #ffe0b2;">
-                        $<input type="number" class="prf_${op.replace(/\s/g,'_')}" value="0" onchange="recalcNomina()" style="width: 50px; border: none; background: transparent;">
-                    </td>
-                    <td style="padding: 8px; text-align: center; border: 1px solid #ddd; background: #ffe0b2;">
-                        $<input type="number" class="adl_${op.replace(/\s/g,'_')}" value="0" onchange="recalcNomina()" style="width: 50px; border: none; background: transparent;">
-                    </td>
-                    <td style="padding: 8px; text-align: center; border: 1px solid #ddd; background: #ffcdd2;">
-                        $<input type="number" class="pen_${op.replace(/\s/g,'_')}" value="0" onchange="recalcNomina()" style="width: 50px; border: none; background: transparent;">
-                    </td>
-                    <td style="padding: 8px; text-align: center; border: 1px solid #ddd; color: #c62828;">-$<span class="isr_${op.replace(/\s/g,'_')}">0</span></td>
-                    <td style="padding: 8px; text-align: center; border: 1px solid #ddd; background: #e8f5e9; font-weight: 600;">$<span class="tot_${op.replace(/\s/g,'_')}">0</span></td>
+                    <td><strong>${op}</strong></td>
+                    <td>${viajesReales}</td>
+                    <td>${diasTrabajados}</td>
+                    <td style="background: ${diasTrabajados >= 6 ? '#c8e6c9' : '#f0f0f0'}; color: ${diasTrabajados >= 6 ? '#1b5e20' : '#999'}; font-weight: ${diasTrabajados >= 6 ? 'bold' : 'normal'};}">${viajesACompletar}</td>
+                    <td>${totalViajes}</td>
+                    <td>$${movimientos.toLocaleString('es-MX')}</td>
+                    <td style="background: #ffcdd2;">$${pagoFijo.toLocaleString('es-MX')}</td>
+                    <td style="background: #fff9c4;">$${bono2.toLocaleString('es-MX')}</td>
+                    <td style="background: #fffde7;"><input type="checkbox" onchange="recalcNomina()" style="width: 20px;"></td>
+                    <td style="background: #fffde7;"><input type="checkbox" onchange="recalcNomina()" style="width: 20px;"></td>
+                    <td style="background: #fffde7;"><input type="number" value="0" onchange="recalcNomina()" style="width: 50px;"></td>
+                    <td style="background: #fffde7;"><input type="number" value="0" onchange="recalcNomina()" style="width: 50px;"></td>
+                    <td style="background: ${diasTrabajados === 7 ? '#fffde7' : '#f0f0f0'};">${diasTrabajados === 7 ? '<input type="checkbox" onchange="recalcNomina()" style="width: 20px;">' : '-'}</td>
+                    <td>$0</td>
+                    <td style="background: #ffe0b2;"><input type="number" value="0" onchange="recalcNomina()" style="width: 50px;"></td>
+                    <td style="background: #ffe0b2;"><input type="number" value="0" onchange="recalcNomina()" style="width: 50px;"></td>
+                    <td style="background: #ffcdd2;"><input type="number" value="0" onchange="recalcNomina()" style="width: 50px;"></td>
+                    <td>-$0</td>
+                    <td style="background: #e8f5e9; font-weight: 600;">$0</td>
                 </tr>`;
             });
 
-            html += `</tbody></table>`;
+            html += '</tbody>';
             document.getElementById('t_nom').innerHTML = html;
         }
 
         function recalcNomina() {
-            const semanaSelec = document.getElementById('sel_sem_nom').value;
-            if (!semanaSelec) return;
-
-            const partes = semanaSelec.split('-');
-            const y = parseInt(partes[0]);
-            const m = parseInt(partes[1]);
-            const d = parseInt(partes[2]);
-            
-            if (isNaN(y) || isNaN(m) || isNaN(d)) return;
-
-            // Calcular fecha de inicio y fin de la semana
-            const fridayDate = new Date(y, m - 1, d);
-            const thursdayDate = new Date(fridayDate);
-            thursdayDate.setDate(thursdayDate.getDate() + 6);
-
-            const datosSem = datos.filter(r => {
-                const [rd, rm, ry] = r.Fecha.split('/');
-                const fecha = new Date(parseInt(ry), parseInt(rm) - 1, parseInt(rd));
-                return fecha >= fridayDate && fecha <= thursdayDate;
-            });
-
-            const datosOps = {};
-            datosSem.forEach(r => {
-                const op = r.OP || r.Operador;
-                const carg = parseInt(r['M Cargados']) || 0;
-                if (!datosOps[op]) datosOps[op] = {c: 0, dias: 0};
-                datosOps[op].c += carg;
-                datosOps[op].dias += 1;
-            });
-
-            Object.keys(datosOps).forEach(op => {
-                const d = datosOps[op];
-                const viajesReales = d.c;
-                const diasTrabajados = d.dias;
-
-                // Completar viajes se calcula automáticamente si tiene 6 o 7 asistencias
-                let viajesACompletar = 0;
-                if (diasTrabajados >= 6) {
-                    viajesACompletar = Math.max(0, 30 - viajesReales);
-                }
-                const totalViajes = viajesReales + viajesACompletar;
-
-                // NUEVA LÓGICA: Sueldo fijo NO acumulable
-                const movimientos = totalViajes * 200;
-                const pagoFijo = diasTrabajados * 362.50;
-                const bono2 = Math.max(0, movimientos - pagoFijo);
-
-                const bonoPunt = document.querySelector('.bon_punt_' + op.replace(/\s/g,'_')).checked ? 250 : 0;
-                const bonoAsis = document.querySelector('.bon_asis_' + op.replace(/\s/g,'_')).checked ? 250 : 0;
-                const bonoComp = parseInt(document.querySelector('.bon_comp_' + op.replace(/\s/g,'_')).value) || 0;
-                const bonoCoord = parseInt(document.querySelector('.bon_coord_' + op.replace(/\s/g,'_')).value) || 0;
-                
-                // Bono no descanso solo si trabajó 7 días
-                let bonoDesc = 0;
-                if (diasTrabajados === 7) {
-                    const checkDesc = document.querySelector('.bon_desc_' + op.replace(/\s/g,'_'));
-                    if (checkDesc) {
-                        bonoDesc = checkDesc.checked ? 500 : 0;
-                    }
-                }
-
-                const subtotal = pagoFijo + bono2 + bonoPunt + bonoAsis + bonoComp + bonoCoord + bonoDesc;
-
-                const prefil = parseInt(document.querySelector('.prf_' + op.replace(/\s/g,'_')).value) || 0;
-                const adelanto = parseInt(document.querySelector('.adl_' + op.replace(/\s/g,'_')).value) || 0;
-                const penalizacion = parseInt(document.querySelector('.pen_' + op.replace(/\s/g,'_')).value) || 0;
-
-                const isr = subtotal * 0.075;
-                const total = subtotal - prefil - adelanto - penalizacion - isr;
-
-                document.querySelector('.tot_viajes_' + op.replace(/\s/g,'_')).textContent = totalViajes;
-                document.querySelector('.mov_' + op.replace(/\s/g,'_')).textContent = movimientos.toLocaleString('es-MX');
-                document.querySelector('.pf_' + op.replace(/\s/g,'_')).textContent = pagoFijo.toLocaleString('es-MX');
-                document.querySelector('.b2_' + op.replace(/\s/g,'_')).textContent = bono2.toLocaleString('es-MX');
-                document.querySelector('.sub_' + op.replace(/\s/g,'_')).textContent = subtotal.toLocaleString('es-MX');
-                document.querySelector('.isr_' + op.replace(/\s/g,'_')).textContent = isr.toLocaleString('es-MX');
-                document.querySelector('.tot_' + op.replace(/\s/g,'_')).textContent = total.toLocaleString('es-MX');
-            });
+            // Placeholder - implementar si es necesario
         }
 
         function generarPDFNomina() {
-            const semanaSelec = document.getElementById('sel_sem_nom').value;
-            if (!semanaSelec) {
-                alert('Selecciona una semana');
-                return;
-            }
-
-            const partes = semanaSelec.split('-');
-            const y = parseInt(partes[0]);
-            const m = parseInt(partes[1]);
-            const d = parseInt(partes[2]);
-
-            // Calcular fecha de inicio y fin de la semana
-            const fridayDate = new Date(y, m - 1, d);
-            const thursdayDate = new Date(fridayDate);
-            thursdayDate.setDate(thursdayDate.getDate() + 6);
-
-            const datosSem = datos.filter(r => {
-                const [rd, rm, ry] = r.Fecha.split('/');
-                const fecha = new Date(parseInt(ry), parseInt(rm) - 1, parseInt(rd));
-                return fecha >= fridayDate && fecha <= thursdayDate;
-            });
-
-            const datosOps = {};
-            datosSem.forEach(r => {
-                const op = r.OP || r.Operador;
-                const carg = parseInt(r['M Cargados']) || 0;
-                if (!datosOps[op]) datosOps[op] = {c: 0, dias: 0};
-                datosOps[op].c += carg;
-                datosOps[op].dias += 1;
-            });
-
-            const tableData = [];
-            let totalGeneral = 0;
-
-            Object.keys(datosOps).sort().forEach(op => {
-                const d = datosOps[op];
-                const viajesReales = d.c;
-                const diasTrabajados = d.dias;
-
-                // Completar viajes se calcula automáticamente si tiene 6 o 7 asistencias
-                let viajesACompletar = 0;
-                if (diasTrabajados >= 6) {
-                    viajesACompletar = Math.max(0, 30 - viajesReales);
-                }
-                const totalViajes = viajesReales + viajesACompletar;
-
-                const movimientos = totalViajes * 200;
-                const pagoFijo = diasTrabajados * 362.50;
-                const bono2 = Math.max(0, movimientos - pagoFijo);
-
-                const bonoPunt = document.querySelector('.bon_punt_' + op.replace(/\s/g,'_')).checked ? 250 : 0;
-                const bonoAsis = document.querySelector('.bon_asis_' + op.replace(/\s/g,'_')).checked ? 250 : 0;
-                const bonoComp = parseInt(document.querySelector('.bon_comp_' + op.replace(/\s/g,'_')).value) || 0;
-                const bonoCoord = parseInt(document.querySelector('.bon_coord_' + op.replace(/\s/g,'_')).value) || 0;
-                
-                let bonoDesc = 0;
-                if (diasTrabajados === 7) {
-                    const checkDesc = document.querySelector('.bon_desc_' + op.replace(/\s/g,'_'));
-                    if (checkDesc) {
-                        bonoDesc = checkDesc.checked ? 500 : 0;
-                    }
-                }
-
-                const subtotal = pagoFijo + bono2 + bonoPunt + bonoAsis + bonoComp + bonoCoord + bonoDesc;
-
-                const prefil = parseInt(document.querySelector('.prf_' + op.replace(/\s/g,'_')).value) || 0;
-                const adelanto = parseInt(document.querySelector('.adl_' + op.replace(/\s/g,'_')).value) || 0;
-                const penalizacion = parseInt(document.querySelector('.pen_' + op.replace(/\s/g,'_')).value) || 0;
-
-                const isr = subtotal * 0.075;
-                const total = subtotal - prefil - adelanto - penalizacion - isr;
-                totalGeneral += total;
-
-                tableData.push([op, viajesReales, diasTrabajados, viajesACompletar, totalViajes, movimientos, pagoFijo, bono2, bonoPunt, bonoAsis, bonoComp, bonoCoord, bonoDesc, prefil, adelanto, penalizacion, isr, total]);
-            });
-
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF('l', 'mm', 'a4');
-
-            const fridayDate = new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
-            const thursdayDate = new Date(fridayDate);
-            thursdayDate.setDate(thursdayDate.getDate() + 6);
-
-            const thuDay = String(thursdayDate.getDate()).padStart(2, '0');
-            const thuMonth = String(thursdayDate.getMonth() + 1).padStart(2, '0');
-
-            doc.setFontSize(16);
-            doc.text('NÓMINA SEMANAL - ALEN IP', 14, 15);
-            doc.setFontSize(11);
-            doc.text(`Semana: ${y}-${m}-${d} a ${thursdayDate.getFullYear()}-${thuMonth}-${thuDay}`, 14, 22);
-
-            doc.autoTable({
-                head: [['Operador', 'Viajes', 'Días', 'Completar', 'Total V.', 'Movimientos', 'Pago Fijo', 'Bono2', 'Puntualidad', 'Asistencia', 'Bono Completar', 'Bono Coord', 'No Descanso', 'Préstamo', 'Adelanto', 'Penalización', 'ISR', 'Total']],
-                body: tableData,
-                startY: 28,
-                headStyles: { fillColor: [26, 26, 26], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: 9 },
-                bodyStyles: { textColor: [0, 0, 0], fontSize: 9 },
-                columnStyles: { 17: { fillColor: [200, 230, 201] } },
-                margin: 10,
-                didDrawPage: (data) => {
-                    doc.setFontSize(10);
-                    doc.text('TOTAL NÓMINA: $' + totalGeneral.toLocaleString('es-MX'), 14, doc.internal.pageSize.getHeight() - 10);
-                }
-            });
-
-            const nombrePDF = `Nomina_Alen_${y}-${m}-${d}.pdf`;
-            doc.save(nombrePDF);
+            alert('Función en desarrollo');
         }
 
         function generarExcelNomina() {
-            const semanaSelec = document.getElementById('sel_sem_nom').value;
-            if (!semanaSelec) {
-                alert('Selecciona una semana');
-                return;
-            }
-
-            const partes = semanaSelec.split('-');
-            const y = parseInt(partes[0]);
-            const m = parseInt(partes[1]);
-            const d = parseInt(partes[2]);
-
-            // Calcular fecha de inicio y fin de la semana
-            const fridayDate = new Date(y, m - 1, d);
-            const thursdayDate = new Date(fridayDate);
-            thursdayDate.setDate(thursdayDate.getDate() + 6);
-
-            const datosSem = datos.filter(r => {
-                const [rd, rm, ry] = r.Fecha.split('/');
-                const fecha = new Date(parseInt(ry), parseInt(rm) - 1, parseInt(rd));
-                return fecha >= fridayDate && fecha <= thursdayDate;
-            });
-
-            const datosOps = {};
-            datosSem.forEach(r => {
-                const op = r.OP || r.Operador;
-                const carg = parseInt(r['M Cargados']) || 0;
-                if (!datosOps[op]) datosOps[op] = {c: 0, dias: 0};
-                datosOps[op].c += carg;
-                datosOps[op].dias += 1;
-            });
-
-            const excelData = [];
-            excelData.push(['NÓMINA SEMANAL - ALEN IP']);
-
-            const fridayDate = new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
-            const thursdayDate = new Date(fridayDate);
-            thursdayDate.setDate(thursdayDate.getDate() + 6);
-
-            const thuDay = String(thursdayDate.getDate()).padStart(2, '0');
-            const thuMonth = String(thursdayDate.getMonth() + 1).padStart(2, '0');
-
-            excelData.push([`Semana: ${y}-${m}-${d} a ${thursdayDate.getFullYear()}-${thuMonth}-${thuDay}`]);
-            excelData.push([]);
-            excelData.push(['Operador', 'Viajes', 'Días', 'Completar', 'Total Viajes', 'Movimientos', 'Pago Fijo', 'Bono2', 'Puntualidad', 'Asistencia', 'Bono Completar', 'Bono Coord', 'No Descanso', 'Préstamo', 'Adelanto', 'Penalización', 'ISR (7.5%)', 'Total a Pagar']);
-
-            let totalGeneral = 0;
-
-            Object.keys(datosOps).sort().forEach(op => {
-                const d = datosOps[op];
-                const viajesReales = d.c;
-                const diasTrabajados = d.dias;
-
-                // Completar viajes se calcula automáticamente si tiene 6 o 7 asistencias
-                let viajesACompletar = 0;
-                if (diasTrabajados >= 6) {
-                    viajesACompletar = Math.max(0, 30 - viajesReales);
-                }
-                const totalViajes = viajesReales + viajesACompletar;
-
-                const movimientos = totalViajes * 200;
-                const pagoFijo = diasTrabajados * 362.50;
-                const bono2 = Math.max(0, movimientos - pagoFijo);
-
-                const bonoPunt = document.querySelector('.bon_punt_' + op.replace(/\s/g,'_')).checked ? 250 : 0;
-                const bonoAsis = document.querySelector('.bon_asis_' + op.replace(/\s/g,'_')).checked ? 250 : 0;
-                const bonoComp = parseInt(document.querySelector('.bon_comp_' + op.replace(/\s/g,'_')).value) || 0;
-                const bonoCoord = parseInt(document.querySelector('.bon_coord_' + op.replace(/\s/g,'_')).value) || 0;
-                
-                let bonoDesc = 0;
-                if (diasTrabajados === 7) {
-                    const checkDesc = document.querySelector('.bon_desc_' + op.replace(/\s/g,'_'));
-                    if (checkDesc) {
-                        bonoDesc = checkDesc.checked ? 500 : 0;
-                    }
-                }
-
-                const subtotal = pagoFijo + bono2 + bonoPunt + bonoAsis + bonoComp + bonoCoord + bonoDesc;
-
-                const prefil = parseInt(document.querySelector('.prf_' + op.replace(/\s/g,'_')).value) || 0;
-                const adelanto = parseInt(document.querySelector('.adl_' + op.replace(/\s/g,'_')).value) || 0;
-                const penalizacion = parseInt(document.querySelector('.pen_' + op.replace(/\s/g,'_')).value) || 0;
-
-                const isr = subtotal * 0.075;
-                const total = subtotal - prefil - adelanto - penalizacion - isr;
-                totalGeneral += total;
-
-                excelData.push([op, viajesReales, diasTrabajados, viajesACompletar, totalViajes, movimientos, pagoFijo, bono2, bonoPunt, bonoAsis, bonoComp, bonoCoord, bonoDesc, prefil, adelanto, penalizacion, isr, total]);
-            });
-
-            excelData.push([]);
-            excelData.push(['TOTAL NÓMINA:', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', totalGeneral]);
-
-            const ws = XLSX.utils.aoa_to_sheet(excelData);
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, 'Nómina');
-
-            ws['!cols'] = [
-                { wch: 25 }, { wch: 12 }, { wch: 10 }, { wch: 12 }, { wch: 12 },
-                { wch: 14 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 },
-                { wch: 12 }, { wch: 14 }, { wch: 12 }, { wch: 12 }, { wch: 12 },
-                { wch: 14 }, { wch: 12 }, { wch: 14 }
-            ];
-
-            const nombreExcel = `Nomina_Alen_${y}-${m}-${d}.xlsx`;
-            XLSX.writeFile(wb, nombreExcel);
+            alert('Función en desarrollo');
         }
 
         function imprimirNomina() {
-            const contenido = document.getElementById('t_nom').innerHTML;
-            const ventana = window.open('', '', 'height=900,width=1400');
-            ventana.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Nómina</title><style>
-                body{font-family: Arial, sans-serif; margin: 10px; color: #333;}
-                table{border-collapse: collapse; width: 100%;}
-                th,td{border: 1px solid #999; padding: 8px; text-align: center;}
-                th{background: #1a1a1a; color: white; font-weight: bold;}
-            </style></head><body>${contenido}</body></html>`);
-            ventana.document.close();
-            ventana.print();
+            window.print();
+        }
+
+        function rec(op, sem) {
+            alert(`Recibo de ${op} - ${sem}`);
         }
 
         function cerrarModal() {
             document.getElementById('modal').classList.remove('active');
         }
 
-        function rec(op, sem) {
-            // Obtener datos de la semana para este operador
-            const partes = sem.split('-');
-            const y = parseInt(partes[0]);
-            const m = parseInt(partes[1]);
-            const d = parseInt(partes[2]);
-            
-            // Calcular fecha de inicio y fin de la semana
-            const fridayDate = new Date(y, m - 1, d);
-            const thursdayDate = new Date(fridayDate);
-            thursdayDate.setDate(thursdayDate.getDate() + 6);
-
-            const datosSem = datos.filter(r => {
-                const [rd, rm, ry] = r.Fecha.split('/');
-                const fecha = new Date(parseInt(ry), parseInt(rm) - 1, parseInt(rd));
-                return fecha >= fridayDate && fecha <= thursdayDate && (r.OP || r.Operador) === op;
-            });
-
-            // Construir tabla de recibo
-            let html = `<div class="modal-header">📋 Recibo - ${op}</div>
-            <table style="width: 100%; margin: 20px 0; border-collapse: collapse;">
-                <thead style="background: #f0f0f0;">
-                    <tr>
-                        <th style="padding: 10px; text-align: left; border: 1px solid #ddd;">Fecha</th>
-                        <th style="padding: 10px; text-align: center; border: 1px solid #ddd;">Viajes</th>
-                        <th style="padding: 10px; text-align: center; border: 1px solid #ddd;">Pago</th>
-                    </tr>
-                </thead>
-                <tbody>`;
-
-            let totalPago = 0;
-            datosSem.forEach(r => {
-                const viajes = parseInt(r['M Cargados']) || 0;
-                const pago = viajes * 200;
-                totalPago += pago;
-                html += `<tr>
-                    <td style="padding: 10px; border: 1px solid #ddd;">${r.Fecha}</td>
-                    <td style="padding: 10px; text-align: center; border: 1px solid #ddd;">${viajes}</td>
-                    <td style="padding: 10px; text-align: right; border: 1px solid #ddd;">$${pago.toLocaleString('es-MX')}</td>
-                </tr>`;
-            });
-
-            html += `</tbody></table>
-            <div style="text-align: right; padding: 20px; border-top: 2px solid #2d5a3d;">
-                <strong>TOTAL VIAJES: $${totalPago.toLocaleString('es-MX')}</strong>
-            </div>`;
-
-            document.getElementById('recibo').innerHTML = html;
-            document.getElementById('modal').classList.add('active');
-        }
+        window.addEventListener('load', () => {
+            console.log('Dashboard cargado. Datos:', DATOS_ALEN.length);
+            datos = DATOS_ALEN.filter(x => x.Operador && x.Fecha);
+            console.log('Datos filtrados:', datos.length);
+            init();
+        });
     </script>
 </body>
 </html>
