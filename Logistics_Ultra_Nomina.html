@@ -139,6 +139,7 @@
                             <th style="background:#1a1a1a;color:#fff;">Adelanto</th>
                             <th style="background:#1a1a1a;color:#fff;">Penalización</th>
                             <th style="background:#1a1a1a;color:#fff;">ISR</th>
+                            <th style="background:#7a1f1f;color:#fff;">Baja</th>
                             <th style="background:#1a1a1a;color:#fff;">TOTAL</th>
                         </tr>
                     </thead>
@@ -668,7 +669,7 @@
 
             let html = '<thead><tr style="font-size: 11px;">' +
                 '<th style="background:#1a1a1a;color:#fff;">Operador</th><th style="background:#1a1a1a;color:#fff;">Viajes</th><th style="background:#1a1a1a;color:#fff;">Días</th><th style="background:#1a1a1a;color:#fff;">Completar</th><th style="background:#1a1a1a;color:#fff;">Total Viajes</th><th style="background:#1a1a1a;color:#fff;">Movimientos</th><th style="background:#1a1a1a;color:#fff;">Pago Fijo</th><th style="background:#1a1a1a;color:#fff;">Bono2</th>' +
-                '<th style="background:#1a1a1a;color:#fff;">Punt.</th><th style="background:#1a1a1a;color:#fff;">Asis.</th><th style="background:#1a1a1a;color:#fff;">Bon.Comp.</th><th style="background:#1a1a1a;color:#fff;">Bon.Coord.</th><th style="background:#1a1a1a;color:#fff;">No Desc.</th><th style="background:#1a1a1a;color:#fff;">Subtotal</th><th style="background:#1a1a1a;color:#fff;">Préstamo</th><th style="background:#1a1a1a;color:#fff;">Adelanto</th><th style="background:#1a1a1a;color:#fff;">Penalización</th><th style="background:#1a1a1a;color:#fff;">ISR</th><th style="background:#1a1a1a;color:#fff;">TOTAL</th>' +
+                '<th style="background:#1a1a1a;color:#fff;">Punt.</th><th style="background:#1a1a1a;color:#fff;">Asis.</th><th style="background:#1a1a1a;color:#fff;">Bon.Comp.</th><th style="background:#1a1a1a;color:#fff;">Bon.Coord.</th><th style="background:#1a1a1a;color:#fff;">No Desc.</th><th style="background:#1a1a1a;color:#fff;">Subtotal</th><th style="background:#1a1a1a;color:#fff;">Préstamo</th><th style="background:#1a1a1a;color:#fff;">Adelanto</th><th style="background:#1a1a1a;color:#fff;">Penalización</th><th style="background:#1a1a1a;color:#fff;">ISR</th><th style="background:#7a1f1f;color:#fff;">Baja</th><th style="background:#1a1a1a;color:#fff;">TOTAL</th>' +
                 '</tr></thead><tbody style="font-size: 12px;">';
 
             Object.keys(datosOps).sort().forEach(opNorm => {
@@ -696,6 +697,7 @@
                 const gPrestamo = guardado.prestamo !== undefined ? guardado.prestamo : 0;
                 const gAdelanto = guardado.adelanto !== undefined ? guardado.adelanto : 0;
                 const gPenalizacion = guardado.penalizacion !== undefined ? guardado.penalizacion : 0;
+                const gBaja = guardado.baja ? 'checked' : '';
 
                 html += `<tr data-pagofijo="${pagoFijo}" data-bono2="${bono2}" data-opnorm="${opNorm}" data-semana="${semanaSelec}" style="border-bottom: 1px solid #eee;">
                     <td><strong>${opNombre}</strong></td>
@@ -716,6 +718,7 @@
                     <td style="background: #ffe0b2;"><input type="number" value="${gAdelanto}" class="inp-adelanto" onchange="recalcNomina()" style="width: 45px;"></td>
                     <td style="background: #ffcdd2;"><input type="number" value="${gPenalizacion}" class="inp-penalizacion" onchange="recalcNomina()" style="width: 45px;"></td>
                     <td class="td-isr">-$0</td>
+                    <td style="background: #ffcdd2;" title="Marca si el operador causó baja: el pago de esta semana se pone en $0"><input type="checkbox" class="chk-baja" onchange="recalcNomina()" ${gBaja} style="width: 18px;"></td>
                     <td class="td-total" style="background: #e8f5e9; font-weight: 600;">$0</td>
                 </tr>`;
             });
@@ -747,13 +750,17 @@
                 const adelanto = parseFloat(tr.querySelector('.inp-adelanto').value) || 0;
                 const penalizacion = parseFloat(tr.querySelector('.inp-penalizacion').value) || 0;
 
-                const subtotal = pagoFijo + bono2 + punt + asis + bonComp + bonCoord + noDesc;
-                const isr = subtotal * 0.075;
-                const total = subtotal - prestamo - adelanto - penalizacion - isr;
+                const chkBaja = tr.querySelector('.chk-baja');
+                const esBaja = !!(chkBaja && chkBaja.checked);
+
+                const subtotal = esBaja ? 0 : (pagoFijo + bono2 + punt + asis + bonComp + bonCoord + noDesc);
+                const isr = esBaja ? 0 : subtotal * 0.075;
+                const total = esBaja ? 0 : subtotal - prestamo - adelanto - penalizacion - isr;
 
                 tr.querySelector('.td-subtotal').textContent = '$' + subtotal.toLocaleString('es-MX', {maximumFractionDigits: 2});
                 tr.querySelector('.td-isr').textContent = '-$' + isr.toLocaleString('es-MX', {maximumFractionDigits: 2});
                 tr.querySelector('.td-total').textContent = '$' + total.toLocaleString('es-MX', {maximumFractionDigits: 2});
+                tr.style.opacity = esBaja ? '0.55' : '1';
 
                 totalGeneral += total;
 
@@ -769,7 +776,8 @@
                         noDesc: !!(chkNoDesc && chkNoDesc.checked),
                         prestamo: prestamo,
                         adelanto: adelanto,
-                        penalizacion: penalizacion
+                        penalizacion: penalizacion,
+                        baja: esBaja
                     });
                 }
             });
@@ -783,6 +791,7 @@
             const chkAsis = tr.querySelector('.chk-asis');
             const chkNoDesc = tr.querySelector('.chk-nodesc');
             const chkBonCoord = tr.querySelector('.chk-boncoord');
+            const chkBaja = tr.querySelector('.chk-baja');
             return {
                 op: tr.querySelector('td').textContent.trim(),
                 viajesReales: tr.children[1].textContent.trim(),
@@ -802,6 +811,7 @@
                 adelanto: tr.querySelector('.inp-adelanto').value || '0',
                 penalizacion: tr.querySelector('.inp-penalizacion').value || '0',
                 isr: tr.querySelector('.td-isr').textContent.trim(),
+                baja: (chkBaja && chkBaja.checked) ? 'Sí' : 'No',
                 total: tr.querySelector('.td-total').textContent.trim()
             };
         }
@@ -850,13 +860,20 @@
                 doc.setFontSize(10);
                 doc.text(`Operador: ${f.op}`, 14, 23);
                 doc.text(`Semana: ${semanaSelec} a ${finSemana}`, 14, 29);
+                if (f.baja === 'Sí') {
+                    doc.setTextColor(183, 28, 28);
+                    doc.setFontSize(11);
+                    doc.text('⚠ OPERADOR MARCADO COMO BAJA - PAGO DE ESTA SEMANA: $0', 14, 36);
+                    doc.setTextColor(0, 0, 0);
+                    doc.setFontSize(10);
+                }
 
                 const movBody = registros.map(r => [r.Fecha, r.Turno || '-', r.Unidad || '-', r['M Cargados'] || '0', r['M Vacíos'] || '0', r.Estatus || '-']);
 
                 doc.autoTable({
                     head: [['Fecha', 'Turno', 'Unidad', 'Cargados', 'Vacíos', 'Estatus']],
                     body: movBody.length ? movBody : [['Sin movimientos registrados', '', '', '', '', '']],
-                    startY: 34,
+                    startY: f.baja === 'Sí' ? 41 : 34,
                     styles: { fontSize: 8 },
                     headStyles: { fillColor: [26, 26, 26] }
                 });
@@ -915,11 +932,11 @@
             const filas = [];
             document.querySelectorAll('#t_nom tbody tr').forEach(tr => {
                 const f = _leerFilaNomina(tr);
-                filas.push([f.op, f.viajesReales, f.diasTrabajados, f.viajesACompletar, f.totalViajes, f.movimientos, f.pagoFijo, f.bono2, f.punt, f.asis, f.bonComp, f.bonCoord, f.noDesc, f.subtotal, f.prestamo, f.adelanto, f.penalizacion, f.isr, f.total]);
+                filas.push([f.op, f.viajesReales, f.diasTrabajados, f.viajesACompletar, f.totalViajes, f.movimientos, f.pagoFijo, f.bono2, f.punt, f.asis, f.bonComp, f.bonCoord, f.noDesc, f.subtotal, f.prestamo, f.adelanto, f.penalizacion, f.isr, f.baja, f.total]);
             });
 
             doc.autoTable({
-                head: [['Operador', 'Viajes', 'Días', 'Completar', 'Total V.', 'Movimientos', 'Pago Fijo', 'Bono2', 'Punt.', 'Asis.', 'Bon.Comp.', 'Bon.Coord.', 'No Desc.', 'Subtotal', 'Préstamo', 'Adelanto', 'Penalización', 'ISR', 'TOTAL']],
+                head: [['Operador', 'Viajes', 'Días', 'Completar', 'Total V.', 'Movimientos', 'Pago Fijo', 'Bono2', 'Punt.', 'Asis.', 'Bon.Comp.', 'Bon.Coord.', 'No Desc.', 'Subtotal', 'Préstamo', 'Adelanto', 'Penalización', 'ISR', 'Baja', 'TOTAL']],
                 body: filas,
                 startY: 20,
                 styles: { fontSize: 7 },
@@ -934,12 +951,12 @@
             if (!semanaSelec) { alert('Selecciona una semana primero'); return; }
             if (typeof XLSX === 'undefined') { alert('Librería Excel no disponible'); return; }
 
-            const encabezado = ['Operador', 'Viajes', 'Días', 'Completar', 'Total Viajes', 'Movimientos', 'Pago Fijo', 'Bono2', 'Puntualidad', 'Asistencia', 'Bono Completar', 'Bono Coordinación', 'No Descanso', 'Subtotal', 'Préstamo', 'Adelanto', 'Penalización', 'ISR', 'TOTAL'];
+            const encabezado = ['Operador', 'Viajes', 'Días', 'Completar', 'Total Viajes', 'Movimientos', 'Pago Fijo', 'Bono2', 'Puntualidad', 'Asistencia', 'Bono Completar', 'Bono Coordinación', 'No Descanso', 'Subtotal', 'Préstamo', 'Adelanto', 'Penalización', 'ISR', 'Baja', 'TOTAL'];
             const filas = [encabezado];
 
             document.querySelectorAll('#t_nom tbody tr').forEach(tr => {
                 const f = _leerFilaNomina(tr);
-                filas.push([f.op, f.viajesReales, f.diasTrabajados, f.viajesACompletar, f.totalViajes, f.movimientos, f.pagoFijo, f.bono2, f.punt, f.asis, f.bonComp, f.bonCoord, f.noDesc, f.subtotal, f.prestamo, f.adelanto, f.penalizacion, f.isr, f.total]);
+                filas.push([f.op, f.viajesReales, f.diasTrabajados, f.viajesACompletar, f.totalViajes, f.movimientos, f.pagoFijo, f.bono2, f.punt, f.asis, f.bonComp, f.bonCoord, f.noDesc, f.subtotal, f.prestamo, f.adelanto, f.penalizacion, f.isr, f.baja, f.total]);
             });
 
             const ws = XLSX.utils.aoa_to_sheet(filas);
@@ -998,10 +1015,11 @@
             const prestamo = parseFloat(guardado.prestamo) || 0;
             const adelanto = parseFloat(guardado.adelanto) || 0;
             const penalizacion = parseFloat(guardado.penalizacion) || 0;
+            const esBaja = !!guardado.baja;
 
-            const subtotal = pagoFijo + bono2 + punt + asis + bonComp + bonCoord + noDesc;
-            const isr = subtotal * 0.075;
-            const total = subtotal - prestamo - adelanto - penalizacion - isr;
+            const subtotal = esBaja ? 0 : (pagoFijo + bono2 + punt + asis + bonComp + bonCoord + noDesc);
+            const isr = esBaja ? 0 : subtotal * 0.075;
+            const total = esBaja ? 0 : subtotal - prestamo - adelanto - penalizacion - isr;
 
             const filaData = {
                 op: opNombre,
@@ -1022,6 +1040,7 @@
                 adelanto: String(adelanto),
                 penalizacion: String(penalizacion),
                 isr: '-$' + isr.toLocaleString('es-MX', {maximumFractionDigits: 2}),
+                baja: esBaja ? 'Sí' : 'No',
                 total: '$' + total.toLocaleString('es-MX', {maximumFractionDigits: 2})
             };
 
@@ -1043,6 +1062,7 @@
                 <div style="font-family: Arial, sans-serif;">
                     <h2 style="margin-bottom: 5px;">📄 Recibo de Nómina - Alen IP</h2>
                     <p style="margin: 0 0 15px 0; color: #666;">Operador: <strong>${filaData.op}</strong><br>Semana: ${semanaKey} a ${fin}</p>
+                    ${filaData.baja === 'Sí' ? '<p style="background:#ffcdd2;color:#b71c1c;padding:8px 12px;border-radius:4px;font-weight:bold;margin-bottom:15px;">⚠️ Operador marcado como BAJA — pago de esta semana: $0</p>' : ''}
 
                     <h3 style="margin-bottom: 5px; font-size: 14px;">Movimientos diarios</h3>
                     <table style="width:100%; font-size: 12px; margin-bottom: 20px; border-collapse: collapse;">
