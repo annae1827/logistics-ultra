@@ -392,12 +392,42 @@
             };
             const simbolos = { 'asistio': '✓', 'falta': '✗', 'descanso': 'D', 'sindato': '·' };
 
+            // Calcular a qué semana (viernes a jueves) pertenece cada fecha
+            function semanaDeFecha(fecha) {
+                const [d, m, y] = fecha.split('/').map(Number);
+                const dateObj = new Date(y, m - 1, d);
+                const dayOfWeek = dateObj.getDay();
+                const diff = (dayOfWeek - 5 + 7) % 7;
+                const fridayDate = new Date(dateObj);
+                fridayDate.setDate(fridayDate.getDate() - diff);
+                return `${fridayDate.getFullYear()}-${String(fridayDate.getMonth() + 1).padStart(2, '0')}-${String(fridayDate.getDate()).padStart(2, '0')}`;
+            }
+
+            // Agrupar fechas consecutivas por semana para armar los colspan del encabezado
+            const gruposSemana = [];
+            fechas.forEach(fecha => {
+                const semKey = semanaDeFecha(fecha);
+                const ultimo = gruposSemana[gruposSemana.length - 1];
+                if (ultimo && ultimo.semKey === semKey) {
+                    ultimo.fechas.push(fecha);
+                } else {
+                    gruposSemana.push({ semKey, fechas: [fecha] });
+                }
+            });
+
+            let theadSemanas = '<tr><th style="position:sticky;left:0;top:0;background:#0d0d0d;color:#fff;z-index:3;"></th>';
+            gruposSemana.forEach(g => {
+                theadSemanas += `<th colspan="${g.fechas.length}" style="background:#3d5a45;color:#fff;padding:5px;font-size:11px;">📅 ${g.semKey}</th>`;
+            });
+            theadSemanas += '<th style="background:#0d0d0d;color:#fff;"></th></tr>';
+
             let thead = '<tr><th style="position:sticky;left:0;background:#1a1a1a;color:#fff;z-index:2;min-width:200px;text-align:left;padding:8px;">Operador</th>';
             fechas.forEach(fecha => {
                 const partes = fecha.split('/');
                 thead += `<th style="background:#1a1a1a;color:#fff;min-width:38px;padding:6px 4px;">${partes[0]}/${partes[1]}</th>`;
             });
-            thead += '</tr>';
+            thead += '<th style="background:#1a1a1a;color:#fff;min-width:55px;padding:6px 4px;">Días</th></tr>';
+            thead = theadSemanas + thead;
 
             let tbody = '';
             if (operadores.length === 0) {
@@ -405,11 +435,14 @@
             } else {
                 operadores.forEach(opNorm => {
                     const nombreBonito = mapaNormalizado[opNorm];
+                    let diasAsistidos = 0;
                     tbody += `<tr><td style="position:sticky;left:0;background:#fff;font-weight:bold;border-right:2px solid #ddd;white-space:nowrap;padding:6px 8px;">${nombreBonito}</td>`;
                     fechas.forEach(fecha => {
                         const estatus = registroMap[opNorm + '|' + fecha] || 'sindato';
+                        if (estatus === 'asistio') diasAsistidos++;
                         tbody += `<td style="text-align:center;padding:6px 4px;border:1px solid #eee;${colores[estatus]}" title="${fecha}: ${estatus}">${simbolos[estatus]}</td>`;
                     });
+                    tbody += `<td style="text-align:center;font-weight:bold;background:#eef5ee;border:1px solid #ddd;">${diasAsistidos}</td>`;
                     tbody += '</tr>';
                 });
             }
