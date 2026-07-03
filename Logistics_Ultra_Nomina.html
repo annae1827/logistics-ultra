@@ -392,11 +392,8 @@
             const asistio = estatusRaw.includes('asist') && !estatusRaw.includes('no asist');
             if (!asistio) return cargadosRaw;
 
-            const horas = calcularHoras(r.Entrada, r.Salida);
-            if (horas !== null && horas >= 10 && horas <= 12) {
-                return 5;
-            }
-            return cargadosRaw;
+            // Asistió pero no registró viajes cargados ese día -> se completa a 5, sin importar las horas trabajadas
+            return 5;
         }
 
         function semanaDeFecha(fecha) {
