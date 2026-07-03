@@ -1159,7 +1159,11 @@
                     init();
                     const ahora = new Date();
                     const hora = ahora.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
-                    actualizarBarraSync('ok', `Datos actualizados desde Google Sheets (${datos.length} registros) — ${hora}`);
+                    const totalCrudo = DATOS_ALEN.length;
+                    const totalUsados = datos.length;
+                    const descartados = totalCrudo - totalUsados;
+                    const detalleDescartados = descartados > 0 ? ` (${descartados} filas vacías/sin operador ignoradas)` : '';
+                    actualizarBarraSync('ok', `Datos actualizados desde Google Sheets: ${totalCrudo} filas descargadas${detalleDescartados} — ${hora}`);
                 },
                 error: function (err) {
                     console.error('Error al conectar con Google Sheets:', err);
