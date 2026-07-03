@@ -436,10 +436,19 @@
             });
 
             const gruposSemana = {};
-            fechasOrdenadas.forEach(fecha => {
-                const semKey = semanaDeFecha(fecha);
-                if (!gruposSemana[semKey]) gruposSemana[semKey] = [];
-                gruposSemana[semKey].push(fecha);
+            const semKeysConDatos = new Set();
+            fechasOrdenadas.forEach(fecha => semKeysConDatos.add(semanaDeFecha(fecha)));
+
+            semKeysConDatos.forEach(semKey => {
+                const partes = semKey.split('-');
+                const fridayDate = new Date(parseInt(partes[0]), parseInt(partes[1]) - 1, parseInt(partes[2]));
+                const dias = [];
+                for (let i = 0; i < 7; i++) {
+                    const d = new Date(fridayDate);
+                    d.setDate(d.getDate() + i);
+                    dias.push(`${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`);
+                }
+                gruposSemana[semKey] = dias;
             });
 
             const operadores = Array.from(operadoresSet).sort((a, b) =>
