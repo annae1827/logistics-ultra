@@ -399,7 +399,14 @@
             const asistio = estatusRaw.includes('asist') && !estatusRaw.includes('no asist');
             if (!asistio) return cargadosRaw;
 
-            // Asistió pero no registró viajes cargados ese día -> se completa a 5, sin importar las horas trabajadas
+            // Si abandonó el turno (marcó entrada pero nunca salida) no se completa: no terminó la jornada
+            const entradaPresente = r.Entrada && r.Entrada.trim() !== '';
+            const salidaPresente = r.Salida && r.Salida.trim() !== '';
+            if (entradaPresente && !salidaPresente) {
+                return cargadosRaw;
+            }
+
+            // Asistió, completó su turno, pero no registró viajes cargados ese día -> se completa a 5
             return 5;
         }
 
@@ -550,7 +557,13 @@
                         const reg = registroMap[opNorm + '|' + fecha];
                         const estatus = reg ? reg.estatus : 'sindato';
                         if (estatus === 'asistio') diasAsistidos++;
-                        if (reg && reg.horas !== null) { sumaHoras += reg.horas; countHoras++; }
+                        if (estatus === 'abandono') {
+                            // Abandonó el turno sin marcar salida -> cuenta como 0 horas ese día
+                            countHoras++;
+                        } else if (reg && reg.horas !== null) {
+                            sumaHoras += reg.horas;
+                            countHoras++;
+                        }
                         celdas += `<td style="text-align:center;padding:6px 4px;border:1px solid #eee;${colores[estatus]}" title="${fecha}: ${estatus}">${simbolos[estatus]}</td>`;
                     });
                     const horasProm = countHoras > 0 ? (sumaHoras / countHoras).toFixed(1) + 'h' : '-';
