@@ -60,21 +60,22 @@
         <div class="filters">
             <div class="filter-group">
                 <label>AÑO</label>
-                <select id="ano"></select>
+                <select id="ano" onchange="aplicar()"></select>
             </div>
             <div class="filter-group">
                 <label>MES</label>
-                <select id="mes"></select>
+                <select id="mes" onchange="aplicar()"></select>
             </div>
             <div class="filter-group">
                 <label>DÍA</label>
-                <select id="dia"></select>
+                <select id="dia" onchange="aplicar()"></select>
             </div>
             <button class="btn btn-primary" onclick="limpiar()">🔄 Limpiar Filtros</button>
         </div>
 
         <div class="tabs">
             <button class="tab active" onclick="mostrarTab('resumen')">📊 RESUMEN</button>
+            <button class="tab" onclick="mostrarTab('asistencia')">🗓️ ASISTENCIA</button>
             <button class="tab" onclick="mostrarTab('nomina')">💰 NÓMINA</button>
             <button class="tab" onclick="mostrarTab('recibos')">📋 RECIBOS</button>
         </div>
@@ -144,6 +145,19 @@
                 </table>
                 <div style="text-align: right; margin-top: 10px; font-size: 16px; font-weight: bold;">
                     Total General: <span id="total_general_nom">$0</span>
+                </div>
+            </div>
+
+            <!-- ASISTENCIA -->
+            <div id="asistencia" class="content-section">
+                <div style="margin-bottom: 15px;">
+                    <span style="margin-right: 20px;"><span style="display:inline-block;width:14px;height:14px;background:#c8e6c9;border-radius:3px;vertical-align:middle;"></span> Asistió</span>
+                    <span style="margin-right: 20px;"><span style="display:inline-block;width:14px;height:14px;background:#ffcdd2;border-radius:3px;vertical-align:middle;"></span> Falta</span>
+                    <span style="margin-right: 20px;"><span style="display:inline-block;width:14px;height:14px;background:#fff9c4;border-radius:3px;vertical-align:middle;"></span> Descanso</span>
+                    <span><span style="display:inline-block;width:14px;height:14px;background:#f0f0f0;border-radius:3px;vertical-align:middle;"></span> Sin registro</span>
+                </div>
+                <div style="overflow-x: auto; max-width: 100%; border: 1px solid #ddd;">
+                    <table id="t_asistencia" style="font-size: 12px; border-collapse: collapse; width: max-content;"></table>
                 </div>
             </div>
 
@@ -327,6 +341,80 @@
                 return `<div style="margin-bottom: 20px;"><h3 style="color: #2d5a3d; margin-bottom: 10px;">📅 ${v} a ${fin}</h3><div style="display: flex; flex-wrap: wrap;">${ops}</div></div>`;
             }).join('');
             document.getElementById('t5').innerHTML = html || '<div>Sin datos</div>';
+
+            generarAsistencia(f);
+        }
+
+        function generarAsistencia(f) {
+            const mapaNormalizado = {};
+            const operadoresSet = new Set();
+            const fechasSet = new Set();
+            const registroMap = {};
+
+            f.forEach(r => {
+                const opOriginal = (r.OP && r.OP.trim()) ? r.OP : (r.Operador || '');
+                if (!opOriginal) return;
+                const opNorm = normalizarNombre(opOriginal);
+                if (!mapaNormalizado[opNorm]) mapaNormalizado[opNorm] = opOriginal;
+                operadoresSet.add(opNorm);
+
+                const fechaStr = r.Fecha ? r.Fecha.trim() : '';
+                if (!fechaStr) return;
+                fechasSet.add(fechaStr);
+
+                const estatusRaw = (r.Estatus || '').trim().toLowerCase();
+                let estatus = 'sindato';
+                if (estatusRaw.includes('no asist')) estatus = 'falta';
+                else if (estatusRaw.includes('asist')) estatus = 'asistio';
+                else if (estatusRaw.includes('falta')) estatus = 'falta';
+                else if (estatusRaw.includes('descanso')) estatus = 'descanso';
+
+                registroMap[opNorm + '|' + fechaStr] = estatus;
+            });
+
+            const fechas = Array.from(fechasSet).sort((a, b) => {
+                const pa = a.split('/'), pb = b.split('/');
+                if (pa.length !== 3 || pb.length !== 3) return 0;
+                const da = new Date(parseInt(pa[2]), parseInt(pa[1]) - 1, parseInt(pa[0]));
+                const db = new Date(parseInt(pb[2]), parseInt(pb[1]) - 1, parseInt(pb[0]));
+                return da - db;
+            });
+
+            const operadores = Array.from(operadoresSet).sort((a, b) =>
+                (mapaNormalizado[a] || a).localeCompare(mapaNormalizado[b] || b)
+            );
+
+            const colores = {
+                'asistio': 'background:#c8e6c9;color:#1b5e20;',
+                'falta': 'background:#ffcdd2;color:#b71c1c;',
+                'descanso': 'background:#fff9c4;color:#795548;',
+                'sindato': 'background:#f0f0f0;color:#bbb;'
+            };
+            const simbolos = { 'asistio': '✓', 'falta': '✗', 'descanso': 'D', 'sindato': '·' };
+
+            let thead = '<tr><th style="position:sticky;left:0;background:#1a1a1a;color:#fff;z-index:2;min-width:200px;text-align:left;padding:8px;">Operador</th>';
+            fechas.forEach(fecha => {
+                const partes = fecha.split('/');
+                thead += `<th style="background:#1a1a1a;color:#fff;min-width:38px;padding:6px 4px;">${partes[0]}/${partes[1]}</th>`;
+            });
+            thead += '</tr>';
+
+            let tbody = '';
+            if (operadores.length === 0) {
+                tbody = `<tr><td style="padding:10px;">Sin datos para el filtro seleccionado</td></tr>`;
+            } else {
+                operadores.forEach(opNorm => {
+                    const nombreBonito = mapaNormalizado[opNorm];
+                    tbody += `<tr><td style="position:sticky;left:0;background:#fff;font-weight:bold;border-right:2px solid #ddd;white-space:nowrap;padding:6px 8px;">${nombreBonito}</td>`;
+                    fechas.forEach(fecha => {
+                        const estatus = registroMap[opNorm + '|' + fecha] || 'sindato';
+                        tbody += `<td style="text-align:center;padding:6px 4px;border:1px solid #eee;${colores[estatus]}" title="${fecha}: ${estatus}">${simbolos[estatus]}</td>`;
+                    });
+                    tbody += '</tr>';
+                });
+            }
+
+            document.getElementById('t_asistencia').innerHTML = `<thead>${thead}</thead><tbody>${tbody}</tbody>`;
         }
 
         function generarNomina() {
