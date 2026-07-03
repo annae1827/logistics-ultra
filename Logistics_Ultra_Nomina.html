@@ -263,7 +263,7 @@
             const mapaNormalizado = {}; // Para preservar el nombre original con buena capitalización
 
             f.forEach(r => {
-                const carg = parseInt(r['M Cargados']) || 0;
+                const carg = viajesEfectivosRegistro(r);
                 const opOriginal = (r.OP && r.OP.trim()) ? r.OP : (r.Operador || '');
                 if (!opOriginal) return;
                 
@@ -382,6 +382,23 @@
             return diff / 60;
         }
 
+        // Si el operador asistió, trabajó entre 10 y 12 horas, y no registró viajes cargados,
+        // se le completa el día a 5 viajes (regla de negocio acordada con Ana).
+        function viajesEfectivosRegistro(r) {
+            const cargadosRaw = parseInt(r['M Cargados']) || 0;
+            if (cargadosRaw > 0) return cargadosRaw;
+
+            const estatusRaw = (r.Estatus || '').trim().toLowerCase();
+            const asistio = estatusRaw.includes('asist') && !estatusRaw.includes('no asist');
+            if (!asistio) return cargadosRaw;
+
+            const horas = calcularHoras(r.Entrada, r.Salida);
+            if (horas !== null && horas >= 10 && horas <= 12) {
+                return 5;
+            }
+            return cargadosRaw;
+        }
+
         function semanaDeFecha(fecha) {
             const [d, m, y] = fecha.split('/').map(Number);
             const dateObj = new Date(y, m - 1, d);
@@ -423,8 +440,10 @@
                 }
 
                 const horas = calcularHoras(r.Entrada, r.Salida);
-                const cargados = parseInt(r['M Cargados']) || 0;
-                registroMap[opNorm + '|' + fechaStr] = { estatus, horas, cargados };
+                const cargadosRaw = parseInt(r['M Cargados']) || 0;
+                const cargados = viajesEfectivosRegistro(r);
+                const completado = cargados !== cargadosRaw;
+                registroMap[opNorm + '|' + fechaStr] = { estatus, horas, cargados, completado };
             });
 
             const fechasOrdenadas = Array.from(fechasSet).sort((a, b) => {
@@ -557,8 +576,21 @@
                         const reg = registroMap[opNorm + '|' + fecha];
                         const cargados = reg ? reg.cargados : 0;
                         totalMov += cargados;
-                        const bg = !reg ? 'background:#f0f0f0;color:#bbb;' : (cargados > 0 ? 'background:#e3f2fd;color:#0d47a1;' : 'background:#fafafa;color:#999;');
-                        celdasMov += `<td style="text-align:center;padding:6px 4px;border:1px solid #eee;${bg}" title="${fecha}">${reg ? cargados : '·'}</td>`;
+                        let bg, tooltip;
+                        if (!reg) {
+                            bg = 'background:#f0f0f0;color:#bbb;';
+                            tooltip = fecha;
+                        } else if (reg.completado) {
+                            bg = 'background:#ede7f6;color:#4527a0;font-weight:bold;';
+                            tooltip = `${fecha}: completado automáticamente (asistió, ${reg.horas ? reg.horas.toFixed(1) : '?'}h trabajadas, sin cargados registrados)`;
+                        } else if (cargados > 0) {
+                            bg = 'background:#e3f2fd;color:#0d47a1;';
+                            tooltip = fecha;
+                        } else {
+                            bg = 'background:#fafafa;color:#999;';
+                            tooltip = fecha;
+                        }
+                        celdasMov += `<td style="text-align:center;padding:6px 4px;border:1px solid #eee;${bg}" title="${tooltip}">${reg ? cargados : '·'}</td>`;
                     });
                     tbodyMov += `<tr><td style="position:sticky;left:0;background:#fff;font-weight:bold;border-right:2px solid #ddd;white-space:nowrap;padding:6px 8px;">${nombreBonito}</td>${celdasMov}<td style="text-align:center;font-weight:bold;background:#eef5ee;border:1px solid #ddd;">${totalMov}</td></tr>`;
                 });
@@ -623,8 +655,8 @@
                     mapaNormalizadoNom[opNorm] = opOriginal;
                 }
                 
-                const carg = parseInt(r['M Cargados']) || 0;
-                
+                const carg = viajesEfectivosRegistro(r);
+
                 if (!datosOps[opNorm]) {
                     datosOps[opNorm] = {c: 0, dias: new Set()};
                 }
@@ -948,7 +980,7 @@
             let viajesReales = 0;
             const diasSet = new Set();
             registros.forEach(r => {
-                viajesReales += parseInt(r['M Cargados']) || 0;
+                viajesReales += viajesEfectivosRegistro(r);
                 diasSet.add(r.Fecha);
             });
             const diasTrabajados = diasSet.size;
