@@ -395,16 +395,8 @@
             const cargadosRaw = parseInt(r['M Cargados']) || 0;
             if (cargadosRaw > 0) return cargadosRaw;
 
-            const estatusRaw = (r.Estatus || '').trim().toLowerCase();
-            const asistio = estatusRaw.includes('asist') && !estatusRaw.includes('no asist');
-            if (!asistio) return cargadosRaw;
-
-            // Si abandonó el turno (marcó entrada pero nunca salida) no se completa: no terminó la jornada
-            const entradaPresente = r.Entrada && r.Entrada.trim() !== '';
-            const salidaPresente = r.Salida && r.Salida.trim() !== '';
-            if (entradaPresente && !salidaPresente) {
-                return cargadosRaw;
-            }
+            const estatus = clasificarEstatus(r);
+            if (estatus !== 'asistio') return cargadosRaw; // no cuenta si es falta/descanso/abandono/sin dato
 
             // Asistió, completó su turno, pero no registró viajes cargados ese día -> se completa a 5
             return 5;
@@ -418,6 +410,24 @@
             const fridayDate = new Date(dateObj);
             fridayDate.setDate(fridayDate.getDate() - diff);
             return `${fridayDate.getFullYear()}-${String(fridayDate.getMonth() + 1).padStart(2, '0')}-${String(fridayDate.getDate()).padStart(2, '0')}`;
+        }
+
+        // Clasifica el estatus de un registro de forma consistente en TODO el dashboard
+        // (Asistencia, Nómina, Recibos). Devuelve: 'asistio' | 'falta' | 'descanso' | 'abandono' | 'sindato'
+        function clasificarEstatus(r) {
+            const estatusRaw = (r.Estatus || '').trim().toLowerCase();
+            let estatus = 'sindato';
+            if (estatusRaw.includes('no asist')) estatus = 'falta';
+            else if (estatusRaw.includes('asist')) estatus = 'asistio';
+            else if (estatusRaw.includes('falta')) estatus = 'falta';
+            else if (estatusRaw.includes('descanso')) estatus = 'descanso';
+
+            const entradaPresente = r.Entrada && r.Entrada.trim() !== '';
+            const salidaPresente = r.Salida && r.Salida.trim() !== '';
+            if (estatus === 'asistio' && entradaPresente && !salidaPresente) {
+                estatus = 'abandono'; // marcó entrada pero nunca salida -> no cuenta como día completo
+            }
+            return estatus;
         }
 
         function generarAsistencia(f) {
@@ -437,18 +447,7 @@
                 if (!fechaStr) return;
                 fechasSet.add(fechaStr);
 
-                const estatusRaw = (r.Estatus || '').trim().toLowerCase();
-                let estatus = 'sindato';
-                if (estatusRaw.includes('no asist')) estatus = 'falta';
-                else if (estatusRaw.includes('asist')) estatus = 'asistio';
-                else if (estatusRaw.includes('falta')) estatus = 'falta';
-                else if (estatusRaw.includes('descanso')) estatus = 'descanso';
-
-                const entradaPresente = r.Entrada && r.Entrada.trim() !== '';
-                const salidaPresente = r.Salida && r.Salida.trim() !== '';
-                if (estatus === 'asistio' && entradaPresente && !salidaPresente) {
-                    estatus = 'abandono'; // marcó entrada pero nunca salida -> se cuenta como falta
-                }
+                const estatus = clasificarEstatus(r);
 
                 const horas = calcularHoras(r.Entrada, r.Salida);
                 const cargadosRaw = parseInt(r['M Cargados']) || 0;
@@ -678,7 +677,9 @@
                     datosOps[opNorm] = {c: 0, dias: new Set()};
                 }
                 datosOps[opNorm].c += carg;
-                datosOps[opNorm].dias.add(r.Fecha); // Agregar fecha única
+                if (clasificarEstatus(r) === 'asistio') {
+                    datosOps[opNorm].dias.add(r.Fecha); // Solo cuenta como día trabajado si realmente asistió
+                }
             });
 
             // Convertir Set a count
@@ -1014,7 +1015,9 @@
             const diasSet = new Set();
             registros.forEach(r => {
                 viajesReales += viajesEfectivosRegistro(r);
-                diasSet.add(r.Fecha);
+                if (clasificarEstatus(r) === 'asistio') {
+                    diasSet.add(r.Fecha);
+                }
             });
             const diasTrabajados = diasSet.size;
             let viajesACompletar = 0;
