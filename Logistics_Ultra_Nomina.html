@@ -398,6 +398,12 @@
             const estatus = clasificarEstatus(r);
             if (estatus !== 'asistio') return cargadosRaw; // no cuenta si es falta/descanso/abandono/sin dato
 
+            // Día de capacitación: asistió pero no realizó recorridos, no se completa a 5 (como el descanso)
+            const comentarioRaw = (r.Comentario || '').toLowerCase();
+            if (comentarioRaw.includes('capacit')) {
+                return cargadosRaw;
+            }
+
             // Asistió, completó su turno, pero no registró viajes cargados ese día -> se completa a 5
             return 5;
         }
