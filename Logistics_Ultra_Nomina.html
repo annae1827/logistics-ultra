@@ -49,7 +49,7 @@
 
         @media print {
             @page { size: auto; margin: 8mm; }
-            body * { visibility: hidden; }
+            body > *:not(#modal) { display: none !important; }
             #modal, #modal * { visibility: visible; }
             #modal {
                 position: static !important;
