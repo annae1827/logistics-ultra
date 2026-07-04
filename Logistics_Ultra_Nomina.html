@@ -46,6 +46,29 @@
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; }
         .modal.active { display: flex; align-items: center; justify-content: center; }
         .modal-content { background: white; padding: 30px; border-radius: 5px; max-width: 600px; width: 90%; max-height: 80vh; overflow-y: auto; }
+
+        @media print {
+            @page { size: auto; margin: 8mm; }
+            body * { visibility: hidden; }
+            #modal, #modal * { visibility: visible; }
+            #modal {
+                position: static !important;
+                display: block !important;
+                background: none !important;
+                width: auto !important;
+                height: auto !important;
+            }
+            .modal-content {
+                max-width: none !important;
+                max-height: none !important;
+                width: auto !important;
+                overflow: visible !important;
+                padding: 0 !important;
+                box-shadow: none !important;
+            }
+            #recibo { max-width: none !important; }
+            #recibo button { display: none !important; }
+        }
         .modal-header { font-size: 18px; font-weight: bold; margin-bottom: 20px; }
         .close-btn { float: right; cursor: pointer; font-size: 24px; color: #999; }
     </style>
@@ -1215,7 +1238,7 @@
                             <div style="display:flex; padding:4px 8px;"><div style="flex:1;">Monto total Préstamo</div><div></div></div>
                             <div style="display:flex; background:#b2dfdb; padding:4px 8px;"><div style="flex:1;">Balance préstamo</div><div></div></div>
 
-                            <div style="display:flex; padding:6px 8px; font-weight:bold; border-top:2px solid #333; margin-top:100px;">
+                            <div style="display:flex; padding:6px 8px; font-weight:bold; border-top:2px solid #333; margin-top:20px;">
                                 <div style="flex:1;">Total deducciones</div><div>${money(totalDeducciones)}</div>
                             </div>
                         </div>
