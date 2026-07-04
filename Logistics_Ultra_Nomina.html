@@ -1004,6 +1004,20 @@
             window.print();
         }
 
+        const MESES_ABREV = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+
+        function codigoOperador(nombre) {
+            return nombre.split(' ').filter(p => p.length > 0).map(p => p[0].toUpperCase()).join('');
+        }
+
+        function numeroSemanaISO(fecha) {
+            const d = new Date(Date.UTC(fecha.getFullYear(), fecha.getMonth(), fecha.getDate()));
+            const dayNum = d.getUTCDay() || 7;
+            d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+            const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+            return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+        }
+
         function rec(opNombre, semanaKey) {
             const partes = semanaKey.split('-');
             const y = parseInt(partes[0]), m = parseInt(partes[1]), d = parseInt(partes[2]);
@@ -1081,62 +1095,137 @@
                 total: '$' + total.toLocaleString('es-MX', {maximumFractionDigits: 2})
             };
 
-            let filasMov = '';
+            // Detalle de viajes: los 7 días completos de la semana con su conteo real de movimientos
+            const mapaCargadosPorFecha = {};
             registros.forEach(r => {
-                filasMov += `<tr>
-                    <td style="padding:6px;border:1px solid #ddd;">${r.Fecha}</td>
-                    <td style="padding:6px;border:1px solid #ddd;">${r.Turno || '-'}</td>
-                    <td style="padding:6px;border:1px solid #ddd;">${r.Unidad || '-'}</td>
-                    <td style="padding:6px;border:1px solid #ddd;">${r['M Cargados'] || '0'}</td>
-                    <td style="padding:6px;border:1px solid #ddd;">${r['M Vacíos'] || '0'}</td>
-                    <td style="padding:6px;border:1px solid #ddd;">${r.Estatus || '-'}</td>
-                </tr>`;
+                mapaCargadosPorFecha[r.Fecha] = parseInt(r['M Cargados']) || 0;
             });
+            let filasDetalleViajes = '';
+            let movimientosTotales = 0;
+            for (let i = 0; i < 7; i++) {
+                const dFecha = new Date(fridayDate);
+                dFecha.setDate(dFecha.getDate() + i);
+                const fechaClave = `${String(dFecha.getDate()).padStart(2, '0')}/${String(dFecha.getMonth() + 1).padStart(2, '0')}/${dFecha.getFullYear()}`;
+                const fechaLabel = `${dFecha.getDate()}-${MESES_ABREV[dFecha.getMonth()]}`;
+                const cargadosDia = mapaCargadosPorFecha[fechaClave] || 0;
+                movimientosTotales += cargadosDia;
+                filasDetalleViajes += `<tr>
+                    <td style="padding:3px 8px;font-style:italic;text-align:center;">${fechaLabel}</td>
+                    <td style="padding:3px 8px;font-style:italic;text-align:center;">${cargadosDia > 0 ? cargadosDia + ' Movimientos' : 'Sin movimientos'}</td>
+                </tr>`;
+            }
 
-            const fin = `${thursdayDate.getFullYear()}-${String(thursdayDate.getMonth() + 1).padStart(2, '0')}-${String(thursdayDate.getDate()).padStart(2, '0')}`;
+            const numSemana = numeroSemanaISO(fridayDate);
+            const inicioLabel = `${fridayDate.getDate()}-${MESES_ABREV[fridayDate.getMonth()]}`;
+            const finLabelCorto = `${thursdayDate.getDate()}-${MESES_ABREV[thursdayDate.getMonth()]}`;
+            const codigo = codigoOperador(filaData.op);
+
+            const puntAsisMonto = punt + asis;
+            const montoTotalIncentivos = puntAsisMonto + bono2 + bonCoord + bonComp + noDesc;
+            const totalPercepciones = pagoFijo + montoTotalIncentivos;
+            const totalDeducciones = adelanto + prestamo + isr + penalizacion;
+            const money = (n) => '$' + n.toLocaleString('es-MX', {minimumFractionDigits: 2, maximumFractionDigits: 2});
 
             const html = `
-                <div style="font-family: Arial, sans-serif;">
-                    <h2 style="margin-bottom: 5px;">📄 Recibo de Nómina - Alen IP</h2>
-                    <p style="margin: 0 0 15px 0; color: #666;">Operador: <strong>${filaData.op}</strong><br>Semana: ${semanaKey} a ${fin}</p>
-                    ${filaData.baja === 'Sí' ? '<p style="background:#ffcdd2;color:#b71c1c;padding:8px 12px;border-radius:4px;font-weight:bold;margin-bottom:15px;">⚠️ Operador marcado como BAJA — pago de esta semana: $0</p>' : ''}
+                <div style="font-family: Arial, sans-serif; max-width: 900px; border: 2px solid #1a1a1a; padding: 15px;">
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start; border-bottom:3px solid #2d5a3d; padding-bottom:12px; margin-bottom:12px;">
+                        <div style="font-size:32px;">📦</div>
+                        <table style="font-size:13px; border-collapse:collapse;">
+                            <tr>
+                                <td style="font-weight:bold;padding:2px 8px;">Semana</td>
+                                <td style="background:#eee;text-align:center;padding:2px 14px;">${numSemana}</td>
+                                <td style="font-weight:bold;padding:2px 8px 2px 20px;">Tipo</td>
+                                <td style="background:#2d5a3d;color:#fff;text-align:center;padding:2px 14px;border-radius:3px;">IP</td>
+                            </tr>
+                            <tr>
+                                <td style="font-weight:bold;padding:2px 8px;">Del</td>
+                                <td style="background:#2d5a3d;color:#fff;text-align:center;padding:2px 14px;">${inicioLabel}</td>
+                                <td style="font-weight:bold;padding:2px 8px 2px 20px;">Asistencia</td>
+                                <td style="background:#eee;text-align:center;padding:2px 14px;">${filaData.diasTrabajados} Días</td>
+                            </tr>
+                            <tr>
+                                <td style="font-weight:bold;padding:2px 8px;">Al</td>
+                                <td style="background:#888;color:#fff;text-align:center;padding:2px 14px;">${finLabelCorto}</td>
+                            </tr>
+                            <tr>
+                                <td style="font-weight:bold;padding:2px 8px;">Operador</td>
+                                <td style="background:#eee;text-align:center;padding:2px 10px;">${codigo}</td>
+                                <td colspan="2" style="padding:2px 8px; font-weight:600;">${filaData.op}</td>
+                            </tr>
+                        </table>
+                    </div>
 
-                    <h3 style="margin-bottom: 5px; font-size: 14px;">Movimientos diarios</h3>
-                    <table style="width:100%; font-size: 12px; margin-bottom: 20px; border-collapse: collapse;">
-                        <thead><tr>
-                            <th style="background:#1a1a1a;color:#fff;padding:6px;border:1px solid #ddd;">Fecha</th>
-                            <th style="background:#1a1a1a;color:#fff;padding:6px;border:1px solid #ddd;">Turno</th>
-                            <th style="background:#1a1a1a;color:#fff;padding:6px;border:1px solid #ddd;">Unidad</th>
-                            <th style="background:#1a1a1a;color:#fff;padding:6px;border:1px solid #ddd;">Cargados</th>
-                            <th style="background:#1a1a1a;color:#fff;padding:6px;border:1px solid #ddd;">Vacíos</th>
-                            <th style="background:#1a1a1a;color:#fff;padding:6px;border:1px solid #ddd;">Estatus</th>
-                        </tr></thead>
-                        <tbody>${filasMov || '<tr><td colspan="6" style="padding:6px;border:1px solid #ddd;">Sin movimientos registrados</td></tr>'}</tbody>
-                    </table>
+                    ${filaData.baja === 'Sí' ? '<p style="background:#ffcdd2;color:#b71c1c;padding:8px 12px;border-radius:4px;font-weight:bold;margin-bottom:12px;">⚠️ Operador marcado como BAJA — percepción neta de esta semana: $0.00</p>' : ''}
 
-                    <h3 style="margin-bottom: 5px; font-size: 14px;">Desglose de pago</h3>
-                    <table style="width:100%; font-size: 13px;">
-                        <tr><td>Viajes realizados</td><td style="text-align:right;">${filaData.viajesReales}</td></tr>
-                        <tr><td>Días trabajados</td><td style="text-align:right;">${filaData.diasTrabajados}</td></tr>
-                        <tr><td>Viajes a completar</td><td style="text-align:right;">${filaData.viajesACompletar}</td></tr>
-                        <tr><td>Total viajes</td><td style="text-align:right;">${filaData.totalViajes}</td></tr>
-                        <tr><td>Movimientos ($200 c/u)</td><td style="text-align:right;">${filaData.movimientos}</td></tr>
-                        <tr><td>Pago fijo</td><td style="text-align:right;">${filaData.pagoFijo}</td></tr>
-                        <tr><td>Bono2</td><td style="text-align:right;">${filaData.bono2}</td></tr>
-                        <tr><td>Puntualidad</td><td style="text-align:right;">${filaData.punt === 'Sí' ? '$250' : '$0'}</td></tr>
-                        <tr><td>Asistencia</td><td style="text-align:right;">${filaData.asis === 'Sí' ? '$250' : '$0'}</td></tr>
-                        <tr><td>Bono completar</td><td style="text-align:right;">$${filaData.bonComp}</td></tr>
-                        <tr><td>Bono coordinación</td><td style="text-align:right;">${filaData.bonCoord === 'Sí' ? '$300' : '$0'}</td></tr>
-                        <tr><td>No descanso</td><td style="text-align:right;">${filaData.noDesc === 'Sí' ? '$500' : '$0'}</td></tr>
-                        <tr style="border-top: 2px solid #333;"><td><strong>Subtotal</strong></td><td style="text-align:right;"><strong>${filaData.subtotal}</strong></td></tr>
-                        <tr><td>Préstamo</td><td style="text-align:right;">-$${filaData.prestamo}</td></tr>
-                        <tr><td>Adelanto</td><td style="text-align:right;">-$${filaData.adelanto}</td></tr>
-                        <tr><td>Penalización</td><td style="text-align:right;">-$${filaData.penalizacion}</td></tr>
-                        <tr><td>ISR (7.5%)</td><td style="text-align:right;">${filaData.isr}</td></tr>
-                        <tr style="border-top: 2px solid #333; background:#e8f5e9;"><td><strong>TOTAL A PAGAR</strong></td><td style="text-align:right;"><strong>${filaData.total}</strong></td></tr>
-                    </table>
+                    <div style="display:flex; border:1px solid #333; font-size:13px;">
+                        <div style="flex:1; border-right:1px solid #333;">
+                            <div style="background:#b2dfdb; padding:6px; font-weight:bold; text-align:center; border-bottom:1px solid #333;">Percepciones</div>
+                            <div style="display:flex; padding:5px 8px; border-bottom:1px solid #333; font-weight:bold;">
+                                <div style="flex:1;">Concepto</div><div>Monto</div>
+                            </div>
 
-                    <div style="margin-top: 20px; text-align: right;">
+                            <div style="background:#f0f0f0; padding:4px 8px; font-weight:bold; text-align:center;">Detalle de viajes</div>
+                            <table style="width:100%; border-collapse:collapse;">
+                                <tr style="font-weight:bold; font-style:italic;"><td style="padding:3px 8px;text-align:center;">Fecha</td><td style="padding:3px 8px;text-align:center;">Movimiento</td></tr>
+                                ${filasDetalleViajes}
+                            </table>
+                            <div style="display:flex; background:#b2dfdb; padding:5px 8px; font-weight:bold;">
+                                <div style="flex:1;">Movimientos totales</div><div>${movimientosTotales} Movimientos</div>
+                            </div>
+                            <div style="display:flex; padding:5px 8px; font-weight:bold; border-bottom:1px solid #ddd;">
+                                <div style="flex:1;">Sueldo Fijo</div><div>${money(pagoFijo)}</div>
+                            </div>
+
+                            <div style="background:#f0f0f0; padding:4px 8px; font-weight:bold; text-align:center; margin-top:8px;">Incentivos</div>
+                            <div style="display:flex; padding:3px 8px; font-style:italic; font-weight:bold;">
+                                <div style="flex:1;">Tipo de incentivo</div><div>$ Monto</div>
+                            </div>
+                            <div style="display:flex; padding:3px 8px; font-style:italic;"><div style="flex:1;">Asistencia, puntualidad y comunicación - Bono Semanal</div><div>${puntAsisMonto > 0 ? money(puntAsisMonto) : ''}</div></div>
+                            <div style="display:flex; padding:3px 8px; font-style:italic;"><div style="flex:1;">No descanso</div><div>${noDesc > 0 ? money(noDesc) : ''}</div></div>
+                            <div style="display:flex; padding:3px 8px; font-style:italic;"><div style="flex:1;">Completar viajes</div><div>${bono2 > 0 ? money(bono2) : ''}</div></div>
+                            <div style="display:flex; padding:3px 8px; font-style:italic;"><div style="flex:1;">Apoyo Coordinación</div><div>${bonCoord > 0 ? money(bonCoord) : ''}</div></div>
+                            <div style="display:flex; padding:3px 8px; font-style:italic;"><div style="flex:1;">Bono discrecional</div><div>${bonComp > 0 ? money(bonComp) : ''}</div></div>
+                            <div style="display:flex; background:#b2dfdb; padding:5px 8px; font-weight:bold; border-top:1px solid #333;">
+                                <div style="flex:1;">Monto total por incentivos</div><div>${money(montoTotalIncentivos)}</div>
+                            </div>
+
+                            <div style="padding:8px; font-size:12px; color:#555;">Comentarios:</div>
+                            <div style="display:flex; padding:6px 8px; font-weight:bold; border-top:2px solid #333;">
+                                <div style="flex:1;">Total percepciones</div><div>${money(totalPercepciones)}</div>
+                            </div>
+                        </div>
+
+                        <div style="flex:1;">
+                            <div style="background:#b2dfdb; padding:6px; font-weight:bold; text-align:center; border-bottom:1px solid #333;">Deducciones</div>
+                            <div style="display:flex; padding:5px 8px; border-bottom:1px solid #333; font-weight:bold;">
+                                <div style="flex:1;">Concepto</div><div>Monto</div>
+                            </div>
+                            <div style="display:flex; padding:4px 8px;"><div style="flex:1;">Comidas</div><div>${money(0)}</div></div>
+                            <div style="display:flex; padding:4px 8px;"><div style="flex:1;">Cubrir la cámara</div><div>${money(0)}</div></div>
+                            <div style="display:flex; padding:4px 8px;"><div style="flex:1;">Faltante de Diesel</div><div>${money(0)}</div></div>
+                            <div style="display:flex; padding:4px 8px;"><div style="flex:1;">Llevar Unidad a otro domicilio</div><div>${money(0)}</div></div>
+                            <div style="display:flex; padding:4px 8px;"><div style="flex:1;">Faltas</div><div>${money(0)}</div></div>
+                            <div style="display:flex; padding:4px 8px;"><div style="flex:1;">Adelanto de Nómina OPS</div><div>${money(adelanto)}</div></div>
+                            <div style="display:flex; padding:4px 8px;"><div style="flex:1;">Préstamos</div><div>${money(prestamo)}</div></div>
+                            <div style="display:flex; padding:4px 8px;"><div style="flex:1;">Infonavit</div><div>${money(0)}</div></div>
+                            <div style="display:flex; padding:4px 8px;"><div style="flex:1;">ISR</div><div>${money(isr)}</div></div>
+                            <div style="display:flex; padding:4px 8px;"><div style="flex:1;">Penalizaciones</div><div>${penalizacion > 0 ? money(penalizacion) : ''}</div></div>
+
+                            <div style="padding:20px 8px 4px;"></div>
+                            <div style="display:flex; padding:4px 8px;"><div style="flex:1;">Monto total Préstamo</div><div></div></div>
+                            <div style="display:flex; background:#b2dfdb; padding:4px 8px;"><div style="flex:1;">Balance préstamo</div><div></div></div>
+
+                            <div style="display:flex; padding:6px 8px; font-weight:bold; border-top:2px solid #333; margin-top:100px;">
+                                <div style="flex:1;">Total deducciones</div><div>${money(totalDeducciones)}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="display:flex; justify-content:flex-end; padding:8px; background:#b2dfdb; border:1px solid #333; border-top:none; font-weight:bold; font-size:15px;">
+                        <div style="margin-right:20px;">Percepción neta</div><div>${money(esBaja ? 0 : totalPercepciones - totalDeducciones)}</div>
+                    </div>
+
+                    <div style="margin-top: 15px; text-align: right;">
                         <button class="btn btn-primary" onclick="window.print()">🖨️ Imprimir</button>
                     </div>
                 </div>
