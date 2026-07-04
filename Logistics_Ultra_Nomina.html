@@ -419,13 +419,15 @@
         // Clasifica el estatus de un registro de forma consistente en TODO el dashboard
         // (Asistencia, Nómina, Recibos). Devuelve: 'asistio' | 'falta' | 'descanso' | 'abandono' | 'sindato'
         function clasificarEstatus(r) {
+            // La capacitación se trata igual que el descanso: no cuenta como día trabajado en ningún cálculo
+            if (esCapacitacion(r)) return 'capacitacion';
+
             const estatusRaw = (r.Estatus || '').trim().toLowerCase();
             let estatus = 'sindato';
             if (estatusRaw.includes('no asist')) estatus = 'falta';
             else if (estatusRaw.includes('asist')) estatus = 'asistio';
             else if (estatusRaw.includes('falta')) estatus = 'falta';
             else if (estatusRaw.includes('descanso')) estatus = 'descanso';
-            else if (estatusRaw.includes('capacit')) estatus = 'asistio'; // capacitación cuenta como día de asistencia
 
             const entradaPresente = r.Entrada && r.Entrada.trim() !== '';
             const salidaPresente = r.Salida && r.Salida.trim() !== '';
@@ -459,10 +461,7 @@
                 if (!fechaStr) return;
                 fechasSet.add(fechaStr);
 
-                let estatus = clasificarEstatus(r);
-                if (estatus === 'asistio' && esCapacitacion(r)) {
-                    estatus = 'capacitacion'; // categoría visual propia (no cuenta viajes, pero sí es asistencia)
-                }
+                const estatus = clasificarEstatus(r);
 
                 const horas = calcularHoras(r.Entrada, r.Salida);
                 const cargadosRaw = parseInt(r['M Cargados']) || 0;
@@ -571,7 +570,7 @@
                     fechas.forEach(fecha => {
                         const reg = registroMap[opNorm + '|' + fecha];
                         const estatus = reg ? reg.estatus : 'sindato';
-                        if (estatus === 'asistio' || estatus === 'capacitacion') diasAsistidos++;
+                        if (estatus === 'asistio') diasAsistidos++;
                         if (estatus === 'abandono') {
                             // Abandonó el turno sin marcar salida -> cuenta como 0 horas ese día
                             countHoras++;
