@@ -166,6 +166,7 @@
                     <span style="margin-right: 20px;"><span style="display:inline-block;width:14px;height:14px;background:#c8e6c9;border-radius:3px;vertical-align:middle;"></span> Asistió</span>
                     <span style="margin-right: 20px;"><span style="display:inline-block;width:14px;height:14px;background:#ffcdd2;border-radius:3px;vertical-align:middle;"></span> Falta</span>
                     <span style="margin-right: 20px;"><span style="display:inline-block;width:14px;height:14px;background:#ffe0b2;border-radius:3px;vertical-align:middle;"></span> Abandonó (sin salida)</span>
+                    <span style="margin-right: 20px;"><span style="display:inline-block;width:14px;height:14px;background:#bbdefb;border-radius:3px;vertical-align:middle;"></span> Capacitación</span>
                     <span style="margin-right: 20px;"><span style="display:inline-block;width:14px;height:14px;background:#fff9c4;border-radius:3px;vertical-align:middle;"></span> Descanso</span>
                     <span><span style="display:inline-block;width:14px;height:14px;background:#f0f0f0;border-radius:3px;vertical-align:middle;"></span> Sin registro</span>
                 </div>
@@ -392,17 +393,14 @@
         // Si el operador asistió, trabajó entre 10 y 12 horas, y no registró viajes cargados,
         // se le completa el día a 5 viajes (regla de negocio acordada con Ana).
         function viajesEfectivosRegistro(r) {
+            // Capacitación se paga con monto fijo, no por viaje: sus movimientos no cuentan para nómina
+            if (esCapacitacion(r)) return 0;
+
             const cargadosRaw = parseInt(r['M Cargados']) || 0;
             if (cargadosRaw > 0) return cargadosRaw;
 
             const estatus = clasificarEstatus(r);
             if (estatus !== 'asistio') return cargadosRaw; // no cuenta si es falta/descanso/abandono/sin dato
-
-            // Día de capacitación: asistió pero no realizó recorridos, no se completa a 5 (como el descanso)
-            const comentarioRaw = (r.Comentario || '').toLowerCase();
-            if (comentarioRaw.includes('capacit')) {
-                return cargadosRaw;
-            }
 
             // Asistió, completó su turno, pero no registró viajes cargados ese día -> se completa a 5
             return 5;
@@ -427,6 +425,7 @@
             else if (estatusRaw.includes('asist')) estatus = 'asistio';
             else if (estatusRaw.includes('falta')) estatus = 'falta';
             else if (estatusRaw.includes('descanso')) estatus = 'descanso';
+            else if (estatusRaw.includes('capacit')) estatus = 'asistio'; // capacitación cuenta como día de asistencia
 
             const entradaPresente = r.Entrada && r.Entrada.trim() !== '';
             const salidaPresente = r.Salida && r.Salida.trim() !== '';
@@ -434,6 +433,13 @@
                 estatus = 'abandono'; // marcó entrada pero nunca salida -> no cuenta como día completo
             }
             return estatus;
+        }
+
+        // Detecta si el registro corresponde a un día de capacitación (buscando en Estatus o Comentario).
+        // La capacitación se paga con un monto fijo ($750), no por viaje, así que sus viajes no cuentan.
+        function esCapacitacion(r) {
+            const texto = ((r.Estatus || '') + ' ' + (r.Comentario || '')).toLowerCase();
+            return texto.includes('capacit');
         }
 
         function generarAsistencia(f) {
@@ -453,7 +459,10 @@
                 if (!fechaStr) return;
                 fechasSet.add(fechaStr);
 
-                const estatus = clasificarEstatus(r);
+                let estatus = clasificarEstatus(r);
+                if (estatus === 'asistio' && esCapacitacion(r)) {
+                    estatus = 'capacitacion'; // categoría visual propia (no cuenta viajes, pero sí es asistencia)
+                }
 
                 const horas = calcularHoras(r.Entrada, r.Salida);
                 const cargadosRaw = parseInt(r['M Cargados']) || 0;
@@ -525,9 +534,10 @@
                 'falta': 'background:#ffcdd2;color:#b71c1c;',
                 'abandono': 'background:#ffe0b2;color:#e65100;',
                 'descanso': 'background:#fff9c4;color:#795548;',
+                'capacitacion': 'background:#bbdefb;color:#0d47a1;',
                 'sindato': 'background:#f0f0f0;color:#bbb;'
             };
-            const simbolos = { 'asistio': '✓', 'falta': '✗', 'abandono': '⚠', 'descanso': 'D', 'sindato': '·' };
+            const simbolos = { 'asistio': '✓', 'falta': '✗', 'abandono': '⚠', 'descanso': 'D', 'capacitacion': '🎓', 'sindato': '·' };
 
             if (!semKey || !gruposSemana[semKey]) {
                 document.getElementById('t_asistencia').innerHTML = '<tr><td style="padding:10px;">Sin datos para el filtro seleccionado</td></tr>';
@@ -561,7 +571,7 @@
                     fechas.forEach(fecha => {
                         const reg = registroMap[opNorm + '|' + fecha];
                         const estatus = reg ? reg.estatus : 'sindato';
-                        if (estatus === 'asistio') diasAsistidos++;
+                        if (estatus === 'asistio' || estatus === 'capacitacion') diasAsistidos++;
                         if (estatus === 'abandono') {
                             // Abandonó el turno sin marcar salida -> cuenta como 0 horas ese día
                             countHoras++;
