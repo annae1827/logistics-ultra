@@ -174,6 +174,7 @@ tfoot td.r{text-align:right}
     <div class="ni" onclick="goTab('ual',this)"><span class="ni-e">&#x1F69B;</span>P&L UAL</div>
     <div class="ni" onclick="goTab('jf',this)"><span class="ni-e">&#x1F3E2;</span>P&L JAVP Fiscal</div>
     <div class="ni" onclick="goTab('jnf',this)"><span class="ni-e">&#x1F4BC;</span>P&L JAVP No Fiscal</div>
+    <div class="ni" onclick="goTab('br',this)"><span class="ni-e">&#x1F3E6;</span>P&L JAVP Banregio</div>
     <div class="sb-sec">Socios</div>
     <div class="ni" onclick="goTab('nomina',this)"><span class="ni-e">&#x1F465;</span>Nomina de Socios</div>
     <div class="sb-sec">Analisis</div>
@@ -282,7 +283,7 @@ function mkBar(id,labs,datasets,hor){
 }
 
 // ROUTING
-const TABS={res:'&#x1F4CA; Resumen General',pnl:'&#x1F4C8; P&L Empresa (Total)',ual:'&#x1F69B; P&L UAL',jf:'&#x1F3E2; P&L JAVP Fiscal',jnf:'&#x1F4BC; P&L JAVP No Fiscal',br:'&#x1F3E6; P&L JAVP Banregio',nomina:'&#x1F465; Nomina de Socios',clas:'&#x1F5C2;&#xFE0F; Por Clasificacion',fij:'&#x1F4CC; Gastos Fijos'};
+const TABS={res:'&#x1F4CA; Resumen General',pnl:'&#x1F4C8; P&L Empresa (Total)',ual:'&#x1F69B; P&L UAL',jf:'&#x1F3E2; P&L JAVP Fiscal',jnf:'&#x1F4BC; P&L JAVP No Fiscal',br:'&#x1F3E6; P&L JAVP Banregio',br:'&#x1F3E6; P&L JAVP Banregio',nomina:'&#x1F465; Nomina de Socios',clas:'&#x1F5C2;&#xFE0F; Por Clasificacion',fij:'&#x1F4CC; Gastos Fijos'};
 function goTab(name,el){
   curTab=name;curMes=-1;curTG='all';
   document.querySelectorAll('.ni').forEach(n=>n.classList.remove('on'));
@@ -297,6 +298,7 @@ function render(){
   else if(curTab==='ual')dPNL(byTipo('UAL'),'&#x1F69B; UAL','tag-u','UAL');
   else if(curTab==='jf')dPNL(byTipo('JAVP_Fiscal'),'&#x1F3E2; JAVP Fiscal','tag-jf','JAVP Fiscal');
   else if(curTab==='jnf')dPNL(byTipo('JAVP_No_Fiscal'),'&#x1F4BC; JAVP No Fiscal','tag-jnf','JAVP No Fiscal');
+  else if(curTab==='br')dPNL(byTipo('JAVP_Banregio'),'&#x1F3E6; JAVP Banregio','tag-br','JAVP Banregio');
   else if(curTab==='br')dPNL(byTipo('JAVP_Banregio'),'&#x1F3E6; JAVP Banregio','tag-br','JAVP Banregio');
   else if(curTab==='nomina')dNomina();
   else if(curTab==='clas')dClas();
