@@ -306,7 +306,7 @@ function render(){
 // ─── RESUMEN ────────────────────────────────────────────────────────────────
 function dRes(){
   const all=applyFilters(RAW);
-  const ual=byTipo('UAL'),jf=byTipo('JAVP_Fiscal'),jnf=byTipo('JAVP_No_Fiscal');
+  const ual=byTipo('UAL'),jf=byTipo('JAVP_Fiscal'),jnf=byTipo('JAVP_No_Fiscal'),br=byTipo('JAVP_Banregio');
   const tD=sD(all),tR=sR(all);
   const dM=byMD(all),rM=byMR(all);
   const mxI=dM.reduce((b,v,i)=>v>dM[b]?i:b,0);
@@ -327,6 +327,7 @@ function dRes(){
     kc('UAL neto',fmtK(sD(ual)-sR(ual)),sD(ual)-sR(ual)>=0?'b':'r','&#x1F69B;','Ing: '+fmtK(sD(ual)))+
     kc('JAVP Fiscal neto',fmtK(sD(jf)-sR(jf)),sD(jf)-sR(jf)>=0?'g':'r','&#x1F3E2;','Ing: '+fmtK(sD(jf)))+
     kc('JAVP No Fiscal neto',fmtK(sD(jnf)-sR(jnf)),sD(jnf)-sR(jnf)>=0?'y':'r','&#x1F4BC;','Ing: '+fmtK(sD(jnf)))+
+    kc('JAVP Banregio neto',fmtK(sD(br)-sR(br)),sD(br)-sR(br)>=0?'b':'r','&#x1F3E6;','Ing: '+fmtK(sD(br)))+
     '</div>'+
     '<div class="cc"><div class="cc-t">&#x1F4C8; Ingresos vs Egresos mensuales</div>'+
     '<div class="lgnd"><span><span class="lsq" style="background:#10b981"></span>Ingresos</span><span><span class="lsq" style="background:#ef4444"></span>Egresos</span></div>'+
