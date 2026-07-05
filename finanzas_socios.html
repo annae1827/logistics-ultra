@@ -143,6 +143,7 @@ tfoot td.r{text-align:right}
 .tag-u{background:#dbeafe;color:#1e40af;font-weight:700;padding:2px 10px;border-radius:99px;font-size:11px;display:inline-block}
 .tag-jf{background:var(--grn2);color:#065f46;font-weight:700;padding:2px 10px;border-radius:99px;font-size:11px;display:inline-block}
 .tag-jnf{background:var(--ylw2);color:#92400e;font-weight:700;padding:2px 10px;border-radius:99px;font-size:11px;display:inline-block}
+.tag-br{background:#e0e7ff;color:#3730a3;font-weight:700;padding:2px 10px;border-radius:99px;font-size:11px;display:inline-block}
 .slbl{font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.07em;margin:16px 0 10px;display:flex;align-items:center;gap:8px}
 .slbl::after{content:'';flex:1;height:1px;background:var(--br)}
 /* Nomina socios card */
@@ -226,8 +227,9 @@ function applyFilters(arr){
 function byTipo(tipo){
   const d=applyFilters(RAW);
   if(tipo==='UAL')return d.filter(r=>r[0]==='UAL');
-  if(tipo==='JAVP_No_Fiscal')return d.filter(r=>r[0]&&r[0].includes('No'));
-  if(tipo==='JAVP_Fiscal')return d.filter(r=>r[0]&&r[0].includes('Fiscal')&&!r[0].includes('No'));
+  if(tipo==='JAVP_No_Fiscal')return d.filter(r=>r[0]==='JAVP_No_Fiscal');
+  if(tipo==='JAVP_Fiscal')return d.filter(r=>r[0]==='JAVP_Fiscal');
+  if(tipo==='JAVP_Banregio')return d.filter(r=>r[0]==='JAVP_Banregio');
   return d;
 }
 const sD=a=>a.reduce((s,r)=>s+r[3],0);
@@ -280,7 +282,7 @@ function mkBar(id,labs,datasets,hor){
 }
 
 // ROUTING
-const TABS={res:'&#x1F4CA; Resumen General',pnl:'&#x1F4C8; P&L Empresa (Total)',ual:'&#x1F69B; P&L UAL',jf:'&#x1F3E2; P&L JAVP Fiscal',jnf:'&#x1F4BC; P&L JAVP No Fiscal',nomina:'&#x1F465; Nomina de Socios',clas:'&#x1F5C2;&#xFE0F; Por Clasificacion',fij:'&#x1F4CC; Gastos Fijos'};
+const TABS={res:'&#x1F4CA; Resumen General',pnl:'&#x1F4C8; P&L Empresa (Total)',ual:'&#x1F69B; P&L UAL',jf:'&#x1F3E2; P&L JAVP Fiscal',jnf:'&#x1F4BC; P&L JAVP No Fiscal',br:'&#x1F3E6; P&L JAVP Banregio',nomina:'&#x1F465; Nomina de Socios',clas:'&#x1F5C2;&#xFE0F; Por Clasificacion',fij:'&#x1F4CC; Gastos Fijos'};
 function goTab(name,el){
   curTab=name;curMes=-1;curTG='all';
   document.querySelectorAll('.ni').forEach(n=>n.classList.remove('on'));
@@ -295,6 +297,7 @@ function render(){
   else if(curTab==='ual')dPNL(byTipo('UAL'),'&#x1F69B; UAL','tag-u','UAL');
   else if(curTab==='jf')dPNL(byTipo('JAVP_Fiscal'),'&#x1F3E2; JAVP Fiscal','tag-jf','JAVP Fiscal');
   else if(curTab==='jnf')dPNL(byTipo('JAVP_No_Fiscal'),'&#x1F4BC; JAVP No Fiscal','tag-jnf','JAVP No Fiscal');
+  else if(curTab==='br')dPNL(byTipo('JAVP_Banregio'),'&#x1F3E6; JAVP Banregio','tag-br','JAVP Banregio');
   else if(curTab==='nomina')dNomina();
   else if(curTab==='clas')dClas();
   else if(curTab==='fij')dFij();
@@ -312,7 +315,7 @@ function dRes(){
     {e:'&#x1F4B0;',t:'Balance general',b:'Ingresos <b>'+fmtK(tD)+'</b> vs Egresos <b>'+fmtK(tR)+'</b> &mdash; Neto: <b>'+fmtK(tD-tR)+'</b>'},
     {e:'&#x1F3C6;',t:'Mayor categoria de gasto',b:topCl?'<b>'+topCl[0]+'</b>: '+fmtK(topCl[1]):'Sin datos'},
     {e:'&#x1F4C5;',t:'Mes de mayor ingreso',b:'<b>'+MES[mxI]+'</b> con <b>'+fmtK(dM[mxI])+'</b>'},
-    {e:'&#x1F69B;',t:'Por cuenta',b:'UAL: '+fmtK(sD(ual))+' &nbsp;|&nbsp; JAVP F: '+fmtK(sD(jf))+' &nbsp;|&nbsp; No F: '+fmtK(sD(jnf))},
+    {e:'&#x1F69B;',t:'Por cuenta',b:'UAL: '+fmtK(sD(ual))+' | JAVP F: '+fmtK(sD(jf))+' | No F: '+fmtK(sD(jnf))+' | Banregio: '+fmtK(sD(br))},
   ];
   $('main').innerHTML=
     ibox(ins)+
@@ -596,25 +599,28 @@ function dClas(){
   const ual=byTipo('UAL').filter(r=>r[4]>0);
   const jf=byTipo('JAVP_Fiscal').filter(r=>r[4]>0);
   const jnf=byTipo('JAVP_No_Fiscal').filter(r=>r[4]>0);
+  const brC=byTipo('JAVP_Banregio').filter(r=>r[4]>0);
   const gd=all.reduce((a,r)=>a+r[4],0);
   const rows=topCl.map(([cl,tot_])=>{
     const ua=ual.filter(r=>r[5]===cl).reduce((a,r)=>a+r[4],0);
     const jfa=jf.filter(r=>r[5]===cl).reduce((a,r)=>a+r[4],0);
     const jnfa=jnf.filter(r=>r[5]===cl).reduce((a,r)=>a+r[4],0);
-    return '<tr><td style="font-weight:700">'+cl+'</td><td class="r b">'+(ua?fmt(ua):'—')+'</td><td class="r g">'+(jfa?fmt(jfa):'—')+'</td><td class="r y">'+(jnfa?fmt(jnfa):'—')+'</td><td class="r re">'+fmt(tot_)+'</td><td class="r mu">'+(gd?(tot_/gd*100).toFixed(1):0)+'%</td></tr>';
+    const bra=brC.filter(r=>r[5]===cl).reduce((a,r)=>a+r[4],0);
+    return '<tr><td style="font-weight:700">'+cl+'</td><td class="r b">'+(ua?fmt(ua):'—')+'</td><td class="r g">'+(jfa?fmt(jfa):'—')+'</td><td class="r y">'+(jnfa?fmt(jnfa):'—')+'</td><td class="r" style="color:#3730a3">'+(bra?fmt(bra):'—')+'</td><td class="r re">'+fmt(tot_)+'</td><td class="r mu">'+(gd?(tot_/gd*100).toFixed(1):0)+'%</td></tr>';
   }).join('');
 
   $('main').innerHTML=
     fbox([{l:'Mes',h:sMes()},{l:'Tipo gasto',h:sTG(all)}])+
     '<div class="cc"><div class="cc-t">&#x1F5C2;&#xFE0F; Egresos por clasificacion &mdash; top 20 (por empresa)</div>'+
     '<div style="position:relative;height:'+Math.max(280,topCl.length*30+60)+'px"><canvas id="cCb"></canvas></div></div>'+
-    '<div class="tw"><table><thead><tr><th>Clasificacion</th><th class="r">UAL</th><th class="r">JAVP Fiscal</th><th class="r">JAVP No Fiscal</th><th class="r">Total</th><th class="r">%</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+    '<div class="tw"><table><thead><tr><th>Clasificacion</th><th class="r">UAL</th><th class="r">JAVP Fiscal</th><th class="r">JAVP No Fiscal</th><th class="r">JAVP Banregio</th><th class="r">Total</th><th class="r">%</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
 
   const topClF=topCl.filter(([cl])=>cl&&cl!=='S/D'&&cl!=='Sin clasificar');
   CH['cCb']=new Chart($('cCb'),{type:'bar',data:{labels:topClF.map(x=>x[0]),datasets:[
     {label:'UAL',data:topClF.map(([cl])=>ual.filter(r=>r[5]===cl).reduce((a,r)=>a+r[4],0)),backgroundColor:'rgba(59,130,246,.75)',borderRadius:4},
     {label:'JAVP Fiscal',data:topClF.map(([cl])=>jf.filter(r=>r[5]===cl).reduce((a,r)=>a+r[4],0)),backgroundColor:'rgba(16,185,129,.75)',borderRadius:4},
     {label:'JAVP No Fiscal',data:topClF.map(([cl])=>jnf.filter(r=>r[5]===cl).reduce((a,r)=>a+r[4],0)),backgroundColor:'rgba(245,158,11,.75)',borderRadius:4},
+    {label:'JAVP Banregio',data:topClF.map(([cl])=>brC.filter(r=>r[5]===cl).reduce((a,r)=>a+r[4],0)),backgroundColor:'rgba(99,102,241,.75)',borderRadius:4},
   ]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,layout:{padding:{right:80}},
     plugins:{legend:{display:true,position:'top',labels:{font:{size:11},usePointStyle:true}},datalabels:{display:false},tooltip:{callbacks:{label:c=>' '+fmt(c.raw)}}},
     scales:{x:{ticks:{color:'#94a3b8',font:{size:10},callback:v=>fmtK(v)},grid:{color:'rgba(0,0,0,.04)'}},
