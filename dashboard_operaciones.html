@@ -12,7 +12,7 @@
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:Inter,-apple-system,sans-serif;background:#f8fafb;color:#0f172a;font-size:13px}
 :root{--teal:#0d9488;--teal2:#14b8a6;--teal3:#99f6e4;--teal-bg:#f0fdfa;--green:#059669;--slate:#64748b;--slate2:#94a3b8;--dark:#0f172a;--amber:#d97706;--red:#ef4444;--white:#fff}
-.hdr{background:#fff;border-bottom:1px solid #e2e8f0;padding:0 24px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:100;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.hdr{background:#fff;border-bottom:1px solid #e2e8f0;padding:10px 24px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;position:sticky;top:0;z-index:100;box-shadow:0 1px 3px rgba(0,0,0,.06)}
 .logo{width:36px;height:36px;background:var(--teal);border-radius:10px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:14px;flex-shrink:0}
 .brand{display:flex;flex-direction:column;line-height:1.2}
 .brand b{font-size:14px;font-weight:700}
@@ -69,6 +69,7 @@ select.fb{appearance:none;padding-right:20px;background-image:url("data:image/sv
 <div class="hdr">
   <div class="logo">LU</div>
   <div class="brand"><b>Logistics Ultra</b><span>Operaci&oacute;n Alen &middot; Interplantas</span></div>
+  <a class="opsbtn" href="dashboard_operaciones.html" style="margin-left:0">&larr; Reporte Global</a>
   <div class="tabs">
     <button class="tab" id="t0" onclick="showTab(0)">🚚 Movimientos IP</button>
     <button class="tab" id="t1" onclick="showTab(1)">📈 Productividad %</button>
@@ -78,7 +79,6 @@ select.fb{appearance:none;padding-right:20px;background-image:url("data:image/sv
     <button class="tab" id="t5" onclick="showTab(5)">⚖️ Pesos</button>
     <button class="tab active" id="t6" onclick="showTab(6)">📊 Resumen Ejecutivo</button>
   </div>
-  <a class="opsbtn" href="dashboard_operaciones.html">&larr; Reporte Global</a>
 </div>
 
 <div id="diagBanner" style="background:#fffbeb;border-bottom:1px solid #fde68a;padding:8px 24px;font-size:11px;color:#92400e;font-family:monospace">
