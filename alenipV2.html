@@ -488,29 +488,25 @@ var MES_ES_MAP = {ene:1,feb:2,mar:3,abr:4,may:5,jun:6,jul:7,ago:8,sep:9,oct:10,n
 
 var CACHE_MINUTES = 10; // reutiliza datos descargados hace menos de esto, sin volver a pedirlos
 function fetchCSV(gid){
-  var cacheKey = 'csvcache_v1_'+gid;
+  var cacheKey = 'csvcache_v2_'+gid;
   return new Promise(function(resolve){
     try{
       var cached = localStorage.getItem(cacheKey);
       if(cached){
         var obj = JSON.parse(cached);
-        if(Date.now()-obj.t < CACHE_MINUTES*60*1000){
-          var parsedCache = Papa.parse(obj.raw, {header:true, skipEmptyLines:true});
-          resolve(parsedCache.data);
+        if(obj && obj.rows && (Date.now()-obj.t) < CACHE_MINUTES*60*1000){
+          resolve(obj.rows);
           return;
         }
       }
     }catch(e){}
-    fetch(CSV_BASE+gid).then(function(r){ return r.text(); }).then(function(text){
-      try{ localStorage.setItem(cacheKey, JSON.stringify({t:Date.now(), raw:text})); }catch(e){}
-      var parsed = Papa.parse(text, {header:true, skipEmptyLines:true});
-      resolve(parsed.data);
-    }).catch(function(){
-      // fallback al método anterior si fetch() falla por CORS
-      Papa.parse(CSV_BASE+gid, {download:true, header:true, skipEmptyLines:true,
-        complete:function(res){ resolve(res.data); },
-        error:function(){ resolve([]); }
-      });
+    Papa.parse(CSV_BASE+gid, {
+      download:true, header:true, skipEmptyLines:true,
+      complete:function(res){
+        try{ localStorage.setItem(cacheKey, JSON.stringify({t:Date.now(), rows:res.data})); }catch(e){}
+        resolve(res.data);
+      },
+      error:function(){ resolve([]); }
     });
   });
 }
@@ -820,6 +816,9 @@ function setDiag(html, isError){
 function boot(){
   var t0=performance.now();
   setDiag('&#9203; Descargando hojas de Google Sheets&hellip;');
+  var watchdog=setTimeout(function(){
+    setDiag('&#9888; Llevamos m&aacute;s de 25s esperando la respuesta de Google Sheets. Puede ser tu conexi&oacute;n, o que alguna hoja publicada haya cambiado de gid/URL. Revisa la consola (F12) y recarga la p&aacute;gina.', true);
+  }, 25000);
   Promise.all([
     fetchCSV(GIDS.movimientos),
     fetchCSV(GIDS.mantenimiento),
@@ -827,6 +826,7 @@ function boot(){
     fetchCSV(GIDS.costos),
     fetchCSV(GIDS.pesos)
   ]).then(function(res){
+    clearTimeout(watchdog);
     var tFetch=performance.now();
     var movRows=res[0], mttoRows=res[1], opRows=res[2], costRows=res[3], pesosRows=res[4];
     var counts='Movimientos: '+movRows.length+' filas &middot; Mantenimiento: '+mttoRows.length+' &middot; Operaci&oacute;n/hora: '+opRows.length+' &middot; Costos: '+costRows.length+' &middot; Pesos: '+pesosRows.length;
@@ -859,13 +859,24 @@ function boot(){
     setDiag('&#10003; Datos actualizados ('+timing+') &middot; '+counts);
     setTimeout(function(){ var el=document.getElementById('diagBanner'); if(el) el.style.display='none'; }, 8000);
   }).catch(function(err){
+    clearTimeout(watchdog);
     console.error(err);
     setDiag('&#9888; Error al cargar/procesar los datos: '+(err&&err.message||err)+'. Revisa la consola del navegador (F12) para el detalle completo.', true);
   });
 }
 
+window.addEventListener('error', function(ev){
+  setDiag('&#9888; Error de JavaScript: '+(ev.message||'desconocido')+' (l&iacute;nea '+(ev.lineno||'?')+'). Abre la consola del navegador (F12) para el detalle.', true);
+});
+
+var _waitPapaTries=0;
 (function waitPapa(){
   if(typeof Papa!=='undefined' && typeof Chart!=='undefined'){ boot(); return; }
+  _waitPapaTries++;
+  if(_waitPapaTries>100){ // ~15s sin cargar Chart.js/PapaParse
+    setDiag('&#9888; No se pudieron cargar las librer&iacute;as Chart.js/PapaParse (revisa tu conexi&oacute;n o si un bloqueador de anuncios est&aacute; frenando los CDN).', true);
+    return;
+  }
   setTimeout(waitPapa, 150);
 })();
 </script>
