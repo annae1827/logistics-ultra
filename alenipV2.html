@@ -104,17 +104,23 @@ select.fb{appearance:none;padding-right:20px;background-image:url("data:image/sv
 
 <div class="rbar">
   <label>RANGO:</label>
-  <div class="rw" id="rngWrap">
-    <div class="rtrack"></div>
-    <div id="rngFill"></div>
-    <input type="range" id="rngA" min="0" value="0" oninput="onRange()">
-    <input type="range" id="rngB" min="0" value="0" oninput="onRange()">
+  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+    <select id="rngMesA" class="rsel" onchange="onRangeMY()"></select>
+    <select id="rngAnioA" class="rsel" onchange="onRangeMY()"></select>
+    <span style="color:var(--slate2)">&rarr;</span>
+    <select id="rngMesB" class="rsel" onchange="onRangeMY()"></select>
+    <select id="rngAnioB" class="rsel" onchange="onRangeMY()"></select>
   </div>
   <div class="rlbl" id="rngLblA">--</div>
   <span style="color:var(--slate2)">&rarr;</span>
   <div class="rlbl" id="rngLblB">--</div>
   <button class="rrst" onclick="resetRange()">Restablecer</button>
 </div>
+
+<style>
+.rsel{border:1px solid #e2e8f0;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:600;color:var(--dark);background:#fff;cursor:pointer}
+.rsel:focus{outline:2px solid var(--teal);outline-offset:1px}
+</style>
 
 <!-- TAB 0: MOVIMIENTOS IP -->
 <div id="p0" class="panel active"><div class="shell">
@@ -986,6 +992,22 @@ var MES_K = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','
 var MES_N = {1:'Enero',2:'Febrero',3:'Marzo',4:'Abril',5:'Mayo',6:'Junio',7:'Julio',8:'Agosto',9:'Septiembre',10:'Octubre',11:'Noviembre',12:'Diciembre'};
 var MES_I = {Ene:1,Feb:2,Mar:3,Abr:4,May:5,Jun:6,Jul:7,Ago:8,Sep:9,Oct:10,Nov:11,Dic:12};
 
+// Etiqueta de periodo real, calculada a partir del rango real de datos (D.daily) —
+// nunca un texto fijo, para que nunca quede desfasada cuando lleguen meses nuevos.
+var PERIODO_LABEL = (function(){
+  if(!window.D || !D.daily || !D.daily.length) return 'Sin datos';
+  var first=D.daily[0].date, last=D.daily[D.daily.length-1].date;
+  var f=first.split('-'), l=last.split('-');
+  return MES_K[parseInt(f[1],10)-1]+' '+f[0]+' \u2013 '+MES_K[parseInt(l[1],10)-1]+' '+l[0];
+})();
+var N_MESES_LABEL = (function(){
+  if(!window.D || !D.daily || !D.daily.length) return '';
+  var first=D.daily[0].date, last=D.daily[D.daily.length-1].date;
+  var f=first.split('-'), l=last.split('-');
+  var n=(parseInt(l[0],10)-parseInt(f[0],10))*12+(parseInt(l[1],10)-parseInt(f[1],10))+1;
+  return n+' meses';
+})();
+
 var C = {
   teal:'#0d9488', teal2:'#14b8a6', tealA:'rgba(13,148,136,0.75)',
   teal2A:'rgba(20,184,166,0.75)', tealLight:'rgba(13,148,136,0.12)',
@@ -1179,7 +1201,7 @@ function renderHorasMuertas(src, thresh){
   // Grand total footer — total ALL movements in period
   var grandEl = document.getElementById('tmHorasGrand');
   if(grandEl){
-    var yr2=SEL.yr==='all'?'Nov 2024 – May 2026':String(SEL.yr);
+    var yr2=SEL.yr==='all'?PERIODO_LABEL:String(SEL.yr);
     var mes2=SEL.mes!=='all'?' · '+['','Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'][SEL.mes]:'';
     grandEl.innerHTML=
       '<div style="display:flex;align-items:center;gap:8px">'+
@@ -1359,7 +1381,7 @@ function renderAreaHora(src){
   // Update subtitle label
   var el=document.getElementById('ctAreaHora');
   if(el){
-    var yr=SEL.yr==='all'?'Nov 2024 – May 2026':String(SEL.yr);
+    var yr=SEL.yr==='all'?PERIODO_LABEL:String(SEL.yr);
     var mes=SEL.mes!=='all'?' · '+['','Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'][SEL.mes]:'';
     var dow=TM.dow!=='all'?' · '+TM.dow:'';
     el.textContent=yr+mes+dow;
@@ -1609,18 +1631,43 @@ function toggleVs(){
   if(SEL.vs)btn.classList.add('act');else btn.classList.remove('act');
   refreshAll();
 }
-function onRange(){
-  var a=parseInt(document.getElementById('rngA').value);
-  var b=parseInt(document.getElementById('rngB').value);
+var MES_K_RNG=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+function initRangeSelectors(){
+  if(!ALL_DATES.length) return;
+  var first=ALL_DATES[0].split('-'), last=ALL_DATES[ALL_DATES.length-1].split('-');
+  var yFirst=parseInt(first[0],10), yLast=parseInt(last[0],10);
+  var years=[]; for(var y=yFirst;y<=yLast;y++) years.push(y);
+  function fillSelects(mesSel,anioSel){
+    mesSel.innerHTML=MES_K_RNG.map(function(m,i){return '<option value="'+(i+1)+'">'+m+'</option>';}).join('');
+    anioSel.innerHTML=years.map(function(y){return '<option value="'+y+'">'+y+'</option>';}).join('');
+  }
+  var mA=document.getElementById('rngMesA'), aA=document.getElementById('rngAnioA');
+  var mB=document.getElementById('rngMesB'), aB=document.getElementById('rngAnioB');
+  fillSelects(mA,aA); fillSelects(mB,aB);
+  mA.value=String(parseInt(first[1],10)); aA.value=String(yFirst);
+  mB.value=String(parseInt(last[1],10));  aB.value=String(yLast);
+}
+function findDateIdx(year,month,preferFirst){
+  // primer/último índice de ALL_DATES dentro de ese año-mes; si no hay datos ese mes,
+  // usa el mes/anio disponible más cercano dentro del rango real
+  var ym=String(year)+'-'+(month<10?'0':'')+month;
+  var idxs=[]; for(var i=0;i<ALL_DATES.length;i++){ if(ALL_DATES[i].substring(0,7)===ym) idxs.push(i); }
+  if(idxs.length) return preferFirst?idxs[0]:idxs[idxs.length-1];
+  // fallback: clamp al rango real de datos
+  var target=year*12+month;
+  var f=ALL_DATES[0].split('-'), l=ALL_DATES[ALL_DATES.length-1].split('-');
+  var fTarget=parseInt(f[0],10)*12+parseInt(f[1],10), lTarget=parseInt(l[0],10)*12+parseInt(l[1],10);
+  if(target<fTarget) return 0;
+  if(target>lTarget) return ALL_DATES.length-1;
+  return preferFirst?0:ALL_DATES.length-1;
+}
+function onRangeMY(){
+  var mA=parseInt(document.getElementById('rngMesA').value,10), aA=parseInt(document.getElementById('rngAnioA').value,10);
+  var mB=parseInt(document.getElementById('rngMesB').value,10), aB=parseInt(document.getElementById('rngAnioB').value,10);
+  var a=findDateIdx(aA,mA,true), b=findDateIdx(aB,mB,false);
   if(a>b){var tmp=a;a=b;b=tmp;}
   RNG.a=a;RNG.b=b;
-  updateRangeFill();updateRangeLabels();refreshAll();
-}
-function updateRangeFill(){
-  var n=ALL_DATES.length-1;
-  var pA=RNG.a/n*100,pB=RNG.b/n*100;
-  document.getElementById('rngFill').style.left=pA+'%';
-  document.getElementById('rngFill').style.width=(pB-pA)+'%';
+  updateRangeLabels();refreshAll();
 }
 function updateRangeLabels(){
   var MN=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
@@ -1630,11 +1677,10 @@ function updateRangeLabels(){
 }
 function resetRange(){
   RNG.a=0;RNG.b=ALL_DATES.length-1;
-  document.getElementById('rngA').value=0;
-  document.getElementById('rngB').value=ALL_DATES.length-1;
-  updateRangeFill();updateRangeLabels();refreshAll();
+  initRangeSelectors();
+  updateRangeLabels();refreshAll();
 }
-setTimeout(function(){updateRangeFill();},50);
+setTimeout(function(){initRangeSelectors();updateRangeLabels();},50);
 
 function prevYr(yr){if(yr==='all')return null;return yr>2024?yr-1:null;}
 function fmt(n){return n!=null?Math.round(n).toLocaleString('es-MX'):'--';}
@@ -1768,7 +1814,7 @@ function renderMov(){
   var best=act.reduce(function(a,b){return b.total>a.total?b:a;},{total:0,date:''});
   var hv=SEL.vs&&prev.length>0;
   document.getElementById('kMov').innerHTML=
-    mkKpi('Total movimientos',fmt(tot),SEL.yr==='all'?'Nov 2024-May 2026':String(SEL.yr),hv?tot-tot0:null,C.teal)+
+    mkKpi('Total movimientos',fmt(tot),SEL.yr==='all'?PERIODO_LABEL:String(SEL.yr),hv?tot-tot0:null,C.teal)+
     mkKpi('Cargados',fmt(c),pct(c,tot)+'% del total',hv?c-c0:null,C.teal)+
     mkKpi('Vac\u00edos',fmt(v),pct(v,tot)+'% del total',hv?v-v0:null,C.slate)+
     mkKpi('Prom. diario',avg,'mov/d\u00eda operado',null,C.green)+
@@ -1870,7 +1916,7 @@ function renderMov(){
   if(SEL.yr!=='all')ds=ds.filter(function(x){return parseInt(x.date.substring(0,4))===SEL.yr;});
   if(SEL.mes!=='all')ds=ds.filter(function(x){return parseInt(x.date.substring(5,7))===SEL.mes;});
   var lineLabels=ds.map(function(x){return x.dow_es+' '+x.date.substring(5,7)+'/'+x.date.substring(8,10);});
-  document.getElementById('ctAvgSub').textContent=(SEL.yr==='all'?'Nov 2024 \u2013 May 2026':String(SEL.yr))+(SEL.mes!=='all'?' \u00b7 '+MES_N[SEL.mes]:'');
+  document.getElementById('ctAvgSub').textContent=(SEL.yr==='all'?PERIODO_LABEL:String(SEL.yr))+(SEL.mes!=='all'?' \u00b7 '+MES_N[SEL.mes]:'');
   mk('cAvgLine','line',{labels:lineLabels,datasets:[
     {label:'Promedio Cargados',data:ds.map(function(x){return x.c;}),borderColor:C.teal,backgroundColor:C.tealLight,fill:true,borderWidth:2,pointRadius:2,tension:.3,datalabels:DL_OFF},
     {label:'Promedio Vac\u00edos',data:ds.map(function(x){return x.v;}),borderColor:C.slate2,backgroundColor:C.slateLight,fill:true,borderWidth:1.5,pointRadius:2,tension:.3,datalabels:DL_OFF}
@@ -1944,7 +1990,7 @@ function updateProdCard(){
   if(SEL.mes!=='all') filtDays=filtDays.filter(function(r){return r.month===SEL.mes;});
   var totalViajes=filtDays.reduce(function(s,r){return s+(r[vistaField]||0);},0);
   var daysOver=filtDays.filter(function(r){return (r[vistaField]||0)>meta;}).length;
-  var periodo=yr==='all'?'19 meses · Nov 2024–May 2026':(SEL.mes!=='all'?['','Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'][SEL.mes]+' '+yr:String(yr));
+  var periodo=yr==='all'?(N_MESES_LABEL+' · '+PERIODO_LABEL):(SEL.mes!=='all'?['','Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'][SEL.mes]+' '+yr:String(yr));
 
   ref.innerHTML=
     '<div style="display:flex;flex-wrap:wrap;gap:14px">'+
