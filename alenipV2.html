@@ -737,9 +737,9 @@ function renderPesos(){
     });
   });
   mk('cPesoMes','bar',{labels:mLabels,datasets:[
-    {label:'OK',data:mOk,backgroundColor:'rgba(22,163,74,0.75)',stack:'s'},
-    {label:'Subcarga',data:mSub,backgroundColor:'rgba(245,158,11,0.75)',stack:'s'},
-    {label:'Sobrecarga',data:mSobre,backgroundColor:'rgba(239,68,68,0.75)',stack:'s'}
+    {label:'OK',data:mOk,backgroundColor:'rgba(22,163,74,0.75)',stack:'s',datalabels:DL_IN},
+    {label:'Subcarga',data:mSub,backgroundColor:'rgba(245,158,11,0.75)',stack:'s',datalabels:DL_IN},
+    {label:'Sobrecarga',data:mSobre,backgroundColor:'rgba(239,68,68,0.75)',stack:'s',datalabels:DL_STKTOP}
   ]},{scales:{x:{...ax,stacked:true,ticks:{color:TC,font:{size:9},maxRotation:45}},y:{...ax,stacked:true}},plugins:{legend:{display:true,position:'bottom',labels:{color:TC,font:{size:11},boxWidth:12}}}});
 
   // ── Distribución total ──
@@ -764,9 +764,9 @@ function renderPesos(){
 
   // ── Por año ──
   mk('cPesoAnio','bar',{labels:yrs,datasets:[
-    {label:'OK',data:yrs.map(function(y){return P.yearly[y].ok;}),backgroundColor:'rgba(22,163,74,0.75)',stack:'s'},
-    {label:'Subcarga',data:yrs.map(function(y){return P.yearly[y].sub;}),backgroundColor:'rgba(245,158,11,0.75)',stack:'s'},
-    {label:'Sobrecarga',data:yrs.map(function(y){return P.yearly[y].sobre;}),backgroundColor:'rgba(239,68,68,0.75)',stack:'s'}
+    {label:'OK',data:yrs.map(function(y){return P.yearly[y].ok;}),backgroundColor:'rgba(22,163,74,0.75)',stack:'s',datalabels:DL_IN},
+    {label:'Subcarga',data:yrs.map(function(y){return P.yearly[y].sub;}),backgroundColor:'rgba(245,158,11,0.75)',stack:'s',datalabels:DL_IN},
+    {label:'Sobrecarga',data:yrs.map(function(y){return P.yearly[y].sobre;}),backgroundColor:'rgba(239,68,68,0.75)',stack:'s',datalabels:DL_STKTOP}
   ]},{scales:{x:{...ax,stacked:true},y:{...ax,stacked:true}},plugins:{legend:{display:true,position:'bottom',labels:{color:TC,font:{size:11},boxWidth:12}}}});
 
   // ── Tabla detalle por año/mes ──
@@ -1686,7 +1686,7 @@ function mkPKpi(lbl,val,sub,delta,col){
   return '<div class="kpi" style="'+(col?'border-top:2px solid '+col:'')+'"><div class="klbl">'+lbl+'</div><div class="kval" style="'+(col?'color:'+col:'')+'">'+val+'%</div><div class="ksub">'+sub+'</div>'+dh+'</div>';
 }
 var DL_OFF={display:false};
-var DL_STKTOP={display:true,anchor:'end',align:'top',clamp:true,clip:false,color:'#475569',font:{size:9,weight:'600'},padding:{bottom:2},formatter:function(v,ctx){var ds=ctx.chart.data.datasets;if(ds[ds.length-1].label!==ctx.dataset.label)return '';var t=ds.reduce(function(a,d){return a+(d.data[ctx.dataIndex]||0);},0);return t>0?Math.round(t).toLocaleString('es-MX'):'';} };
+var DL_STKTOP={display:true,anchor:'end',align:'top',clamp:true,clip:false,color:'#475569',font:{size:9,weight:'600'},padding:{bottom:2},formatter:function(v,ctx){var ds=ctx.chart.data.datasets;var stk=ds.filter(function(d){return d.stack===ctx.dataset.stack;});if(stk[stk.length-1].label!==ctx.dataset.label)return '';var t=stk.reduce(function(a,d){return a+(d.data[ctx.dataIndex]||0);},0);return t>0?Math.round(t).toLocaleString('es-MX'):'';} };
 var DL_IN={display:true,anchor:'center',align:'center',clamp:true,color:'#fff',font:{size:8,weight:'500'},formatter:function(v){return v>0?Math.round(v).toLocaleString('es-MX'):'';} };
 
 // ============ MOVIMIENTOS ============
@@ -1843,7 +1843,7 @@ function renderMov(){
   mk('cSem','line',{labels:wLblsFinal,datasets:semDS},{scales:{x:{...ax,ticks:{color:TC,font:{size:8},autoSkip:true,maxRotation:0,maxTicksLimit:24}},y:ax}});
 
   var sorted=cur.slice().filter(function(d){return d.total>0;}).sort(function(a,b){return a.date<b.date?-1:1;});
-  var diaMetaLine=sorted.map(function(d){return getDayCap(d.date);});
+  var diaMetaLine=sorted.map(function(){return 28;});
   mk('cDia','bar',{labels:sorted.map(function(d){return d.date.substring(5);}),datasets:[
     {label:'Cargados',data:sorted.map(function(d){return d.cargado||0;}),backgroundColor:C.tealA,stack:'s',datalabels:DL_OFF},
     {label:'Vacíos',data:sorted.map(function(d){return d.vacio||0;}),backgroundColor:C.slate2A,stack:'s',datalabels:{display:true,anchor:'end',align:'end',color:'#475569',font:{size:7},formatter:function(v,ctx){var t=sorted[ctx.dataIndex]?sorted[ctx.dataIndex].total:0;return t>0?t:'';}},order:2},
@@ -1852,7 +1852,7 @@ function renderMov(){
   ]},{scales:{x:{...ax,stacked:true,ticks:{color:TC,font:{size:9},autoSkip:true,maxTicksLimit:12}},y:{...ax,stacked:true}},
   plugins:{legend:{display:true,position:'bottom',labels:{color:TC,font:{size:11},boxWidth:12,filter:function(item){return item.text!=='Meta';}}},
     tooltip:{mode:'index',intersect:false,callbacks:{label:function(c){
-      if(c.dataset.label==='Meta') return 'Meta ese día: '+c.parsed.y+' cargados';
+      if(c.dataset.label==='Meta') return 'Meta cargados: '+c.parsed.y;
       return c.dataset.label+': '+c.parsed.y;
     }}}}});
   document.getElementById('ctDia').innerHTML='SERIE DIARIA <em>'+(SEL.yr==='all'?'Todos':String(SEL.yr))+mesStr+'</em>';
@@ -1972,26 +1972,13 @@ function renderMeta30(rows){
   var MAX_BARS = SEL.yr==='all' ? 180 : 999;
 
   function drawMetaChart(canvasId, META, lineColor, suffixId, field, fieldLabel){
-    // Days with < 30% of day capacity = effectively no operation (inhábil/festivo)
-    var dayCap30 = function(date){ return Math.round(getDayCap(date)*0.3)||1; };
-    var active = rows.filter(function(r){return (r[field]||0)>=dayCap30(r.date);});
+    // Meta fija — sin ajustar por día. Un día "sin operación" es simplemente 0 viajes.
+    var active = rows.filter(function(r){return (r[field]||0)>0;});
     var filtered = active.slice().sort(function(a,b){return a.date<b.date?-1:1;});
-    var zero  = rows.filter(function(r){return (r[field]||0)<dayCap30(r.date);}).length;
-    // Use per-day scaled meta: getDayCap(date)/28 * META
-    // A day "meets meta" if cargados >= that day's scaled target
-    var exact = filtered.filter(function(r){
-      var dayMeta=Math.round(getDayCap(r.date)/28*META);
-      return (r[field]||0)===dayMeta;
-    }).length;
-    var over  = filtered.filter(function(r){
-      var dayMeta=Math.round(getDayCap(r.date)/28*META);
-      return (r[field]||0)>dayMeta;
-    }).length;
-    var under = filtered.filter(function(r){
-      var dayMeta=Math.round(getDayCap(r.date)/28*META);
-      var v=r[field]||0;
-      return v>0&&v<dayMeta;
-    }).length;
+    var zero  = rows.filter(function(r){return (r[field]||0)===0;}).length;
+    var exact = filtered.filter(function(r){ return (r[field]||0)===META; }).length;
+    var over  = filtered.filter(function(r){ return (r[field]||0)>META; }).length;
+    var under = filtered.filter(function(r){ var v=r[field]||0; return v>0&&v<META; }).length;
     var peakVal = filtered.length ? Math.max.apply(null, filtered.map(function(r){return r[field]||0;})) : 0;
     var peakPct = META>0 ? Math.round(peakVal/META*10)/10 : 0;
     var el;
@@ -2000,11 +1987,8 @@ function renderMeta30(rows){
     el=document.getElementById('cntUnder'+suffixId); if(el) el.textContent=under;
     el=document.getElementById('cntZero'+suffixId);  if(el) el.textContent=zero;
     el=document.getElementById('cntPeak'+suffixId);  if(el) el.textContent=Math.round(peakVal/META*1000)/10+'%';
-    // met = days where actual >= day's scaled meta (includes exact and over)
-    var met=filtered.filter(function(r){
-      var dayMeta=Math.round(getDayCap(r.date)/28*META);
-      return (r[field]||0)>=dayMeta&&(r[field]||0)>0;
-    }).length;
+    // met = días donde lo real >= meta fija (incluye exacto y sobre meta)
+    var met=filtered.filter(function(r){ return (r[field]||0)>=META; }).length;
     el=document.getElementById('cntMet'+suffixId);   if(el) el.textContent=met;
 
     var display = filtered.length > MAX_BARS ? filtered.slice(filtered.length - MAX_BARS) : filtered;
@@ -2014,21 +1998,14 @@ function renderMeta30(rows){
 
     var colors = display.map(function(r){
       var v=r[field]||0;
-      var dayMeta=Math.round(getDayCap(r.date)/28*META);
-      if(v===0)         return 'rgba(239,68,68,0.70)';
-      if(v===dayMeta)   return 'rgba(22,163,74,0.80)';
-      if(v>dayMeta)     return 'rgba(37,99,235,0.75)';
+      if(v===0)     return 'rgba(239,68,68,0.70)';
+      if(v===META)  return 'rgba(22,163,74,0.80)';
+      if(v>META)    return 'rgba(37,99,235,0.75)';
       return 'rgba(148,163,184,0.55)';
     });
 
-    // Dynamic meta line: per-day capacity scaled to this chart's META
-    // For cargado charts: cap = getDayCap(date), for total: cap*49/28
-    var metaLine = display.map(function(r){
-      var base = getDayCap(r.date); // 0, 14, or 28
-      if(field==='total') return Math.round(base/28*META);
-      if(field==='cargado') return Math.round(base/28*META);
-      return Math.round(base/28*META);
-    });
+    // Meta fija: misma línea horizontal en todo el periodo mostrado
+    var metaLine = display.map(function(){ return META; });
 
     mk(canvasId,'bar',{
       labels: labels,
@@ -2049,10 +2026,9 @@ function renderMeta30(rows){
         tooltip:{callbacks:{
           title:function(items){return display[items[0].dataIndex]?display[items[0].dataIndex].date:'';},
           label:function(c){
-            if(c.dataset.label==='Meta') return 'Meta ese día: '+c.parsed.y+' '+fieldLabel;
+            if(c.dataset.label==='Meta') return 'Meta: '+c.parsed.y+' '+fieldLabel;
             var v=c.parsed.y;
-            var dayM=metaLine[c.dataIndex]||META;
-            var flag=v===0?'sin operación':v>=dayM?'✓ meta cumplida ('+dayM+')':'✗ bajo meta ('+dayM+')';
+            var flag=v===0?'sin operación':v>=META?'✓ meta cumplida ('+META+')':'✗ bajo meta ('+META+')';
             return v+' '+fieldLabel+' — '+flag;
           }
         }},
