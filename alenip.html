@@ -394,24 +394,38 @@ select.fb{appearance:none;padding-right:20px;background-image:url("data:image/sv
 
 <!-- TAB 5: PESOS -->
 <div id="p5" class="panel"><div class="shell">
-  <div class="kg" id="kPesos" style="grid-template-columns:repeat(4,1fr)"></div>
+  <div class="kg" id="kPesos" style="grid-template-columns:repeat(5,1fr)"></div>
   <div class="c2">
-    <div class="card"><div class="ct">DISTRIBUCI&Oacute;N POR TIPO DE CARGA</div><div class="cw" style="height:260px"><canvas id="cPesoDist"></canvas></div></div>
-    <div class="card">
-      <div class="ct">TOP CHOFERES CON M&Aacute;S SOBRECARGAS</div>
+    <div class="card"><div class="ct" id="ctPesoMes">VIAJES POR MES</div><div class="cw" style="height:220px"><canvas id="cPesoMes"></canvas></div></div>
+    <div class="card"><div class="ct">DISTRIBUCI&Oacute;N POR TIPO DE CARGA</div><div class="cw" style="height:220px"><canvas id="cPesoDist"></canvas></div></div>
+  </div>
+  <div class="c2">
+    <div class="card"><div class="ct" id="ctPesoSem">VIAJES POR SEMANA</div><div class="cw" style="height:180px"><canvas id="cPesoSemana"></canvas></div></div>
+    <div class="card"><div class="ct">POR D&Iacute;A DE SEMANA</div><div class="cw" style="height:180px"><canvas id="cPesoDow"></canvas></div></div>
+  </div>
+  <div class="card">
+    <div class="ct">VIAJES POR A&Ntilde;O</div>
+    <div class="cw" style="height:240px"><canvas id="cPesoAnio"></canvas></div>
+  </div>
+  <div class="card">
+    <div class="ct">DETALLE POR A&Ntilde;O / MES</div>
+    <div id="tblPesoMes" style="overflow-x:auto"></div>
+  </div>
+  <div class="c2">
+    <div class="card"><div class="ct">TOP CHOFERES CON M&Aacute;S SOBRECARGAS</div>
       <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11px">
         <thead><tr style="background:#0d4f3c;color:#fff"><th style="padding:6px 10px;text-align:left">Chofer</th><th style="padding:6px 10px">Viajes</th><th style="padding:6px 10px">Sobrecargas</th><th style="padding:6px 10px">Peso m&aacute;x (t)</th></tr></thead>
         <tbody id="tblTopSobre"></tbody>
       </table></div>
     </div>
-  </div>
-  <div class="card">
-    <div class="ct">POSIBLE RELACI&Oacute;N SOBRECARGA &rarr; DA&Ntilde;O DE CAJA <em style="font-weight:400;font-size:10px;color:var(--slate2)">ventana 7 d&iacute;as</em></div>
-    <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11px">
-      <thead><tr style="background:#0d4f3c;color:#fff"><th style="padding:6px 10px;text-align:left">Fecha viaje</th><th style="padding:6px 10px;text-align:left">Chofer</th><th style="padding:6px 10px">Peso (t)</th><th style="padding:6px 10px">Gap (t)</th><th style="padding:6px 10px">D&iacute;as despu&eacute;s</th><th style="padding:6px 10px;text-align:left">Mantenimiento</th></tr></thead>
-      <tbody id="tblCruce"></tbody>
-    </table></div>
-    <div style="font-size:10px;color:var(--slate2);padding-top:8px">Cruce heur&iacute;stico: no hay un identificador de caja compartido entre la hoja de Pesos (usa placas del tracto) y Mantenimiento (usa n&uacute;mero de caja/unidad), as&iacute; que esto relaciona por nombre del chofer mencionado en la descripci&oacute;n del reporte dentro de los 7 d&iacute;as siguientes a una sobrecarga relevante. Es una se&ntilde;al de investigaci&oacute;n, no una confirmaci&oacute;n exacta.</div>
+    <div class="card">
+      <div class="ct">POSIBLE RELACI&Oacute;N SOBRECARGA &rarr; DA&Ntilde;O DE CAJA <em style="font-weight:400;font-size:10px;color:var(--slate2)">ventana 7 d&iacute;as</em></div>
+      <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11px">
+        <thead><tr style="background:#0d4f3c;color:#fff"><th style="padding:6px 10px;text-align:left">Fecha</th><th style="padding:6px 10px;text-align:left">Chofer</th><th style="padding:6px 10px">Gap (t)</th><th style="padding:6px 10px">D&iacute;as</th></tr></thead>
+        <tbody id="tblCruce"></tbody>
+      </table></div>
+      <div style="font-size:10px;color:var(--slate2);padding-top:8px">Cruce heur&iacute;stico por nombre de chofer mencionado en el reporte de mantenimiento dentro de los 7 d&iacute;as siguientes a una sobrecarga relevante &mdash; se&ntilde;al de investigaci&oacute;n, no confirmaci&oacute;n exacta.</div>
+    </div>
   </div>
 </div></div>
 
@@ -460,6 +474,7 @@ function parseFechaDMY(s){
   var p=s.split('/'); if(p.length!==3) return null;
   var d=parseInt(p[0],10), m=parseInt(p[1],10), y=parseInt(p[2],10);
   if(!d||!m||!y) return null;
+  if(y<100) y+=2000;
   return new Date(y, m-1, d);
 }
 function fkey(dt){ return dt.getFullYear()+'-'+pad2(dt.getMonth()+1)+'-'+pad2(dt.getDate()); }
@@ -582,16 +597,51 @@ function buildMT(rows){
 function buildPesos(rows, mttoRows){
   var LIMITE_TON=28, VENTANA=7;
   var parsed=rows.map(function(r){
-    return {fecha:r['fecha_guia'], chofer:(r['chofer']||'').trim(),
+    var dt=parseFechaDMY(r['fecha_guia']);
+    return {fecha:r['fecha_guia'], dt:dt, chofer:(r['chofer']||'').trim(),
       pesoTon:toNum(r['peso_ton']), gapTon:toNum(r['gap_ton']),
       quiebre:(r['quiebre']||'').trim()};
-  }).filter(function(r){return r.pesoTon>0;});
+  }).filter(function(r){return r.pesoTon>0 && r.dt;});
+
   var kpi={total:parsed.length, ok:0, sobre:0, sub:0};
   parsed.forEach(function(r){
     if(r.quiebre==='SOBRECARGA') kpi.sobre++;
     else if(r.quiebre==='SUBCARGA') kpi.sub++;
     else kpi.ok++;
   });
+
+  // ── Agregación temporal por categoría (igual patrón que D.daily/monthly/weekly) ──
+  var byDate={};
+  parsed.forEach(function(r){
+    var k=fkey(r.dt);
+    if(!byDate[k]) byDate[k]={dt:r.dt, sobre:0, sub:0, ok:0, total:0};
+    var b=byDate[k];
+    if(r.quiebre==='SOBRECARGA') b.sobre++; else if(r.quiebre==='SUBCARGA') b.sub++; else b.ok++;
+    b.total++;
+  });
+  var daily=Object.keys(byDate).sort().map(function(k){
+    var b=byDate[k];
+    return {date:k, year:b.dt.getFullYear(), month:b.dt.getMonth()+1, week:isoWeek(b.dt), dow:mondayDow(b.dt),
+      sobre:b.sobre, sub:b.sub, ok:b.ok, total:b.total};
+  });
+  var monthly={}, weekly={}, yearly={};
+  daily.forEach(function(r){
+    var yk=String(r.year), mk=MES_K_LOADER[r.month-1], wk=String(r.week);
+    if(!monthly[yk]) monthly[yk]={};
+    if(!monthly[yk][mk]) monthly[yk][mk]={sobre:0,sub:0,ok:0,total:0};
+    monthly[yk][mk].sobre+=r.sobre; monthly[yk][mk].sub+=r.sub; monthly[yk][mk].ok+=r.ok; monthly[yk][mk].total+=r.total;
+    if(!weekly[yk]) weekly[yk]={};
+    if(!weekly[yk][wk]) weekly[yk][wk]={sobre:0,sub:0,ok:0,total:0};
+    weekly[yk][wk].sobre+=r.sobre; weekly[yk][wk].sub+=r.sub; weekly[yk][wk].ok+=r.ok; weekly[yk][wk].total+=r.total;
+    if(!yearly[yk]) yearly[yk]={sobre:0,sub:0,ok:0,total:0};
+    yearly[yk].sobre+=r.sobre; yearly[yk].sub+=r.sub; yearly[yk].ok+=r.ok; yearly[yk].total+=r.total;
+  });
+  var dowAgg={}; DIAS.forEach(function(d){dowAgg[d]={sobre:0,sub:0,ok:0,total:0};});
+  daily.forEach(function(r){
+    var dk=DIAS[r.dow];
+    dowAgg[dk].sobre+=r.sobre; dowAgg[dk].sub+=r.sub; dowAgg[dk].ok+=r.ok; dowAgg[dk].total+=r.total;
+  });
+
   var byChofer={};
   parsed.forEach(function(r){
     if(!r.chofer) return;
@@ -609,39 +659,101 @@ function buildPesos(rows, mttoRows){
   }).filter(function(r){return r.fecha;});
   var cruces=[];
   parsed.filter(function(r){return r.quiebre==='SOBRECARGA'&&r.gapTon>1&&r.chofer;}).forEach(function(r){
-    var fdt=parseFechaDMY(r.fecha); if(!fdt) return;
     var first=(r.chofer.split(' ')[0]||'').toUpperCase();
     mttoParsed.forEach(function(m){
-      var diff=(m.fecha-fdt)/86400000;
+      var diff=(m.fecha-r.dt)/86400000;
       if(diff<0||diff>VENTANA) return;
       if((m.categoria==='Caja'||m.categoria==='Caja/Unidad')&&m.desc&&m.desc.toUpperCase().indexOf(first)>=0){
         cruces.push({fecha:r.fecha,chofer:r.chofer,pesoTon:r.pesoTon,gapTon:r.gapTon,dias:Math.round(diff),mFecha:m.fechaStr,mDesc:m.desc});
       }
     });
   });
-  return {kpi:kpi, topSobre:topSobre, cruces:cruces, limite:LIMITE_TON};
+
+  return {kpi:kpi, topSobre:topSobre, cruces:cruces, limite:LIMITE_TON,
+    daily:daily, monthly:monthly, weekly:weekly, yearly:yearly, dow:dowAgg};
 }
 
 function renderPesos(){
   var P=window.PESOS_LIVE; if(!P) return;
   var k=P.kpi;
   function pct(a,b){return b>0?Math.round(a/b*100)+'%':'';}
+
   document.getElementById('kPesos').innerHTML=
     '<div class="kpi" style="border-top:2px solid var(--teal)"><div class="klbl">Total viajes</div><div class="kval">'+k.total.toLocaleString('es-MX')+'</div><div class="ksub">con peso registrado</div></div>'+
-    '<div class="kpi" style="border-top:2px solid #16a34a"><div class="klbl">Dentro del l&iacute;mite</div><div class="kval" style="color:#16a34a">'+(k.ok+k.sub).toLocaleString('es-MX')+'</div><div class="ksub">'+pct(k.ok+k.sub,k.total)+' del total</div></div>'+
+    '<div class="kpi" style="border-top:2px solid #16a34a"><div class="klbl">OK</div><div class="kval" style="color:#16a34a">'+k.ok.toLocaleString('es-MX')+'</div><div class="ksub">'+pct(k.ok,k.total)+' del total</div></div>'+
+    '<div class="kpi" style="border-top:2px solid #f59e0b"><div class="klbl">Subcarga</div><div class="kval" style="color:#f59e0b">'+k.sub.toLocaleString('es-MX')+'</div><div class="ksub">'+pct(k.sub,k.total)+'</div></div>'+
     '<div class="kpi" style="border-top:2px solid #ef4444"><div class="klbl">Sobrecarga (&gt;'+P.limite+'t)</div><div class="kval" style="color:#ef4444">'+k.sobre.toLocaleString('es-MX')+'</div><div class="ksub">'+pct(k.sobre,k.total)+'</div></div>'+
-    '<div class="kpi" style="border-top:2px solid #f59e0b"><div class="klbl">Cruces con mantenimiento</div><div class="kval" style="color:#f59e0b">'+P.cruces.length+'</div><div class="ksub">ventana 7 d&iacute;as</div></div>';
+    '<div class="kpi" style="border-top:2px solid var(--slate)"><div class="klbl">Cruces con mantenimiento</div><div class="kval">'+P.cruces.length+'</div><div class="ksub">ventana 7 d&iacute;as</div></div>';
 
-  mk('cPesoDist','doughnut',{labels:['OK','Sobrecarga','Subcarga'],datasets:[{data:[k.ok,k.sobre,k.sub],backgroundColor:['#16a34a','#ef4444','#f59e0b'],borderWidth:0,
-    datalabels:{display:true,color:'#fff',font:{size:11,weight:'700'},formatter:function(v){var t=k.ok+k.sobre+k.sub;return t>0?Math.round(v/t*100)+'%':'';}}}]},{cutout:'60%'});
+  // ── Por mes (apilado, como Movimientos IP) ──
+  var yrs=Object.keys(P.monthly).sort();
+  var mLabels=[], mSobre=[], mSub=[], mOk=[];
+  yrs.forEach(function(y){
+    MES_K_LOADER.forEach(function(mk){
+      var v=P.monthly[y][mk]; if(!v) return;
+      mLabels.push(mk+' '+y.slice(2)); mSobre.push(v.sobre); mSub.push(v.sub); mOk.push(v.ok);
+    });
+  });
+  mk('cPesoMes','bar',{labels:mLabels,datasets:[
+    {label:'OK',data:mOk,backgroundColor:'rgba(22,163,74,0.75)',stack:'s'},
+    {label:'Subcarga',data:mSub,backgroundColor:'rgba(245,158,11,0.75)',stack:'s'},
+    {label:'Sobrecarga',data:mSobre,backgroundColor:'rgba(239,68,68,0.75)',stack:'s'}
+  ]},{scales:{x:{...ax,stacked:true,ticks:{color:TC,font:{size:9},maxRotation:45}},y:{...ax,stacked:true}},plugins:{legend:{display:true,position:'bottom',labels:{color:TC,font:{size:11},boxWidth:12}}}});
+
+  // ── Distribución total ──
+  mk('cPesoDist','doughnut',{labels:['OK','Subcarga','Sobrecarga'],datasets:[{data:[k.ok,k.sub,k.sobre],backgroundColor:['#16a34a','#f59e0b','#ef4444'],borderWidth:0,
+    datalabels:{display:true,color:'#fff',font:{size:11,weight:'700'},formatter:function(v){var t=k.ok+k.sobre+k.sub;return t>0&&v>0?Math.round(v/t*100)+'%':'';}}}]},{cutout:'60%'});
+
+  // ── Por semana (línea, último año con datos) ──
+  var lastYr=yrs[yrs.length-1];
+  var wk=P.weekly[lastYr]||{};
+  var wNums=Object.keys(wk).map(Number).sort(function(a,b){return a-b;});
+  document.getElementById('ctPesoSem').innerHTML='VIAJES POR SEMANA <em>'+(lastYr||'')+'</em>';
+  mk('cPesoSemana','line',{labels:wNums.map(function(w){return 'S'+w;}),datasets:[
+    {label:'Sobrecarga',data:wNums.map(function(w){return wk[String(w)].sobre;}),borderColor:'#ef4444',backgroundColor:'rgba(239,68,68,0.08)',fill:true,borderWidth:2,pointRadius:2,tension:.3},
+    {label:'Total',data:wNums.map(function(w){return wk[String(w)].total;}),borderColor:'#0d9488',backgroundColor:'transparent',borderWidth:1.5,pointRadius:1,tension:.3,borderDash:[4,3]}
+  ]},{scales:{x:{...ax,ticks:{color:TC,font:{size:9},autoSkip:true,maxTicksLimit:14}},y:ax},plugins:{legend:{display:true,position:'bottom',labels:{color:TC,font:{size:11},boxWidth:12}}}});
+
+  // ── Por día de semana ──
+  mk('cPesoDow','bar',{labels:DIAS,datasets:[
+    {label:'Sobrecarga',data:DIAS.map(function(d){return P.dow[d].sobre;}),backgroundColor:'rgba(239,68,68,0.75)'},
+    {label:'OK+Subcarga',data:DIAS.map(function(d){return P.dow[d].ok+P.dow[d].sub;}),backgroundColor:'rgba(13,148,136,0.6)'}
+  ]},{scales:{x:ax,y:ax},plugins:{legend:{display:true,position:'bottom',labels:{color:TC,font:{size:11},boxWidth:12}}}});
+
+  // ── Por año ──
+  mk('cPesoAnio','bar',{labels:yrs,datasets:[
+    {label:'OK',data:yrs.map(function(y){return P.yearly[y].ok;}),backgroundColor:'rgba(22,163,74,0.75)',stack:'s'},
+    {label:'Subcarga',data:yrs.map(function(y){return P.yearly[y].sub;}),backgroundColor:'rgba(245,158,11,0.75)',stack:'s'},
+    {label:'Sobrecarga',data:yrs.map(function(y){return P.yearly[y].sobre;}),backgroundColor:'rgba(239,68,68,0.75)',stack:'s'}
+  ]},{scales:{x:{...ax,stacked:true},y:{...ax,stacked:true}},plugins:{legend:{display:true,position:'bottom',labels:{color:TC,font:{size:11},boxWidth:12}}}});
+
+  // ── Tabla detalle por año/mes ──
+  var TH='font-size:10px;font-weight:700;color:#fff;padding:8px 12px;text-align:right;';
+  var THL='font-size:10px;font-weight:700;color:#fff;padding:8px 12px;text-align:left;';
+  var TD='font-size:11px;padding:7px 12px;text-align:right;color:#1e293b;';
+  var TDL='font-size:11px;padding:7px 12px;text-align:left;color:#1e293b;';
+  var tbl='<table style="width:100%;border-collapse:collapse"><thead><tr style="background:#0d4f3c">'+
+    '<th style="'+THL+'">A&ntilde;o / Mes</th><th style="'+TH+'">OK</th><th style="'+TH+'">Subcarga</th><th style="'+TH+'">Sobrecarga</th><th style="'+TH+'">Total</th><th style="'+TH+'">% Sobrecarga</th></tr></thead><tbody>';
+  var ri=0;
+  yrs.forEach(function(y){
+    var yd=P.yearly[y];
+    tbl+='<tr style="background:#e8f5f0"><td style="'+TDL+'font-weight:800;color:#0d4f3c">&#8862; '+y+'</td><td style="'+TD+'font-weight:800">'+yd.ok+'</td><td style="'+TD+'font-weight:800">'+yd.sub+'</td><td style="'+TD+'font-weight:800;color:#dc2626">'+yd.sobre+'</td><td style="'+TD+'font-weight:800">'+yd.total+'</td><td style="'+TD+'font-weight:800">'+(yd.total>0?Math.round(yd.sobre/yd.total*100):0)+'%</td></tr>';
+    MES_K_LOADER.forEach(function(mk2){
+      var v=P.monthly[y][mk2]; if(!v) return;
+      var bg=ri%2===0?'#fff':'#f8fafb'; ri++;
+      tbl+='<tr style="background:'+bg+';border-bottom:1px solid #f1f5f9"><td style="'+TDL+'padding-left:28px;color:#475569">'+mk2+'</td><td style="'+TD+'">'+v.ok+'</td><td style="'+TD+'">'+v.sub+'</td><td style="'+TD+'color:'+(v.sobre>0?'#dc2626':'#94a3b8')+'">'+v.sobre+'</td><td style="'+TD+'">'+v.total+'</td><td style="'+TD+'color:#64748b">'+(v.total>0?Math.round(v.sobre/v.total*100):0)+'%</td></tr>';
+    });
+  });
+  tbl+='</tbody></table>';
+  document.getElementById('tblPesoMes').innerHTML=tbl;
 
   document.getElementById('tblTopSobre').innerHTML=P.topSobre.map(function(c){
     return '<tr style="border-bottom:1px solid #f1f5f9"><td style="padding:6px 10px">'+c.chofer+'</td><td style="padding:6px 10px;text-align:center">'+c.viajes+'</td><td style="padding:6px 10px;text-align:center;color:#dc2626;font-weight:700">'+c.sobre+'</td><td style="padding:6px 10px;text-align:center">'+c.maxPeso.toFixed(1)+'</td></tr>';
   }).join('')||'<tr><td colspan="4" style="padding:16px;text-align:center;color:var(--slate2)">Sin sobrecargas registradas</td></tr>';
 
   document.getElementById('tblCruce').innerHTML=P.cruces.slice(0,50).map(function(x){
-    return '<tr style="border-bottom:1px solid #f1f5f9"><td style="padding:6px 10px">'+x.fecha+'</td><td style="padding:6px 10px">'+x.chofer+'</td><td style="padding:6px 10px;text-align:center">'+x.pesoTon.toFixed(1)+'</td><td style="padding:6px 10px;text-align:center">'+x.gapTon.toFixed(2)+'</td><td style="padding:6px 10px;text-align:center">'+x.dias+'</td><td style="padding:6px 10px">'+x.mFecha+' — '+(x.mDesc||'').slice(0,100)+'</td></tr>';
-  }).join('')||'<tr><td colspan="6" style="padding:16px;text-align:center;color:var(--slate2)">No se encontraron coincidencias</td></tr>';
+    return '<tr style="border-bottom:1px solid #f1f5f9"><td style="padding:6px 10px">'+x.fecha+'</td><td style="padding:6px 10px">'+x.chofer+'</td><td style="padding:6px 10px;text-align:center">'+x.gapTon.toFixed(2)+'</td><td style="padding:6px 10px;text-align:center">'+x.dias+'</td></tr>';
+  }).join('')||'<tr><td colspan="4" style="padding:16px;text-align:center;color:var(--slate2)">No se encontraron coincidencias</td></tr>';
 }
 
 function injectDeferred(){
@@ -1893,8 +2005,9 @@ function renderMtto(){
   // Recalculate totals from filtered data
   var totals={};
   TIPOS.forEach(function(t){totals[t]=months.reduce(function(a,r){return a+(r[t]||0);},0);});
-  var tCajas=TIPOS.filter(function(t){return t!=='Llantas ponchada';}).reduce(function(a,t){return a+totals[t];},0);
-  var tLlantas=totals['Llantas ponchada'];
+  var LLANTA_KEY=TIPOS.indexOf('Llantas')>=0?'Llantas':null;
+  var tLlantas=LLANTA_KEY?(totals[LLANTA_KEY]||0):0;
+  var tCajas=TIPOS.filter(function(t){return t!==LLANTA_KEY;}).reduce(function(a,t){return a+(totals[t]||0);},0);
   var grand=tCajas+tLlantas;
   // KPI cards — dynamic, respond to all filters
   var sinMonth=months.find(function(m){return m[SINIESTRO_KEY]>0;});
