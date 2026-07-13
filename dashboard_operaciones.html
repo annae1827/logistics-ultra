@@ -78,9 +78,41 @@ select.fb{appearance:none;padding-right:20px;background-image:url("data:image/sv
     </div>
   </div>
 
+  <div class="c2">
+    <div class="card">
+      <div class="ct">🚛 VIAJES POR TIPO DE SERVICIO <em style="font-weight:400;font-size:10px;color:#94a3b8">cantidad, no $</em></div>
+      <div class="cw" style="height:320px"><canvas id="cViajesTipo"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="ct">👷 VIAJES POR OPERADOR <em style="font-weight:400;font-size:10px;color:#94a3b8">top 15</em></div>
+      <div class="cw" style="height:320px"><canvas id="cViajesOperador"></canvas></div>
+    </div>
+  </div>
+
   <div class="card">
     <div class="ct">📊 INGRESOS VS GASTOS POR MES</div>
     <div class="cw" style="height:320px"><canvas id="cIngGasMes"></canvas></div>
+  </div>
+
+  <div class="card">
+    <div class="ct">🚚 UNIDADES CON ACTIVIDAD <em style="font-weight:400;font-size:10px;color:#94a3b8">seg&uacute;n gastos registrados por unidad (Viajes no trae columna de unidad)</em></div>
+    <div class="cw" style="height:280px"><canvas id="cGastoUnidad"></canvas></div>
+  </div>
+
+  <div class="c2">
+    <div class="card">
+      <div class="ct">🏢 INGRESOS POR CLIENTE</div>
+      <div class="cw" style="height:280px"><canvas id="cIngresosCliente"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="ct">🏢 VIAJES POR CLIENTE <em style="font-weight:400;font-size:10px;color:#94a3b8">cantidad</em></div>
+      <div class="cw" style="height:280px"><canvas id="cViajesCliente"></canvas></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="ct">📅 FACTURACI&Oacute;N Y VIAJES DIARIOS <em id="ctDiario" style="font-weight:400;font-size:10px;color:#94a3b8">selecciona un mes espec&iacute;fico arriba</em></div>
+    <div id="tblDiario" style="overflow-x:auto"></div>
   </div>
 
   <div class="card">
@@ -232,13 +264,23 @@ function render(){
   var utilidad=totalIngresos-totalGastos;
   var margen=totalIngresos>0?(utilidad/totalIngresos*100):0;
 
+  var operadoresSet={};
+  v.forEach(function(r){ if(r.operador && r.operador.toUpperCase()!=='N/A') operadoresSet[r.operador]=1; });
+  var nOperadores=Object.keys(operadoresSet).length;
+
+  var unidadesSet={};
+  g.forEach(function(r){ if(r.unidad && r.unidad.toUpperCase()!=='N/A') unidadesSet[r.unidad]=1; });
+  var nUnidades=Object.keys(unidadesSet).length;
+
   var periodoTxt=SEL.yr==='all'?'Todo el periodo':(String(SEL.yr)+(SEL.mes!=='all'?' · '+MES_N[SEL.mes]:''));
 
   document.getElementById('kMain').innerHTML=
     '<div class="kpi" style="border-top:3px solid '+TEAL+'"><div class="klbl">💰 Ingresos totales</div><div class="kval">'+fmtMoney(totalIngresos)+'</div><div class="ksub">'+v.length+' viajes &middot; '+periodoTxt+'</div></div>'+
     '<div class="kpi" style="border-top:3px solid '+RED+'"><div class="klbl">🧾 Gastos totales</div><div class="kval">'+fmtMoney(totalGastos)+'</div><div class="ksub">'+g.length+' registros &middot; '+periodoTxt+'</div></div>'+
     '<div class="kpi" style="border-top:3px solid '+(utilidad>=0?TEAL:RED)+'"><div class="klbl">📈 Utilidad</div><div class="kval" style="color:'+(utilidad>=0?'#0f172a':RED)+'">'+fmtMoney(utilidad)+'</div><div class="ksub">ingresos &minus; gastos</div></div>'+
-    '<div class="kpi" style="border-top:3px solid '+AMBER+'"><div class="klbl">📊 Margen</div><div class="kval">'+margen.toFixed(1)+'%</div><div class="ksub">utilidad / ingresos</div></div>';
+    '<div class="kpi" style="border-top:3px solid '+AMBER+'"><div class="klbl">📊 Margen</div><div class="kval">'+margen.toFixed(1)+'%</div><div class="ksub">utilidad / ingresos</div></div>'+
+    '<div class="kpi" style="border-top:3px solid '+TEAL2+'"><div class="klbl">👷 Operadores activos</div><div class="kval">'+nOperadores+'</div><div class="ksub">con viajes en el periodo</div></div>'+
+    '<div class="kpi" style="border-top:3px solid '+SLATE+'"><div class="klbl">🚚 Unidades con actividad</div><div class="kval">'+nUnidades+'</div><div class="ksub">seg&uacute;n gastos por unidad</div></div>';
 
   // Ingresos por tipo de servicio
   var ingTipo=groupSum(v, function(r){return r.tipo;}, function(r){return r.tarifa;});
@@ -262,7 +304,48 @@ function render(){
     scales:{x:{ticks:{callback:function(v){return fmtMoney(v);}}}, y:{ticks:{font:{size:11}}}},
     plugins:{legend:{display:false}}}, plugins:[ChartDataLabels]});
 
-  // Ingresos vs Gastos por mes
+  // Viajes por Tipo de Servicio (CANTIDAD, no $)
+  var cntTipo={};
+  v.forEach(function(r){ cntTipo[r.tipo]=(cntTipo[r.tipo]||0)+1; });
+  var cntTipoLabels=Object.keys(cntTipo).sort(function(a,b){return cntTipo[b]-cntTipo[a];});
+  mkChart('cViajesTipo', {type:'bar', data:{labels:cntTipoLabels, datasets:[{
+    label:'Viajes', data:cntTipoLabels.map(function(k){return cntTipo[k];}),
+    backgroundColor:cntTipoLabels.map(function(_,i){return PALETTE[i%PALETTE.length];}), borderRadius:4,
+    datalabels:{display:true, anchor:'end', align:'end', color:'#334155', font:{size:10,weight:'700'}, formatter:function(v){return fmtN(v);}}
+  }]}, options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',
+    scales:{x:{ticks:{precision:0}}, y:{ticks:{font:{size:11}}}},
+    plugins:{legend:{display:false}}}, plugins:[ChartDataLabels]});
+
+  // Viajes por Operador (top 15, cantidad + ingreso)
+  var opAgg={};
+  v.forEach(function(r){
+    var op=r.operador||'Sin operador';
+    if(!opAgg[op]) opAgg[op]={n:0, monto:0};
+    opAgg[op].n++; opAgg[op].monto+=r.tarifa;
+  });
+  var opLabels=Object.keys(opAgg).sort(function(a,b){return opAgg[b].n-opAgg[a].n;}).slice(0,15);
+  mkChart('cViajesOperador', {type:'bar', data:{labels:opLabels, datasets:[{
+    label:'Viajes', data:opLabels.map(function(k){return opAgg[k].n;}),
+    backgroundColor:TEAL, borderRadius:4,
+    datalabels:{display:true, anchor:'end', align:'end', color:'#334155', font:{size:9,weight:'700'}, formatter:function(v,ctx){var k=opLabels[ctx.dataIndex];return v+' · '+fmtMoney(opAgg[k].monto);}}
+  }]}, options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',
+    scales:{x:{ticks:{precision:0}}, y:{ticks:{font:{size:10}}}},
+    plugins:{legend:{display:false}}}, plugins:[ChartDataLabels]});
+
+  // Gasto por Unidad (top 15, proxy de utilización — Viajes no trae unidad)
+  var unidadAgg={};
+  g.forEach(function(r){
+    var u=r.unidad; if(!u || u.toUpperCase()==='N/A') return;
+    unidadAgg[u]=(unidadAgg[u]||0)+r.monto;
+  });
+  var unidadLabels=Object.keys(unidadAgg).sort(function(a,b){return unidadAgg[b]-unidadAgg[a];}).slice(0,15);
+  mkChart('cGastoUnidad', {type:'bar', data:{labels:unidadLabels, datasets:[{
+    label:'Gasto', data:unidadLabels.map(function(k){return unidadAgg[k];}),
+    backgroundColor:SLATE, borderRadius:4,
+    datalabels:{display:true, anchor:'end', align:'top', color:'#334155', font:{size:9,weight:'700'}, formatter:function(v){return fmtMoney(v);}}
+  }]}, options:{responsive:true,maintainAspectRatio:false,
+    scales:{x:{ticks:{font:{size:10}}}, y:{ticks:{callback:function(v){return fmtMoney(v);}}}},
+    plugins:{legend:{display:false}}}, plugins:[ChartDataLabels]});
   var mesesSet={};
   v.forEach(function(r){mesesSet[r.year+'-'+r.month]=1;});
   g.forEach(function(r){mesesSet[r.year+'-'+r.month]=1;});
@@ -282,6 +365,30 @@ function render(){
     scales:{x:{ticks:{font:{size:10}}}, y:{ticks:{callback:function(v){return fmtMoney(v);}}}},
     plugins:{legend:{display:true,position:'bottom'}}}, plugins:[ChartDataLabels]});
 
+  // Por Cliente
+  var ingCliente=groupSum(v, function(r){return r.cliente||'Sin cliente';}, function(r){return r.tarifa;});
+  var cliLabels=Object.keys(ingCliente).sort(function(a,b){return ingCliente[b]-ingCliente[a];});
+  mkChart('cIngresosCliente', {type:'bar', data:{labels:cliLabels, datasets:[{
+    label:'Ingresos', data:cliLabels.map(function(k){return ingCliente[k];}),
+    backgroundColor:cliLabels.map(function(_,i){return PALETTE[i%PALETTE.length];}), borderRadius:4,
+    datalabels:{display:true, anchor:'end', align:'end', color:'#334155', font:{size:10,weight:'700'}, formatter:function(v){return fmtMoney(v);}}
+  }]}, options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',
+    scales:{x:{ticks:{callback:function(v){return fmtMoney(v);}}}, y:{ticks:{font:{size:11}}}},
+    plugins:{legend:{display:false}}}, plugins:[ChartDataLabels]});
+
+  var cntCliente={};
+  v.forEach(function(r){ var c=r.cliente||'Sin cliente'; cntCliente[c]=(cntCliente[c]||0)+1; });
+  mkChart('cViajesCliente', {type:'bar', data:{labels:cliLabels, datasets:[{
+    label:'Viajes', data:cliLabels.map(function(k){return cntCliente[k]||0;}),
+    backgroundColor:cliLabels.map(function(_,i){return PALETTE[i%PALETTE.length];}), borderRadius:4,
+    datalabels:{display:true, anchor:'end', align:'end', color:'#334155', font:{size:10,weight:'700'}, formatter:function(v){return fmtN(v);}}
+  }]}, options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',
+    scales:{x:{ticks:{precision:0}}, y:{ticks:{font:{size:11}}}},
+    plugins:{legend:{display:false}}}, plugins:[ChartDataLabels]});
+
+  // Facturación y Viajes Diarios — requiere un mes específico seleccionado
+  renderDiario();
+
   // Tabla detalle
   var TH='font-size:10px;font-weight:700;color:#fff;padding:8px 12px;text-align:right;';
   var THL='font-size:10px;font-weight:700;color:#fff;padding:8px 12px;text-align:left;';
@@ -299,6 +406,102 @@ function render(){
   });
   tbl+='</tbody></table>';
   document.getElementById('tblDetalle').innerHTML=tbl;
+}
+
+function objetivoDiario(dt){
+  var dow=dt.getDay(); // 0=Dom,6=Sáb
+  return (dow===0||dow===6) ? 66100 : 143800;
+}
+function pct2color(pct){
+  if(pct<=0) return '#fca5a5';
+  if(pct<50) return '#fdba74';
+  if(pct<70) return '#fde68a';
+  if(pct<100) return '#bbf7d0';
+  if(pct<140) return '#86efac';
+  return '#5eead4';
+}
+var DOW_ES=['dom','lun','mar','mi\u00e9','jue','vie','s\u00e1b'];
+
+function diaBlock(year, month){
+  var daysInMonth=new Date(year, month, 0).getDate();
+  var rows=[];
+  for(var d=1; d<=daysInMonth; d++){
+    var dt=new Date(year, month-1, d);
+    var dayRows=VIAJES_RAW.filter(function(r){return r.year===year && r.month===month && r.dt.getDate()===d;});
+    var cant=dayRows.length;
+    var fact=dayRows.reduce(function(a,r){return a+r.tarifa;},0);
+    var prom=cant>0?fact/cant:0;
+    var obj=objetivoDiario(dt);
+    var pct=obj>0?(fact/obj*100):0;
+    rows.push({d:d, dow:DOW_ES[dt.getDay()], cant:cant, fact:fact, prom:prom, pct:pct});
+  }
+  return rows;
+}
+
+function renderDiario(){
+  var el=document.getElementById('tblDiario');
+  var ctEl=document.getElementById('ctDiario');
+  if(!el) return;
+  if(SEL.mes==='all'){
+    el.innerHTML='<div style="padding:16px;text-align:center;color:#94a3b8;font-size:11px">Selecciona un mes espec&iacute;fico arriba (no "Todos los meses") para ver el detalle d&iacute;a por d&iacute;a.</div>';
+    if(ctEl) ctEl.textContent='selecciona un mes espec\u00edfico arriba';
+    return;
+  }
+  var years=[]; VIAJES_RAW.forEach(function(r){ if(years.indexOf(r.year)<0) years.push(r.year); });
+  years.sort();
+  var curYear=SEL.yr!=='all'?SEL.yr:years[years.length-1];
+  var prevYear=curYear-1;
+  var hasPrev=years.indexOf(prevYear)>=0;
+
+  if(ctEl) ctEl.textContent=MES_N[SEL.mes]+' '+curYear+(hasPrev?' vs '+MES_N[SEL.mes]+' '+prevYear:' (sin datos del a\u00f1o anterior para comparar)');
+
+  var curRows=diaBlock(curYear, SEL.mes);
+  var prevRows=hasPrev?diaBlock(prevYear, SEL.mes):[];
+
+  var TH='font-size:10px;font-weight:700;color:#fff;padding:7px 10px;text-align:right;white-space:nowrap;';
+  var THL='font-size:10px;font-weight:700;color:#fff;padding:7px 10px;text-align:left;white-space:nowrap;';
+  var TD='font-size:11px;padding:6px 10px;text-align:right;color:#1e293b;';
+  var TDL='font-size:11px;padding:6px 10px;text-align:left;color:#1e293b;';
+
+  var tbl='<table style="width:100%;border-collapse:collapse"><thead>';
+  tbl+='<tr><th style="'+THL+'background:#0d4f3c" rowspan="2">D\u00eda</th><th colspan="4" style="'+TH+'background:#0d9488;text-align:center">'+MES_N[SEL.mes]+' '+curYear+'</th>';
+  if(hasPrev) tbl+='<th colspan="4" style="'+TH+'background:#b45309;text-align:center">'+MES_N[SEL.mes]+' '+prevYear+'</th>';
+  tbl+='</tr><tr>'+
+    '<th style="'+TH+'background:#0d9488">Servicios</th><th style="'+TH+'background:#0d9488">Facturaci\u00f3n</th><th style="'+TH+'background:#0d9488">Promedio</th><th style="'+TH+'background:#0d9488">Objetivo</th>';
+  if(hasPrev) tbl+='<th style="'+TH+'background:#b45309">Servicios</th><th style="'+TH+'background:#b45309">Facturaci\u00f3n</th><th style="'+TH+'background:#b45309">Promedio</th><th style="'+TH+'background:#b45309">Objetivo</th>';
+  tbl+='</tr></thead><tbody>';
+
+  curRows.forEach(function(r,i){
+    var pr=prevRows[i];
+    var isWknd=(r.dow==='s\u00e1b'||r.dow==='dom');
+    var bg=isWknd?'#f0fdfa':(i%2===0?'#fff':'#f8fafb');
+    tbl+='<tr style="background:'+bg+';border-bottom:1px solid #f1f5f9">';
+    tbl+='<td style="'+TDL+'font-weight:600">'+r.dow+' '+String(r.d).padStart(2,'0')+'</td>';
+    tbl+='<td style="'+TD+'">'+r.cant+'</td>';
+    tbl+='<td style="'+TD+'font-weight:700">'+(r.fact>0?fmtMoney(r.fact):'$0')+'</td>';
+    tbl+='<td style="'+TD+'">'+(r.prom>0?fmtMoney(r.prom):'-')+'</td>';
+    tbl+='<td style="'+TD+'background:'+pct2color(r.pct)+';font-weight:700">'+r.pct.toFixed(1)+'%</td>';
+    if(hasPrev && pr){
+      tbl+='<td style="'+TD+'">'+pr.cant+'</td>';
+      tbl+='<td style="'+TD+'font-weight:700">'+(pr.fact>0?fmtMoney(pr.fact):'$0')+'</td>';
+      tbl+='<td style="'+TD+'">'+(pr.prom>0?fmtMoney(pr.prom):'-')+'</td>';
+      tbl+='<td style="'+TD+'background:'+pct2color(pr.pct)+';font-weight:700">'+pr.pct.toFixed(1)+'%</td>';
+    } else if(hasPrev){
+      tbl+='<td style="'+TD+'" colspan="4">-</td>';
+    }
+    tbl+='</tr>';
+  });
+
+  var totCant=curRows.reduce(function(a,r){return a+r.cant;},0);
+  var totFact=curRows.reduce(function(a,r){return a+r.fact;},0);
+  var totPrevCant=prevRows.reduce(function(a,r){return a+r.cant;},0);
+  var totPrevFact=prevRows.reduce(function(a,r){return a+r.fact;},0);
+  tbl+='<tr style="background:#0d4f3c;color:#fff;font-weight:700"><td style="'+TDL+'color:#fff">Total mensual</td>'+
+    '<td style="'+TD+'color:#fff">'+totCant+'</td><td style="'+TD+'color:#fff">'+fmtMoney(totFact)+'</td><td style="'+TD+'color:#fff">'+(totCant>0?fmtMoney(totFact/totCant):'-')+'</td><td style="'+TD+'color:#fff">&mdash;</td>';
+  if(hasPrev) tbl+='<td style="'+TD+'color:#fff">'+totPrevCant+'</td><td style="'+TD+'color:#fff">'+fmtMoney(totPrevFact)+'</td><td style="'+TD+'color:#fff">'+(totPrevCant>0?fmtMoney(totPrevFact/totPrevCant):'-')+'</td><td style="'+TD+'color:#fff">&mdash;</td>';
+  tbl+='</tr>';
+  tbl+='</tbody></table>';
+  el.innerHTML=tbl;
 }
 
 var _waitTries=0;
