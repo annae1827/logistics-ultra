@@ -360,14 +360,14 @@ select.fb{appearance:none;padding-right:20px;background-image:url("data:image/sv
 
 
   <div class="card">
-    <div class="ct">AN&Aacute;LISIS TIEMPOS MUERTOS <em id="tmCtMain" style="font-weight:400;color:var(--slate2)"></em></div>
+    <div class="ct">AN&Aacute;LISIS DE BAJA ACTIVIDAD <em id="tmCtMain" style="font-weight:400;color:var(--slate2)"></em></div>
     <div class="cw" style="height:280px"><canvas id="cTM"></canvas></div>
   </div>
-    <!-- TABLA BLOQUES DE HORAS MUERTAS -->
+    <!-- TABLA BLOQUES DE BAJA ACTIVIDAD -->
   <div class="card" id="cardHorasMuertas">
     <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;padding-bottom:10px;border-bottom:1px solid #f1f5f9;margin-bottom:12px">
       <div>
-        <div style="font-size:10px;font-weight:700;color:var(--slate2);letter-spacing:.08em;text-transform:uppercase">BLOQUES DE HORAS MUERTAS <em id="ctHMperiodo" style="font-weight:400;color:var(--slate2)"></em></div>
+        <div style="font-size:10px;font-weight:700;color:var(--slate2);letter-spacing:.08em;text-transform:uppercase">BLOQUES DE BAJA ACTIVIDAD <em id="ctHMperiodo" style="font-weight:400;color:var(--slate2)"></em></div>
         <div style="font-size:10px;color:var(--slate2);margin-top:2px">Bloques con menos del <span id="ctHMumbral" style="font-weight:700;color:var(--teal)">70%</span> del pico &mdash; turno activo: <span id="ctHMturno" style="font-weight:700;color:var(--teal)">Ambos</span></div>
       </div>
     </div>
@@ -486,12 +486,31 @@ var MES_K_LOADER = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct',
 var MES_EN3 = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 var MES_ES_MAP = {ene:1,feb:2,mar:3,abr:4,may:5,jun:6,jul:7,ago:8,sep:9,oct:10,nov:11,dic:12};
 
+var CACHE_MINUTES = 10; // reutiliza datos descargados hace menos de esto, sin volver a pedirlos
 function fetchCSV(gid){
+  var cacheKey = 'csvcache_v1_'+gid;
   return new Promise(function(resolve){
-    Papa.parse(CSV_BASE+gid, {
-      download:true, header:true, skipEmptyLines:true,
-      complete:function(res){ resolve(res.data); },
-      error:function(){ resolve([]); }
+    try{
+      var cached = localStorage.getItem(cacheKey);
+      if(cached){
+        var obj = JSON.parse(cached);
+        if(Date.now()-obj.t < CACHE_MINUTES*60*1000){
+          var parsedCache = Papa.parse(obj.raw, {header:true, skipEmptyLines:true});
+          resolve(parsedCache.data);
+          return;
+        }
+      }
+    }catch(e){}
+    fetch(CSV_BASE+gid).then(function(r){ return r.text(); }).then(function(text){
+      try{ localStorage.setItem(cacheKey, JSON.stringify({t:Date.now(), raw:text})); }catch(e){}
+      var parsed = Papa.parse(text, {header:true, skipEmptyLines:true});
+      resolve(parsed.data);
+    }).catch(function(){
+      // fallback al método anterior si fetch() falla por CORS
+      Papa.parse(CSV_BASE+gid, {download:true, header:true, skipEmptyLines:true,
+        complete:function(res){ resolve(res.data); },
+        error:function(){ resolve([]); }
+      });
     });
   });
 }
@@ -799,6 +818,7 @@ function setDiag(html, isError){
 }
 
 function boot(){
+  var t0=performance.now();
   setDiag('&#9203; Descargando hojas de Google Sheets&hellip;');
   Promise.all([
     fetchCSV(GIDS.movimientos),
@@ -807,6 +827,7 @@ function boot(){
     fetchCSV(GIDS.costos),
     fetchCSV(GIDS.pesos)
   ]).then(function(res){
+    var tFetch=performance.now();
     var movRows=res[0], mttoRows=res[1], opRows=res[2], costRows=res[3], pesosRows=res[4];
     var counts='Movimientos: '+movRows.length+' filas &middot; Mantenimiento: '+mttoRows.length+' &middot; Operaci&oacute;n/hora: '+opRows.length+' &middot; Costos: '+costRows.length+' &middot; Pesos: '+pesosRows.length;
     if(movRows.length===0){
@@ -819,6 +840,7 @@ function boot(){
     var MT = buildMT(mttoRows);
     var CU = buildCU(costRows, D);
     var PESOS = buildPesos(pesosRows, mttoRows);
+    var tBuild=performance.now();
 
     window.D = D;
     window.EX = EX;
@@ -832,8 +854,10 @@ function boot(){
     window.PESOS_LIVE = PESOS;
 
     injectDeferred();
-    setDiag('&#10003; Datos actualizados &middot; '+counts);
-    setTimeout(function(){ var el=document.getElementById('diagBanner'); if(el) el.style.display='none'; }, 6000);
+    var tRender=performance.now();
+    var timing='descarga '+((tFetch-t0)/1000).toFixed(1)+'s &middot; procesado '+((tBuild-tFetch)/1000).toFixed(1)+'s &middot; render '+((tRender-tBuild)/1000).toFixed(1)+'s';
+    setDiag('&#10003; Datos actualizados ('+timing+') &middot; '+counts);
+    setTimeout(function(){ var el=document.getElementById('diagBanner'); if(el) el.style.display='none'; }, 8000);
   }).catch(function(err){
     console.error(err);
     setDiag('&#9888; Error al cargar/procesar los datos: '+(err&&err.message||err)+'. Revisa la consola del navegador (F12) para el detalle completo.', true);
@@ -1087,7 +1111,7 @@ function renderHorasMuertas(src, thresh){
   if(!tableEl) return;
 
   if(!ranges.length){
-    tableEl.innerHTML='<div style="padding:16px;text-align:center;color:var(--slate2);font-size:11px">No hay bloques de horas muertas con el umbral actual</div>';
+    tableEl.innerHTML='<div style="padding:16px;text-align:center;color:var(--slate2);font-size:11px">No hay bloques de baja actividad con el umbral actual</div>';
   } else {
     var rows = ranges.map(function(r, idx){
       var pct = grandTotal>0 ? Math.round(r.sum/grandTotal*10000)/100 : 0;
@@ -1121,7 +1145,7 @@ function renderHorasMuertas(src, thresh){
       '<div style="display:grid;grid-template-columns:160px 1fr 180px;gap:0;padding:11px 14px;background:#0d9488;border-radius:8px;align-items:center;color:#fff">'+
         '<div style="display:flex;align-items:center;gap:8px">'+
           '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 16l4-4 4 4 4-4"/></svg>'+
-          '<span style="font-size:11px;font-weight:700;letter-spacing:.04em">TOTAL HORAS MUERTAS</span>'+
+          '<span style="font-size:11px;font-weight:700;letter-spacing:.04em">TOTAL BAJA ACTIVIDAD</span>'+
         '</div>'+
         '<div style="font-size:15px;font-weight:800;padding-left:8px">'+totalDead.toLocaleString('es-MX')+'</div>'+
         '<div style="padding-left:8px">'+
@@ -1344,7 +1368,7 @@ function refreshTM(){
     mkKpi('T3 D\u00eda',fmt(t3tot),'07:00\u201319:00',null,C.teal)+
     mkKpi('T4 Noche',fmt(t4tot),'19:00\u201307:00',null,C.slate)+
     mkKpi('Bloque pico',BLOCKS[peakI],fmt(mx)+' viajes',null,C.green)+
-    mkKpi('Tiempos muertos',deadN+' bloques','de 48 (&lt;'+(thresh*100)+'%)',null,'#ef4444');
+    mkKpi('Baja actividad',deadN+' bloques','de 48 (&lt;'+(thresh*100)+'%)',null,'#ef4444');
   var dzItems=BLOCKS.map(function(b,i){return{b:b,v:dispVals[i],t3:src.T3[i],t4:src.T4[i]};}).filter(function(z){return z.v<mx*thresh;});
   document.getElementById('tmDZ').innerHTML=dzItems.length?dzItems.map(function(z){
     var p=Math.round(z.v/mx*100);var col=p<30?'#ef4444':p<50?'#f59e0b':'#0d9488';var bg=p<30?'#fef2f2':p<50?'#fff7ed':'#f0fdfa';var brd=p<30?'#fecaca':p<50?'#fed7aa':'#99f6e4';
