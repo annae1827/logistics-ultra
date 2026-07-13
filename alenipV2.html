@@ -68,13 +68,13 @@ select.fb{appearance:none;padding-right:20px;background-image:url("data:image/sv
   <div class="logo">LU</div>
   <div class="brand"><b>Logistics Ultra</b><span>Operaci&oacute;n Alen &middot; Interplantas</span></div>
   <div class="tabs">
-    <button class="tab active" id="t0" onclick="showTab(0)">Movimientos IP</button>
+    <button class="tab" id="t0" onclick="showTab(0)">Movimientos IP</button>
     <button class="tab" id="t1" onclick="showTab(1)">Productividad %</button>
     <button class="tab" id="t2" onclick="showTab(2)">Mantenimientos</button>
     <button class="tab" id="t3" onclick="showTab(3)">Operaci&oacute;n por Hora</button>
     <button class="tab" id="t4" onclick="showTab(4)">Costo Unitario</button>
     <button class="tab" id="t5" onclick="showTab(5)">Pesos</button>
-    <button class="tab" id="t6" onclick="showTab(6)">Resumen Ejecutivo</button>
+    <button class="tab active" id="t6" onclick="showTab(6)">Resumen Ejecutivo</button>
   </div>
 </div>
 
@@ -124,7 +124,7 @@ select.fb{appearance:none;padding-right:20px;background-image:url("data:image/sv
 </style>
 
 <!-- TAB 0: MOVIMIENTOS IP -->
-<div id="p0" class="panel active"><div class="shell">
+<div id="p0" class="panel"><div class="shell">
   <div class="kg" id="kMov" style="grid-template-columns:repeat(5,1fr)"></div>
   <div class="c2">
     <div class="card"><div class="ct" id="ctMes">MOV. POR MES</div><div class="cw" style="height:220px"><canvas id="cMes"></canvas></div></div>
@@ -464,10 +464,12 @@ select.fb{appearance:none;padding-right:20px;background-image:url("data:image/sv
 </div></div>
 
 <!-- TAB 6: RESUMEN EJECUTIVO -->
-<div id="p6" class="panel"><div class="shell">
+<div id="p6" class="panel active"><div class="shell">
   <div style="font-size:10px;font-weight:700;color:var(--slate2);letter-spacing:.08em;text-transform:uppercase;padding-bottom:4px" id="ctResumen">RESUMEN EJECUTIVO</div>
   <div class="kg" id="kResumen1" style="grid-template-columns:repeat(4,1fr)"></div>
   <div class="kg" id="kResumen2" style="grid-template-columns:repeat(4,1fr);margin-top:10px"></div>
+  <div class="kg" id="kResumen3" style="grid-template-columns:repeat(4,1fr);margin-top:10px"></div>
+  <div class="kg" id="kResumen4" style="grid-template-columns:repeat(4,1fr);margin-top:10px"></div>
   <div class="card" style="margin-top:14px;background:#0d4f3c;border:none">
     <div style="font-size:11px;font-weight:700;color:#fff;letter-spacing:.06em;text-transform:uppercase;padding-bottom:12px">Impacto en la operación</div>
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px" id="impactoResumen"></div>
@@ -678,14 +680,17 @@ function buildMT(rows){
   return {TIPOS:TIPOS, MCOLS:MCOLS, ALL_MD:ALL_MD, SINIESTRO:SINIESTRO};
 }
 
-function buildPesos(rows, mttoRows){
-  var LIMITE_TON=28, VENTANA=7;
-  var parsed=rows.map(function(r){
+function parsePesosRows(rows){
+  return rows.map(function(r){
     var dt=parseFechaDMY(r['fecha_guia']);
     return {fecha:r['fecha_guia'], dt:dt, chofer:(r['chofer']||'').trim(),
       pesoTon:toNum(r['peso_ton']), gapTon:toNum(r['gap_ton']),
       quiebre:(r['quiebre']||'').trim()};
   }).filter(function(r){return r.pesoTon>0 && r.dt;});
+}
+
+function computePesosAgg(parsed, mttoRows){
+  var LIMITE_TON=28, VENTANA=7;
 
   var kpi={total:parsed.length, ok:0, sobre:0, sub:0};
   parsed.forEach(function(r){
@@ -757,8 +762,25 @@ function buildPesos(rows, mttoRows){
     daily:daily, monthly:monthly, weekly:weekly, yearly:yearly, dow:dowAgg};
 }
 
+function buildPesos(rows, mttoRows){
+  return computePesosAgg(parsePesosRows(rows), mttoRows);
+}
+
 function renderPesos(){
-  var P=window.PESOS_LIVE; if(!P) return;
+  var raw=window.PESOS_PARSED_LIVE; if(!raw) return;
+  // ── Filtra por RNG (rango de fechas) + Año + Mes, igual que el resto del dashboard ──
+  var dA=(typeof ALL_DATES!=='undefined'&&ALL_DATES.length)?ALL_DATES[RNG.a]:null;
+  var dB=(typeof ALL_DATES!=='undefined'&&ALL_DATES.length)?ALL_DATES[RNG.b]:null;
+  var filtered=raw.filter(function(r){
+    var k=fkey(r.dt);
+    if(dA&&k<dA) return false;
+    if(dB&&k>dB) return false;
+    if(SEL.yr!=='all'&&r.dt.getFullYear()!==SEL.yr) return false;
+    if(SEL.mes!=='all'&&(r.dt.getMonth()+1)!==SEL.mes) return false;
+    return true;
+  });
+  var P=computePesosAgg(filtered, window.MTTO_ROWS_LIVE||[]);
+  window.PESOS_LIVE=P; // mantener disponible para Resumen Ejecutivo
   var k=P.kpi;
   function pct(a,b){return b>0?Math.round(a/b*100)+'%':'';}
 
@@ -842,68 +864,129 @@ function renderPesos(){
 
 function renderResumen(){
   if(!window.D || !D.daily || !D.daily.length) return;
-  var first=D.daily[0].date, last=D.daily[D.daily.length-1].date;
-  var periodoTxt=(typeof PERIODO_LABEL!=='undefined'?PERIODO_LABEL:(first+' a '+last));
-  var nMesesTxt=(typeof N_MESES_LABEL!=='undefined'?N_MESES_LABEL:'');
+  var cur=(typeof filtDay==='function')?filtDay():D.daily;
+  if(!cur.length) cur=D.daily;
+  var sortedCur=cur.slice().sort(function(a,b){return a.date<b.date?-1:1;});
+  var firstD=sortedCur[0], lastD=sortedCur[sortedCur.length-1];
+
+  // Etiqueta de periodo REAL aplicado (respeta Año/Mes/Rango)
+  var periodoTxt;
+  if(SEL.yr!=='all'){
+    periodoTxt=String(SEL.yr)+(SEL.mes!=='all'?' \u00b7 '+MES_N[SEL.mes]:'');
+  } else {
+    var fY=firstD.year,fM=firstD.month,lY=lastD.year,lM=lastD.month;
+    periodoTxt=MES_K[fM-1]+' '+fY+(fY===lY&&fM===lM?'':' \u2013 '+MES_K[lM-1]+' '+lY);
+  }
+  var nMesesN=(lastD.year*12+lastD.month)-(firstD.year*12+firstD.month)+1;
 
   var totCargado=0,totVacio=0,totMov=0;
-  D.daily.forEach(function(r){totCargado+=r.cargado;totVacio+=r.vacio;totMov+=r.total;});
+  cur.forEach(function(r){totCargado+=r.cargado;totVacio+=r.vacio;totMov+=r.total;});
 
-  // Daños / llantas — a partir de ALL_MD_LIVE (agregado mensual en vivo)
-  var ALL_MD=window.ALL_MD_LIVE||[], TIPOS=window.TIPOS_LIVE||[];
-  var LLANTA_KEY=TIPOS.indexOf('Llantas')>=0?'Llantas':null;
-  var CHOQUE_KEY=TIPOS.indexOf('Choque / colisión')>=0?'Choque / colisión':(window.SINIESTRO_KEY_LIVE||null);
-  var totLlantas=0, totChoque=0, totCajas=0, totDanos=0;
-  ALL_MD.forEach(function(m){
-    totDanos+=(m.total||0);
-    if(LLANTA_KEY) totLlantas+=(m[LLANTA_KEY]||0);
-    if(CHOQUE_KEY) totChoque+=(m[CHOQUE_KEY]||0);
+  // ── Promedios de CARGADOS: día / semana / mes / año (todos sobre el periodo filtrado) ──
+  var diasConDatos=cur.filter(function(r){return r.total>0;});
+  var promDiaCarg=diasConDatos.length?(sfld(diasConDatos,'cargado')/diasConDatos.length):0;
+
+  var porSemana={}, porMes={}, porAnio={};
+  cur.forEach(function(r){
+    var wk=r.year+'-'+r.week; if(!porSemana[wk]) porSemana[wk]=0; porSemana[wk]+=r.cargado;
+    var mk=r.year+'-'+r.month; if(!porMes[mk]) porMes[mk]=0; porMes[mk]+=r.cargado;
+    if(!porAnio[r.year]) porAnio[r.year]=0; porAnio[r.year]+=r.cargado;
   });
-  totCajas=totDanos-totLlantas;
-  var danosPeriodo='';
-  if(ALL_MD.length){
-    var mmin=ALL_MD[0], mmax=ALL_MD[ALL_MD.length-1];
-    danosPeriodo=mmin.mes+"'"+String(mmin.year).slice(2)+' \u2013 '+mmax.mes+"'"+String(mmax.year).slice(2);
-  }
+  function avgObj(o){var ks=Object.keys(o);return ks.length?(ks.reduce(function(a,k){return a+o[k];},0)/ks.length):0;}
+  var promSemCarg=avgObj(porSemana), promMesCarg=avgObj(porMes), promAnioCarg=avgObj(porAnio);
 
-  // Costo unitario promedio
-  var CU=window.CU_DATA||[];
+  // ── Día con más movimientos / Mes con más movimientos (dentro del periodo filtrado) ──
+  var diaPico=cur.reduce(function(a,b){return (b.total>((a&&a.total)||0))?b:a;},null);
+  var mesAgg={};
+  cur.forEach(function(r){var mk=r.year+'-'+r.month;if(!mesAgg[mk])mesAgg[mk]={year:r.year,month:r.month,total:0};mesAgg[mk].total+=r.total;});
+  var mesPicoKey=Object.keys(mesAgg).reduce(function(a,k){return (!a||mesAgg[k].total>mesAgg[a].total)?k:a;},null);
+  var mesPico=mesPicoKey?mesAgg[mesPicoKey]:null;
+
+  // ── Veces encendidos (estimado): un encendido al iniciar y uno al finalizar cada viaje ──
+  var encendidosEst=totMov*2;
+
+  // ── Unidades / operadores — recalculado del detalle crudo, respetando el mismo rango ──
+  var dA=firstD.date, dB=lastD.date;
+  var rowsFiltradas=(window.MOV_ROWS_LIVE||[]).filter(function(r){
+    var dt=parseFechaDMY(r['Fecha']); if(!dt) return false;
+    var k=fkey(dt);
+    if(k<dA||k>dB) return false;
+    if(SEL.yr!=='all'&&dt.getFullYear()!==SEL.yr) return false;
+    if(SEL.mes!=='all'&&(dt.getMonth()+1)!==SEL.mes) return false;
+    return true;
+  });
+  var RESX=buildResumenExtra(rowsFiltradas);
+
+  // ── Daños / llantas — recalculado del detalle crudo de Mantenimiento, mismo rango ──
+  var mttoFiltrado=(window.MTTO_ROWS_LIVE||[]).filter(function(r){
+    var dt=parseFechaDMY(r['Fecha']); if(!dt) return false;
+    var k=fkey(dt);
+    if(k<dA||k>dB) return false;
+    if(SEL.yr!=='all'&&dt.getFullYear()!==SEL.yr) return false;
+    if(SEL.mes!=='all'&&(dt.getMonth()+1)!==SEL.mes) return false;
+    return true;
+  });
+  var totDanos=mttoFiltrado.length;
+  var totLlantas=mttoFiltrado.filter(function(r){return (r['Tipo de Mantenimiento']||'')==='Llantas';}).length;
+  var totCajas=totDanos-totLlantas;
+  var danosPeriodo=totDanos?periodoTxt:'sin registros en este periodo';
+
+  // ── Costo unitario promedio — filtrado por año/mes ──
+  var CU=(window.CU_DATA||[]).filter(function(r){
+    if(SEL.yr!=='all'&&r.year!==SEL.yr) return false;
+    if(SEL.mes!=='all'&&r.month!==SEL.mes) return false;
+    return true;
+  });
   var cuProm=CU.length?(CU.reduce(function(a,r){return a+(r.cu||0);},0)/CU.length):0;
 
-  // Pesos
-  var P=(window.PESOS_LIVE&&window.PESOS_LIVE.kpi)||{total:0,sobre:0,ok:0,sub:0};
-  var pesosPeriodo='';
-  if(window.PESOS_LIVE && window.PESOS_LIVE.limite!=null){
-    // usa el propio rango de fechas de D como aproximacion visual si no hay uno propio
-    pesosPeriodo='';
-  }
+  // ── Pesos — filtrado por el mismo rango, a partir del detalle crudo ──
+  var pesosParsed=window.PESOS_PARSED_LIVE||[];
+  var pesosFiltrado=pesosParsed.filter(function(r){
+    var k=fkey(r.dt);
+    if(k<dA||k>dB) return false;
+    if(SEL.yr!=='all'&&r.dt.getFullYear()!==SEL.yr) return false;
+    if(SEL.mes!=='all'&&(r.dt.getMonth()+1)!==SEL.mes) return false;
+    return true;
+  });
+  var P=(typeof computePesosAgg==='function')?computePesosAgg(pesosFiltrado, window.MTTO_ROWS_LIVE||[]).kpi:{total:0,sobre:0,ok:0,sub:0};
 
-  var nUnidades=window.N_UNIDADES_LIVE||0;
-  var nOpTotal=window.N_OPERADORES_TOTAL_LIVE||0;
-  var nOp3=window.N_OPERADORES_3DIAS_LIVE||0;
-  var nProdRows=window.TOTAL_PROD_ROWS_LIVE||0;
+  var nProdRows=window.TOTAL_PROD_ROWS_LIVE||0; // nota: agregado global, no refiltrado por rango (es volumen de captura, no metrica de periodo)
 
   document.getElementById('ctResumen').innerHTML='RESUMEN EJECUTIVO <em style="font-weight:400;color:var(--slate2)">'+periodoTxt+'</em>';
   document.getElementById('rangoResumen').textContent=periodoTxt;
 
   var k1=document.getElementById('kResumen1');
   if(k1) k1.innerHTML=
-    mkKpi('Meses de operaci\u00f3n',nMesesTxt.replace(' meses',''),periodoTxt,null,C.teal)+
-    mkKpi('Movimientos totales',fmt(totMov),'realizados en el periodo',null,C.teal)+
+    mkKpi('Movimientos totales',fmt(totMov),periodoTxt,null,C.teal)+
     mkKpi('Cargados / Vac\u00edos',fmt(totCargado)+' / '+fmt(totVacio),pct(totCargado,totMov)+'% cargados',null,C.teal2)+
-    mkKpi('Unidades utilizadas',nUnidades,'en la operaci\u00f3n',null,C.slate);
+    mkKpi('Unidades utilizadas',RESX.n_unidades,'en el periodo',null,C.slate)+
+    mkKpi('Operadores activos',RESX.n_operadores_3dias,'con 3+ d\u00edas (de '+RESX.n_operadores_total+' totales)',null,C.teal);
 
   var k2=document.getElementById('kResumen2');
   if(k2) k2.innerHTML=
-    mkKpi('Operadores activos',nOp3,'con 3+ d\u00edas trabajados (de '+nOpTotal+' totales)',null,C.teal)+
-    mkKpi('Da\u00f1os a cajas',fmt(totCajas),danosPeriodo||'ver Mantenimientos',null,C.amber)+
-    mkKpi('Llantas da\u00f1adas',fmt(totLlantas),danosPeriodo||'ver Mantenimientos',null,'#ef4444')+
+    mkKpi('Prom. cargados / d\u00eda',promDiaCarg.toFixed(1),'d\u00edas con operaci\u00f3n',null,C.teal)+
+    mkKpi('Prom. cargados / semana',fmt(promSemCarg),'promedio semanal',null,C.teal2)+
+    mkKpi('Prom. cargados / mes',fmt(promMesCarg),'promedio mensual',null,C.teal)+
+    mkKpi('Prom. cargados / a\u00f1o',fmt(promAnioCarg),'promedio anual',null,C.teal2);
+
+  var k3=document.getElementById('kResumen3');
+  if(k3) k3.innerHTML=
+    mkKpi('D\u00eda con m\u00e1s movimientos',diaPico?fmt(diaPico.total):'--',diaPico?diaPico.date.split('-').reverse().join('/'):'',null,C.amber)+
+    mkKpi('Mes con m\u00e1s movimientos',mesPico?fmt(mesPico.total):'--',mesPico?(MES_K[mesPico.month-1]+' '+mesPico.year):'',null,C.amber)+
+    mkKpi('Veces encendidos (estimado)',fmt(encendidosEst),'1 encendido + 1 apagado por viaje',null,C.slate)+
     mkKpi('Costo unitario promedio',cuProm?('$'+cuProm.toLocaleString('es-MX',{maximumFractionDigits:2})):'--','MXN \u00b7 '+periodoTxt,null,C.teal2);
 
+  var k4=document.getElementById('kResumen4');
+  if(k4) k4.innerHTML=
+    mkKpi('Da\u00f1os a cajas',fmt(totCajas),danosPeriodo,null,C.amber)+
+    mkKpi('Llantas da\u00f1adas',fmt(totLlantas),danosPeriodo,null,'#ef4444')+
+    mkKpi('Controles de peso',fmt(P.total),periodoTxt,null,C.teal)+
+    mkKpi('Viajes con sobrecarga',fmt(P.sobre),pct(P.sobre,P.total)+'% del periodo',null,'#ef4444');
+
   var impactoItems=[
-    {t:'EFICIENCIA', d:'Optimizaci\u00f3n de recursos y planificaci\u00f3n efectiva durante '+nMesesTxt+' de operaci\u00f3n.'},
-    {t:'CONTROL', d:'Monitoreo y gesti\u00f3n detallada de cada movimiento y activo involucrado \u2014 '+fmt(nProdRows)+' registros de operaci\u00f3n por hora capturados.'},
-    {t:'COMPROMISO', d:'Equipo de trabajo capacitado y enfocado en la seguridad y mejora continua \u2014 '+fmt(P.total)+' controles de peso registrados, '+fmt(P.sobre)+' sobrecargas detectadas.'}
+    {t:'EFICIENCIA', d:'Optimizaci\u00f3n de recursos y planificaci\u00f3n efectiva durante '+nMesesN+' mes'+(nMesesN===1?'':'es')+' de operaci\u00f3n ('+periodoTxt+').'},
+    {t:'CONTROL', d:'Monitoreo y gesti\u00f3n detallada de cada movimiento y activo involucrado \u2014 '+fmt(nProdRows)+' registros de operaci\u00f3n por hora capturados en total.'},
+    {t:'COMPROMISO', d:'Equipo de trabajo capacitado y enfocado en la seguridad y mejora continua \u2014 '+fmt(P.total)+' controles de peso registrados, '+fmt(P.sobre)+' sobrecargas detectadas en el periodo.'}
   ];
   var impEl=document.getElementById('impactoResumen');
   if(impEl) impEl.innerHTML=impactoItems.map(function(it){
@@ -956,7 +1039,10 @@ function boot(){
     var MT = buildMT(mttoRows);
     var CU = buildCU(costRows, D);
     var PESOS = buildPesos(pesosRows, mttoRows);
+    window.PESOS_PARSED_LIVE = parsePesosRows(pesosRows);
+    window.MTTO_ROWS_LIVE = mttoRows;
     var RESX = buildResumenExtra(movRows);
+    window.MOV_ROWS_LIVE = movRows;
     var tBuild=performance.now();
 
     window.D = D;
@@ -1940,18 +2026,26 @@ function renderMov(){
   mk('cCV','doughnut',{labels:['Cargados','Vac\u00edos'],datasets:[{data:[c,v],backgroundColor:[C.teal,C.slate2],borderWidth:0,datalabels:{display:true,color:'#fff',font:{size:10,weight:'700'},formatter:function(val,ctx){var t=ctx.chart.data.datasets[0].data.reduce(function(a,b){return a+b;},0);return Math.round(val/t*100)+'%';}}}]},{cutout:'65%'});
   mk('cTurno','doughnut',{labels:['T3','T4'],datasets:[{data:[dia,noche],backgroundColor:[C.green,C.slate],borderWidth:0,datalabels:{display:true,color:'#fff',font:{size:10,weight:'700'},formatter:function(val,ctx){var t=ctx.chart.data.datasets[0].data.reduce(function(a,b){return a+b;},0);return Math.round(val/t*100)+'%';}}}]},{cutout:'65%'});
 
-  var yrs=SEL.yr==='all'?[2024,2025,2026]:[SEL.yr];
+  // ── Por mes: agregado a partir de `cur` (ya filtrado por RNG + Año + Mes) ──
+  var monthlyAgg={};
+  cur.forEach(function(r){
+    var key=r.year+'-'+r.month;
+    if(!monthlyAgg[key]) monthlyAgg[key]={yr:r.year,mo:r.month,c:0,v:0,t:0};
+    monthlyAgg[key].c+=r.cargado; monthlyAgg[key].v+=r.vacio; monthlyAgg[key].t+=r.total;
+  });
+  var monthKeys=Object.keys(monthlyAgg).sort(function(a,b){
+    var pa=monthlyAgg[a],pb=monthlyAgg[b];
+    return (pa.yr*12+pa.mo)-(pb.yr*12+pb.mo);
+  });
+  var yrsSeen={}; monthKeys.forEach(function(k){yrsSeen[monthlyAgg[k].yr]=1;});
+  var yrs=Object.keys(yrsSeen).map(Number).sort();
   var mLbls=[],mC=[],mV=[],mP=[],mYM=[];
-  yrs.forEach(function(y){
-    var md=D.monthly[String(y)]||{};
-    MES_K.forEach(function(m){
-      if(SEL.mes!=='all'&&MES_I[m]!==SEL.mes)return;
-      var val=md[m];if(!val)return;
-      mLbls.push(yrs.length>1?m+' '+String(y).slice(2):m);
-      mYM.push({yr:y,mo:MES_I[m]});
-      mC.push(val.c);mV.push(val.v);
-      if(SEL.vs){var py=prevYr(y);var pm=py?(D.monthly[String(py)]||{})[m]:null;mP.push(pm?pm.t:null);}
-    });
+  monthKeys.forEach(function(k){
+    var m=monthlyAgg[k];
+    mLbls.push(yrs.length>1?MES_K[m.mo-1]+' '+String(m.yr).slice(2):MES_K[m.mo-1]);
+    mYM.push({yr:m.yr,mo:m.mo});
+    mC.push(m.c);mV.push(m.v);
+    if(SEL.vs){var py=prevYr(m.yr);var pm=py?(D.monthly[String(py)]||{})[MES_K[m.mo-1]]:null;mP.push(pm?pm.t:null);}
   });
   var mDS=[{label:'Cargados',data:mC,backgroundColor:C.tealA,borderRadius:3,stack:'s',datalabels:{display:true,anchor:'center',align:'center',color:'#fff',font:{size:9,weight:'700'},formatter:function(v){return v>0?v.toLocaleString('es-MX'):'';}}},{label:'Vac\u00edos',data:mV,backgroundColor:C.slate2A,borderRadius:3,stack:'s',datalabels:DL_STKTOP}];
   if(SEL.vs&&mP.some(function(x){return x!=null;}))mDS.push({label:'Ant',data:mP,type:'line',borderColor:C.amber,backgroundColor:'transparent',borderWidth:2,pointRadius:3,borderDash:[5,3],datalabels:DL_OFF});
@@ -1963,7 +2057,7 @@ function renderMov(){
   var py1=prevYr(SEL.yr==='all'?2025:SEL.yr);
   var vbStr=SEL.vs&&py1?(' <span class="vbadge">vs '+py1+'</span>'):'';
   var mesStr=SEL.mes!=='all'?' \u00b7 '+MES_N[SEL.mes]:'';
-  document.getElementById('ctMes').innerHTML='MOV. POR MES'+vbStr+' <em>'+(yrs.length===1?String(SEL.yr):'Todos')+mesStr+'</em>';
+  document.getElementById('ctMes').innerHTML='MOV. POR MES'+vbStr+' <em>'+(yrs.length===1?String(yrs[0]):'Todos')+mesStr+'</em>';
 
   mk('cMes','bar',{labels:mLbls,datasets:mDS},{scales:{x:{...ax,stacked:true,ticks:{color:TC,font:{size:10},maxRotation:45,autoSkip:true,maxTicksLimit:14}},y:{...ax,stacked:true}},plugins:{legend:{display:true,position:'bottom',labels:{color:TC,font:{size:11},boxWidth:12}},tooltip:{mode:'index',intersect:false}}});
 
@@ -1975,21 +2069,29 @@ function renderMov(){
     {label:'Vac\u00edos',data:dowV,backgroundColor:dowT.map(function(v){return v===mxD?C.slate:C.slate2A;}),borderRadius:3,stack:'s',datalabels:DL_STKTOP}
   ]},{scales:{x:{...ax,stacked:true},y:{...ax,stacked:true,ticks:{color:TC,font:{size:11}},grace:'8%'}},plugins:{legend:{display:true,position:'bottom',labels:{color:TC,font:{size:11},boxWidth:12}},tooltip:{mode:'index',intersect:false}}});
 
+  // ── Por semana: agregado a partir de `cur` (respeta RNG) ──
+  var weeklyAgg={};
+  cur.forEach(function(r){
+    var key=r.year+'-'+r.week;
+    if(!weeklyAgg[key]) weeklyAgg[key]={yr:r.year,wk:r.week,t:0};
+    weeklyAgg[key].t+=r.total;
+  });
+  var weekKeys=Object.keys(weeklyAgg).sort(function(a,b){
+    var pa=weeklyAgg[a],pb=weeklyAgg[b];
+    return (pa.yr*53+pa.wk)-(pb.yr*53+pb.wk);
+  });
+  var wYrsSeen={}; weekKeys.forEach(function(k){wYrsSeen[weeklyAgg[k].yr]=1;});
+  var wYrs=Object.keys(wYrsSeen).map(Number).sort();
   var wLbls=[],wT=[],wP=[];
-  var wYrs=SEL.yr==='all'?[2025,2026]:[SEL.yr];
-  wYrs.forEach(function(y){
-    var wd=D.weekly[String(y)]||{};
-    var keys=Object.keys(wd).map(Number).sort(function(a,b){return a-b;});
-    keys.forEach(function(w){
-      if(SEL.mes!=='all'){var match=cur.filter(function(x){return x.year===y&&x.week===w;});if(!match.length)return;}
-      wLbls.push(wYrs.length>1?'S'+w+' '+String(y).slice(2):'S'+w);
-      wT.push(wd[String(w)].t);
-      if(SEL.vs){var py=prevYr(y);var pw=py?(D.weekly[String(py)]||{})[String(w)]:null;wP.push(pw?pw.t:null);}
-    });
+  weekKeys.forEach(function(k){
+    var w=weeklyAgg[k];
+    wLbls.push(wYrs.length>1?'S'+w.wk+' '+String(w.yr).slice(2):'S'+w.wk);
+    wT.push(w.t);
+    if(SEL.vs){var py=prevYr(w.yr);var pw=py?(D.weekly[String(py)]||{})[String(w.wk)]:null;wP.push(pw?pw.t:null);}
   });
   var semDS=[{label:'Total',data:wT,borderColor:C.teal,backgroundColor:C.tealLight,fill:true,borderWidth:2,pointRadius:2,tension:.3,datalabels:{display:true,align:'top',anchor:'top',color:C.teal,font:{size:8},formatter:function(v){return v>0?v:'';}}}];
   if(SEL.vs&&wP.some(function(x){return x!=null;}))semDS.push({label:'Ant',data:wP,borderColor:C.amber,backgroundColor:'transparent',borderWidth:1.5,pointRadius:2,tension:.3,borderDash:[4,3],datalabels:DL_OFF});
-  document.getElementById('ctSem').innerHTML='POR SEMANA <em>'+(wYrs.length===1?String(SEL.yr):'2025-2026')+mesStr+'</em>';
+  document.getElementById('ctSem').innerHTML='POR SEMANA <em>'+(wYrs.length===1?String(wYrs[0]):(wYrs.length?wYrs[0]+'-'+wYrs[wYrs.length-1]:''))+mesStr+'</em>';
   // WMTH_2025/2026 defined globally below
   // Rebuild wLbls with month embedded at transitions
   var wLblsFinal=wLbls.map(function(lbl){
@@ -2014,10 +2116,13 @@ function renderMov(){
       if(c.dataset.label==='Meta') return 'Meta cargados: '+c.parsed.y;
       return c.dataset.label+': '+c.parsed.y;
     }}}}});
-  document.getElementById('ctDia').innerHTML='SERIE DIARIA <em>'+(SEL.yr==='all'?'Todos':String(SEL.yr))+mesStr+'</em>';
+  document.getElementById('ctDia').innerHTML='SERIE DIARIA <em>'+(yrs.length===1?String(yrs[0]):'Todos')+mesStr+'</em>';
 
-  var avgC=DIAS_FULL.map(function(d){return EX.dow_avg[d]?EX.dow_avg[d].avg_c:0;});
-  var avgV=DIAS_FULL.map(function(d){return EX.dow_avg[d]?EX.dow_avg[d].avg_v:0;});
+  // ── Promedio por día de semana: agregado a partir de `cur` (respeta RNG) ──
+  var dowSum={}; DIAS_FULL.forEach(function(d,i){dowSum[i]={c:0,v:0,n:0};});
+  cur.forEach(function(r){ var i=r.dow; dowSum[i].c+=(r.cargado||0); dowSum[i].v+=(r.vacio||0); dowSum[i].n++; });
+  var avgC=DIAS_FULL.map(function(d,i){return dowSum[i].n?dowSum[i].c/dowSum[i].n:0;});
+  var avgV=DIAS_FULL.map(function(d,i){return dowSum[i].n?dowSum[i].v/dowSum[i].n:0;});
   mk('cAvgDow','bar',{labels:DIAS_FULL,datasets:[
     {label:'Cargados',data:avgC,backgroundColor:C.teal2A,borderRadius:4,datalabels:{display:true,anchor:'end',align:'end',color:C.teal,font:{size:10,weight:'700'},formatter:function(v){return v>0?v.toFixed(1):'';}},},
     {label:'Vac\u00edos',data:avgV,backgroundColor:C.slate2A,borderRadius:4,datalabels:{display:true,anchor:'end',align:'end',color:C.slate,font:{size:10,weight:'700'},formatter:function(v){return v>0?v.toFixed(1):'';}},}
