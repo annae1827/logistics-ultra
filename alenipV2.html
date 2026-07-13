@@ -74,6 +74,7 @@ select.fb{appearance:none;padding-right:20px;background-image:url("data:image/sv
     <button class="tab" id="t3" onclick="showTab(3)">Operaci&oacute;n por Hora</button>
     <button class="tab" id="t4" onclick="showTab(4)">Costo Unitario</button>
     <button class="tab" id="t5" onclick="showTab(5)">Pesos</button>
+    <button class="tab" id="t6" onclick="showTab(6)">Resumen Ejecutivo</button>
   </div>
 </div>
 
@@ -462,6 +463,20 @@ select.fb{appearance:none;padding-right:20px;background-image:url("data:image/sv
   </div>
 </div></div>
 
+<!-- TAB 6: RESUMEN EJECUTIVO -->
+<div id="p6" class="panel"><div class="shell">
+  <div style="font-size:10px;font-weight:700;color:var(--slate2);letter-spacing:.08em;text-transform:uppercase;padding-bottom:4px" id="ctResumen">RESUMEN EJECUTIVO</div>
+  <div class="kg" id="kResumen1" style="grid-template-columns:repeat(4,1fr)"></div>
+  <div class="kg" id="kResumen2" style="grid-template-columns:repeat(4,1fr);margin-top:10px"></div>
+  <div class="card" style="margin-top:14px;background:#0d4f3c;border:none">
+    <div style="font-size:11px;font-weight:700;color:#fff;letter-spacing:.06em;text-transform:uppercase;padding-bottom:12px">Impacto en la operación</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px" id="impactoResumen"></div>
+  </div>
+  <div style="margin-top:12px;padding:12px 18px;background:#0d4f3c;border-radius:12px;color:#fff;font-size:12px;display:flex;align-items:center;gap:8px">
+    <span style="color:#88B549">&#10003;</span> <span>Datos acumulados de <b id="rangoResumen" style="color:#D9A441"></b> &mdash; actualizado en vivo desde Google Sheets</span>
+  </div>
+</div></div>
+
 <script>
 Chart.register(ChartDataLabels);
 if(window.ChartAnnotation) Chart.register(window.ChartAnnotation);
@@ -541,6 +556,27 @@ function turnoKey(t){
 }
 function toNum(v){ var n=parseFloat((v||'').toString().replace(/,/g,'').replace(/\$/g,'')); return isNaN(n)?0:n; }
 
+function buildResumenExtra(rows){
+  var unidades={}, operadorDias={}, operadorTotal={};
+  rows.forEach(function(r){
+    var dt=parseFechaDMY(r['Fecha']); if(!dt) return;
+    var k=fkey(dt);
+    var u=r['Unidad']; if(u!=null && u!=='') unidades[String(u).trim()]=1;
+    var op=r['Operador']; if(op!=null && op!==''){
+      op=String(op).trim();
+      operadorTotal[op]=1;
+      if(!operadorDias[op]) operadorDias[op]={};
+      operadorDias[op][k]=1;
+    }
+  });
+  var n3=0;
+  Object.keys(operadorDias).forEach(function(op){ if(Object.keys(operadorDias[op]).length>=3) n3++; });
+  return {
+    n_unidades: Object.keys(unidades).length,
+    n_operadores_total: Object.keys(operadorTotal).length,
+    n_operadores_3dias: n3
+  };
+}
 function buildD(rows){
   var byDate={};
   rows.forEach(function(r){
@@ -804,6 +840,77 @@ function renderPesos(){
   }).join('')||'<tr><td colspan="4" style="padding:16px;text-align:center;color:var(--slate2)">No se encontraron coincidencias</td></tr>';
 }
 
+function renderResumen(){
+  if(!window.D || !D.daily || !D.daily.length) return;
+  var first=D.daily[0].date, last=D.daily[D.daily.length-1].date;
+  var periodoTxt=(typeof PERIODO_LABEL!=='undefined'?PERIODO_LABEL:(first+' a '+last));
+  var nMesesTxt=(typeof N_MESES_LABEL!=='undefined'?N_MESES_LABEL:'');
+
+  var totCargado=0,totVacio=0,totMov=0;
+  D.daily.forEach(function(r){totCargado+=r.cargado;totVacio+=r.vacio;totMov+=r.total;});
+
+  // Daños / llantas — a partir de ALL_MD_LIVE (agregado mensual en vivo)
+  var ALL_MD=window.ALL_MD_LIVE||[], TIPOS=window.TIPOS_LIVE||[];
+  var LLANTA_KEY=TIPOS.indexOf('Llantas')>=0?'Llantas':null;
+  var CHOQUE_KEY=TIPOS.indexOf('Choque / colisión')>=0?'Choque / colisión':(window.SINIESTRO_KEY_LIVE||null);
+  var totLlantas=0, totChoque=0, totCajas=0, totDanos=0;
+  ALL_MD.forEach(function(m){
+    totDanos+=(m.total||0);
+    if(LLANTA_KEY) totLlantas+=(m[LLANTA_KEY]||0);
+    if(CHOQUE_KEY) totChoque+=(m[CHOQUE_KEY]||0);
+  });
+  totCajas=totDanos-totLlantas;
+  var danosPeriodo='';
+  if(ALL_MD.length){
+    var mmin=ALL_MD[0], mmax=ALL_MD[ALL_MD.length-1];
+    danosPeriodo=mmin.mes+"'"+String(mmin.year).slice(2)+' \u2013 '+mmax.mes+"'"+String(mmax.year).slice(2);
+  }
+
+  // Costo unitario promedio
+  var CU=window.CU_DATA||[];
+  var cuProm=CU.length?(CU.reduce(function(a,r){return a+(r.cu||0);},0)/CU.length):0;
+
+  // Pesos
+  var P=(window.PESOS_LIVE&&window.PESOS_LIVE.kpi)||{total:0,sobre:0,ok:0,sub:0};
+  var pesosPeriodo='';
+  if(window.PESOS_LIVE && window.PESOS_LIVE.limite!=null){
+    // usa el propio rango de fechas de D como aproximacion visual si no hay uno propio
+    pesosPeriodo='';
+  }
+
+  var nUnidades=window.N_UNIDADES_LIVE||0;
+  var nOpTotal=window.N_OPERADORES_TOTAL_LIVE||0;
+  var nOp3=window.N_OPERADORES_3DIAS_LIVE||0;
+  var nProdRows=window.TOTAL_PROD_ROWS_LIVE||0;
+
+  document.getElementById('ctResumen').innerHTML='RESUMEN EJECUTIVO <em style="font-weight:400;color:var(--slate2)">'+periodoTxt+'</em>';
+  document.getElementById('rangoResumen').textContent=periodoTxt;
+
+  var k1=document.getElementById('kResumen1');
+  if(k1) k1.innerHTML=
+    mkKpi('Meses de operaci\u00f3n',nMesesTxt.replace(' meses',''),periodoTxt,null,C.teal)+
+    mkKpi('Movimientos totales',fmt(totMov),'realizados en el periodo',null,C.teal)+
+    mkKpi('Cargados / Vac\u00edos',fmt(totCargado)+' / '+fmt(totVacio),pct(totCargado,totMov)+'% cargados',null,C.teal2)+
+    mkKpi('Unidades utilizadas',nUnidades,'en la operaci\u00f3n',null,C.slate);
+
+  var k2=document.getElementById('kResumen2');
+  if(k2) k2.innerHTML=
+    mkKpi('Operadores activos',nOp3,'con 3+ d\u00edas trabajados (de '+nOpTotal+' totales)',null,C.teal)+
+    mkKpi('Da\u00f1os a cajas',fmt(totCajas),danosPeriodo||'ver Mantenimientos',null,C.amber)+
+    mkKpi('Llantas da\u00f1adas',fmt(totLlantas),danosPeriodo||'ver Mantenimientos',null,'#ef4444')+
+    mkKpi('Costo unitario promedio',cuProm?('$'+cuProm.toLocaleString('es-MX',{maximumFractionDigits:2})):'--','MXN \u00b7 '+periodoTxt,null,C.teal2);
+
+  var impactoItems=[
+    {t:'EFICIENCIA', d:'Optimizaci\u00f3n de recursos y planificaci\u00f3n efectiva durante '+nMesesTxt+' de operaci\u00f3n.'},
+    {t:'CONTROL', d:'Monitoreo y gesti\u00f3n detallada de cada movimiento y activo involucrado \u2014 '+fmt(nProdRows)+' registros de operaci\u00f3n por hora capturados.'},
+    {t:'COMPROMISO', d:'Equipo de trabajo capacitado y enfocado en la seguridad y mejora continua \u2014 '+fmt(P.total)+' controles de peso registrados, '+fmt(P.sobre)+' sobrecargas detectadas.'}
+  ];
+  var impEl=document.getElementById('impactoResumen');
+  if(impEl) impEl.innerHTML=impactoItems.map(function(it){
+    return '<div><div style="font-size:11px;font-weight:800;color:#D9A441;letter-spacing:.04em;padding-bottom:6px">'+it.t+'</div><div style="font-size:11px;color:#cfe8da;line-height:1.5">'+it.d+'</div></div>';
+  }).join('');
+}
+
 function injectDeferred(){
   var tpl=document.getElementById('deferredMain');
   var s=document.createElement('script');
@@ -849,6 +956,7 @@ function boot(){
     var MT = buildMT(mttoRows);
     var CU = buildCU(costRows, D);
     var PESOS = buildPesos(pesosRows, mttoRows);
+    var RESX = buildResumenExtra(movRows);
     var tBuild=performance.now();
 
     window.D = D;
@@ -861,6 +969,10 @@ function boot(){
     window.ALL_MD_LIVE = MT.ALL_MD;
     window.SINIESTRO_KEY_LIVE = MT.SINIESTRO;
     window.PESOS_LIVE = PESOS;
+    window.N_UNIDADES_LIVE = RESX.n_unidades;
+    window.N_OPERADORES_TOTAL_LIVE = RESX.n_operadores_total;
+    window.N_OPERADORES_3DIAS_LIVE = RESX.n_operadores_3dias;
+    window.TOTAL_PROD_ROWS_LIVE = opRows.length;
 
     injectDeferred();
     var tRender=performance.now();
@@ -1038,6 +1150,7 @@ function showTab(i){
   if(i===2) renderMtto();
   if(i===4) renderCosto();
   if(i===5 && typeof renderPesos==='function') renderPesos();
+  if(i===6 && typeof renderResumen==='function') renderResumen();
 }
 
 // ============ TIEMPOS MUERTOS ============
@@ -2351,7 +2464,7 @@ function renderMtto(){
   document.getElementById('mLeg').innerHTML=sortT.map(function(t){return '<div class="rr"><div style="width:9px;height:9px;border-radius:2px;background:'+(MCOLS[t]||C.slate2)+';flex-shrink:0"></div><div class="rn">'+t+'</div><div class="rv">'+(totals[t]||0)+'</div></div>';}).join('');
 }
 
-function refreshAll(){renderMov();renderProd();if(document.getElementById('p3').classList.contains('active'))refreshTM();if(document.getElementById('p2').classList.contains('active'))renderMtto();if(document.getElementById('p4')&&document.getElementById('p4').classList.contains('active'))renderCosto();if(document.getElementById('p5')&&document.getElementById('p5').classList.contains('active')&&typeof renderPesos==='function')renderPesos();}
+function refreshAll(){renderMov();renderProd();if(document.getElementById('p3').classList.contains('active'))refreshTM();if(document.getElementById('p2').classList.contains('active'))renderMtto();if(document.getElementById('p4')&&document.getElementById('p4').classList.contains('active'))renderCosto();if(document.getElementById('p5')&&document.getElementById('p5').classList.contains('active')&&typeof renderPesos==='function')renderPesos();if(document.getElementById('p6')&&document.getElementById('p6').classList.contains('active')&&typeof renderResumen==='function')renderResumen();}
 refreshAll();
 renderMtto();
 
