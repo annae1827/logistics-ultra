@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Dashboard Operaciones — Logistics Ultra</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-datalabels/2.2.0/chartjs-plugin-datalabels.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js" onerror="this.onerror=null;var s=document.createElement('script');s.src='https://unpkg.com/papaparse@5.4.1/papaparse.min.js';s.onerror=function(){var s2=document.createElement('script');s2.src='https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js';document.head.appendChild(s2);};document.head.appendChild(s);"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Inter,-apple-system,sans-serif;background:#f8fafb;color:#0f172a;font-size:13px}
+:root{--teal:#0d9488;--teal2:#14b8a6;--teal3:#99f6e4;--teal-bg:#f0fdfa;--green:#059669;--slate:#64748b;--slate2:#94a3b8;--dark:#0f172a;--amber:#d97706;--red:#ef4444;--white:#fff}
+.hdr{background:#fff;border-bottom:1px solid #e2e8f0;padding:0 24px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:100;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.logo{width:36px;height:36px;background:var(--teal);border-radius:10px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:14px;flex-shrink:0}
+.brand{display:flex;flex-direction:column;line-height:1.2}
+.brand b{font-size:14px;font-weight:700}
+.brand span{font-size:10px;color:var(--slate2);letter-spacing:.05em;text-transform:uppercase}
+.ipbtn{margin-left:auto;font-size:12px;font-weight:700;color:#fff;background:var(--teal);border:none;border-radius:8px;padding:10px 18px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:6px;transition:.15s}
+.ipbtn:hover{background:#0f766e}
+.fbar{background:#fff;border-bottom:1px solid #e2e8f0;padding:10px 24px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.fbar label{font-size:10px;font-weight:700;color:var(--slate2);letter-spacing:.06em}
+.fb{font-size:11px;font-weight:600;padding:5px 12px;border-radius:20px;border:1px solid #e2e8f0;background:#fff;color:var(--slate);cursor:pointer;transition:.15s}
+.fb.act,.fb:hover{background:var(--teal);color:#fff;border-color:var(--teal)}
+select.fb{appearance:none;padding-right:20px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2394a3b8'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 8px center}
+.shell{padding:20px 24px;display:flex;flex-direction:column;gap:16px}
+.kg{display:grid;gap:12px;grid-template-columns:repeat(4,1fr)}
+.kpi{background:#fff;border-radius:10px;padding:14px 16px;border:1px solid #f1f5f9;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.klbl{font-size:10px;font-weight:700;color:var(--slate2);letter-spacing:.06em;text-transform:uppercase;margin-bottom:4px}
+.kval{font-size:26px;font-weight:800;color:var(--dark);line-height:1.1}
+.ksub{font-size:10px;color:var(--slate2);margin-top:3px}
+.card{background:#fff;border-radius:12px;padding:14px 16px;border:1px solid #f1f5f9;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.ct{font-size:10px;font-weight:700;color:var(--slate2);letter-spacing:.08em;text-transform:uppercase;padding-bottom:10px;border-bottom:1px solid #f1f5f9;margin-bottom:10px}
+.cw{position:relative;width:100%}
+.c2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:700px){.c2{grid-template-columns:1fr}.kg{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="logo">LU</div>
+  <div class="brand"><b>Logistics Ultra</b><span>Operaciones &middot; General</span></div>
+  <a class="ipbtn" href="alenip.html">🚚 Ver Interplantas (AlEn) &rarr;</a>
+</div>
+
+<div id="diagBanner" style="background:#fffbeb;border-bottom:1px solid #fde68a;padding:8px 24px;font-size:11px;color:#92400e;font-family:monospace">
+  &#9203; Cargando datos en vivo desde Google Sheets&hellip;
+</div>
+
+<div class="fbar">
+  <label>AÑO:</label>
+  <button class="fb act" id="yAll" onclick="setYr('all',this)">Todos</button>
+  <button class="fb" id="y2024" onclick="setYr(2024,this)">2024</button>
+  <button class="fb" id="y2025" onclick="setYr(2025,this)">2025</button>
+  <button class="fb" id="y2026" onclick="setYr(2026,this)">2026</button>
+  <label style="margin-left:14px">MES:</label>
+  <select class="fb" id="selMes" onchange="setMes(this.value)">
+    <option value="all">Todos los meses</option>
+    <option value="1">Enero</option><option value="2">Febrero</option><option value="3">Marzo</option>
+    <option value="4">Abril</option><option value="5">Mayo</option><option value="6">Junio</option>
+    <option value="7">Julio</option><option value="8">Agosto</option><option value="9">Septiembre</option>
+    <option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option>
+  </select>
+</div>
+
+<div class="shell">
+  <div class="kg" id="kMain"></div>
+
+  <div class="c2">
+    <div class="card">
+      <div class="ct">💰 INGRESOS POR TIPO DE SERVICIO</div>
+      <div class="cw" style="height:320px"><canvas id="cIngresosTipo"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="ct">🧾 GASTOS POR CATEGORÍA</div>
+      <div class="cw" style="height:320px"><canvas id="cGastosTipo"></canvas></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="ct">📊 INGRESOS VS GASTOS POR MES</div>
+    <div class="cw" style="height:320px"><canvas id="cIngGasMes"></canvas></div>
+  </div>
+
+  <div class="card">
+    <div class="ct">📋 DETALLE POR TIPO</div>
+    <div id="tblDetalle" style="overflow-x:auto"></div>
+  </div>
+</div>
+
+<script>
+Chart.register(ChartDataLabels);
+</script>
+
+<script>
+var CSV_BASE = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTFCb5-thOY7JmJetMS6CJ1qcwvgdUsQomnnJ8NB2FrJ2A9Mu1keeXYLp9iPA_YGBJr3GORwaH4Q9TM/pub?single=true&output=csv&gid=';
+var GIDS = { viajes: '0', gastos: '780264840' };
+var CACHE_MINUTES = 10;
+var TEAL='#0d9488', TEAL2='#14b8a6', AMBER='#d97706', RED='#ef4444', SLATE='#64748b';
+var PALETTE=['#0d9488','#14b8a6','#d97706','#ef4444','#7c3aed','#0ea5e9','#64748b','#059669','#f59e0b','#a855f7'];
+var MES_K=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+var MES_N={1:'Enero',2:'Febrero',3:'Marzo',4:'Abril',5:'Mayo',6:'Junio',7:'Julio',8:'Agosto',9:'Septiembre',10:'Octubre',11:'Noviembre',12:'Diciembre'};
+
+function setDiag(html, isError, isFinal){
+  var el=document.getElementById('diagBanner');
+  if(window._diagFinal && !isFinal){ console.warn('[diag suprimido]', html); return; }
+  if(isFinal) window._diagFinal=true;
+  if(!el) return;
+  el.style.background = isError ? '#fef2f2' : '#f0fdf4';
+  el.style.borderColor = isError ? '#fecaca' : '#86efac';
+  el.style.color = isError ? '#dc2626' : '#166534';
+  el.innerHTML = html;
+}
+
+function fetchCSV(gid){
+  var cacheKey='csvcache_ops_v1_'+gid;
+  return new Promise(function(resolve){
+    try{
+      var cached=localStorage.getItem(cacheKey);
+      if(cached){
+        var obj=JSON.parse(cached);
+        if(obj && obj.rows && (Date.now()-obj.t) < CACHE_MINUTES*60*1000){ resolve(obj.rows); return; }
+      }
+    }catch(e){}
+    Papa.parse(CSV_BASE+gid, {
+      download:true, header:true, skipEmptyLines:true,
+      complete:function(res){
+        try{ localStorage.setItem(cacheKey, JSON.stringify({t:Date.now(), rows:res.data})); }catch(e){}
+        resolve(res.data);
+      },
+      error:function(){ resolve([]); }
+    });
+  });
+}
+
+function parseFechaDMY(s){
+  if(!s) return null;
+  var p=String(s).split('/'); if(p.length!==3) return null;
+  var d=parseInt(p[0],10), m=parseInt(p[1],10), y=parseInt(p[2],10);
+  if(!d||!m||!y) return null;
+  if(y<100) y+=2000;
+  return new Date(y, m-1, d);
+}
+function toNum(v){ var n=parseFloat((v||'').toString().replace(/,/g,'').replace(/\$/g,'')); return isNaN(n)?0:n; }
+function fmtMoney(n){ return '$'+Math.round(n).toLocaleString('es-MX'); }
+function fmtN(n){ return Math.round(n).toLocaleString('es-MX'); }
+
+var SEL={yr:'all', mes:'all'};
+function setYr(y,btn){
+  SEL.yr=y;
+  document.querySelectorAll('#yAll,#y2024,#y2025,#y2026').forEach(function(b){b.classList.remove('act');});
+  btn.classList.add('act');
+  render();
+}
+function setMes(v){ SEL.mes=v==='all'?'all':parseInt(v,10); render(); }
+
+var _charts={};
+function mkChart(id, config){
+  if(_charts[id]) _charts[id].destroy();
+  _charts[id]=new Chart(document.getElementById(id), config);
+  return _charts[id];
+}
+
+function boot(){
+  setDiag('&#9203; Descargando Viajes y Gastos desde Google Sheets&hellip;');
+  var watchdog=setTimeout(function(){
+    setDiag('&#9888; Llevamos m&aacute;s de 25s esperando la respuesta de Google Sheets. Revisa tu conexi&oacute;n o si cambiaron los gids.', true, true);
+  }, 25000);
+  Promise.all([fetchCSV(GIDS.viajes), fetchCSV(GIDS.gastos)]).then(function(res){
+    clearTimeout(watchdog);
+    var viajesRows=res[0], gastosRows=res[1];
+    if(!viajesRows.length && !gastosRows.length){
+      setDiag('&#9888; Se descargaron 0 filas. Si abriste este archivo con doble clic (file://) el navegador bloquea la descarga por CORS — sube el archivo a GitHub Pages y &aacute;brelo desde esa URL https.', true, true);
+      return;
+    }
+    VIAJES_RAW = viajesRows.map(function(r){
+      var dt=parseFechaDMY(r['Dia']);
+      return {dt:dt, year:dt?dt.getFullYear():(parseInt(r['AÑO'],10)||null), month:dt?dt.getMonth()+1:null,
+        tipo:(r['Tipo de Servicio']||r['Tipo de servicio']||'Sin clasificar').trim(),
+        cliente:(r['Cliente']||'').trim(), operador:(r['Operador']||'').trim(),
+        tarifa:toNum(r['Tarifa'])};
+    }).filter(function(r){return r.dt && r.tarifa>0;});
+
+    GASTOS_RAW = gastosRows.map(function(r){
+      var dt=parseFechaDMY(r['Fecha']);
+      return {dt:dt, year:dt?dt.getFullYear():(parseInt(r['Año'],10)||null), month:dt?dt.getMonth()+1:null,
+        categoria:(r['Categoría']||'Sin clasificar').trim(),
+        clasificacion:(r['Clasificación']||'').trim(),
+        tipo:(r['Tipo']||'').trim(), unidad:(r['Unidad']||'').trim(),
+        monto:toNum(r['Monto'])};
+    }).filter(function(r){return r.dt && r.monto>0;});
+
+    var counts='Viajes: '+VIAJES_RAW.length+' filas &middot; Gastos: '+GASTOS_RAW.length+' filas';
+    setDiag('&#10003; Datos actualizados &middot; '+counts, false, true);
+    setTimeout(function(){ var el=document.getElementById('diagBanner'); if(el) el.style.display='none'; }, 7000);
+    render();
+  }).catch(function(err){
+    clearTimeout(watchdog);
+    console.error(err);
+    setDiag('&#9888; Error al cargar/procesar los datos: '+(err&&err.message||err)+'. Revisa la consola (F12).', true, true);
+  });
+}
+
+window.addEventListener('error', function(ev){
+  console.error('[window.onerror]', ev.message, ev.filename, ev.lineno);
+  if(!window._diagFinal){
+    setDiag('&#9888; Error de JavaScript antes de terminar de cargar: '+(ev.message||'desconocido')+' (l&iacute;nea '+(ev.lineno||'?')+').', true, true);
+  }
+});
+
+function filt(rows){
+  return rows.filter(function(r){
+    if(SEL.yr!=='all' && r.year!==SEL.yr) return false;
+    if(SEL.mes!=='all' && r.month!==SEL.mes) return false;
+    return true;
+  });
+}
+
+function groupSum(rows, keyFn, valFn){
+  var o={};
+  rows.forEach(function(r){ var k=keyFn(r)||'Sin clasificar'; o[k]=(o[k]||0)+valFn(r); });
+  return o;
+}
+
+function render(){
+  if(!VIAJES_RAW.length && !GASTOS_RAW.length) return;
+  var v=filt(VIAJES_RAW), g=filt(GASTOS_RAW);
+
+  var totalIngresos=v.reduce(function(a,r){return a+r.tarifa;},0);
+  var totalGastos=g.reduce(function(a,r){return a+r.monto;},0);
+  var utilidad=totalIngresos-totalGastos;
+  var margen=totalIngresos>0?(utilidad/totalIngresos*100):0;
+
+  var periodoTxt=SEL.yr==='all'?'Todo el periodo':(String(SEL.yr)+(SEL.mes!=='all'?' · '+MES_N[SEL.mes]:''));
+
+  document.getElementById('kMain').innerHTML=
+    '<div class="kpi" style="border-top:3px solid '+TEAL+'"><div class="klbl">💰 Ingresos totales</div><div class="kval">'+fmtMoney(totalIngresos)+'</div><div class="ksub">'+v.length+' viajes &middot; '+periodoTxt+'</div></div>'+
+    '<div class="kpi" style="border-top:3px solid '+RED+'"><div class="klbl">🧾 Gastos totales</div><div class="kval">'+fmtMoney(totalGastos)+'</div><div class="ksub">'+g.length+' registros &middot; '+periodoTxt+'</div></div>'+
+    '<div class="kpi" style="border-top:3px solid '+(utilidad>=0?TEAL:RED)+'"><div class="klbl">📈 Utilidad</div><div class="kval" style="color:'+(utilidad>=0?'#0f172a':RED)+'">'+fmtMoney(utilidad)+'</div><div class="ksub">ingresos &minus; gastos</div></div>'+
+    '<div class="kpi" style="border-top:3px solid '+AMBER+'"><div class="klbl">📊 Margen</div><div class="kval">'+margen.toFixed(1)+'%</div><div class="ksub">utilidad / ingresos</div></div>';
+
+  // Ingresos por tipo de servicio
+  var ingTipo=groupSum(v, function(r){return r.tipo;}, function(r){return r.tarifa;});
+  var ingLabels=Object.keys(ingTipo).sort(function(a,b){return ingTipo[b]-ingTipo[a];});
+  mkChart('cIngresosTipo', {type:'bar', data:{labels:ingLabels, datasets:[{
+    label:'Ingresos', data:ingLabels.map(function(k){return ingTipo[k];}),
+    backgroundColor:ingLabels.map(function(_,i){return PALETTE[i%PALETTE.length];}), borderRadius:4,
+    datalabels:{display:true, anchor:'end', align:'end', color:'#334155', font:{size:10,weight:'700'}, formatter:function(v){return fmtMoney(v);}}
+  }]}, options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',
+    scales:{x:{ticks:{callback:function(v){return fmtMoney(v);}}}, y:{ticks:{font:{size:11}}}},
+    plugins:{legend:{display:false}}}, plugins:[ChartDataLabels]});
+
+  // Gastos por categoría
+  var gasCat=groupSum(g, function(r){return r.categoria;}, function(r){return r.monto;});
+  var gasLabels=Object.keys(gasCat).sort(function(a,b){return gasCat[b]-gasCat[a];});
+  mkChart('cGastosTipo', {type:'bar', data:{labels:gasLabels, datasets:[{
+    label:'Gastos', data:gasLabels.map(function(k){return gasCat[k];}),
+    backgroundColor:gasLabels.map(function(_,i){return PALETTE[i%PALETTE.length];}), borderRadius:4,
+    datalabels:{display:true, anchor:'end', align:'end', color:'#334155', font:{size:10,weight:'700'}, formatter:function(v){return fmtMoney(v);}}
+  }]}, options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',
+    scales:{x:{ticks:{callback:function(v){return fmtMoney(v);}}}, y:{ticks:{font:{size:11}}}},
+    plugins:{legend:{display:false}}}, plugins:[ChartDataLabels]});
+
+  // Ingresos vs Gastos por mes
+  var mesesSet={};
+  v.forEach(function(r){mesesSet[r.year+'-'+r.month]=1;});
+  g.forEach(function(r){mesesSet[r.year+'-'+r.month]=1;});
+  var mesesKeys=Object.keys(mesesSet).sort(function(a,b){
+    var pa=a.split('-').map(Number), pb=b.split('-').map(Number);
+    return (pa[0]*12+pa[1])-(pb[0]*12+pb[1]);
+  });
+  var ingMes=groupSum(v, function(r){return r.year+'-'+r.month;}, function(r){return r.tarifa;});
+  var gasMes=groupSum(g, function(r){return r.year+'-'+r.month;}, function(r){return r.monto;});
+  var mLabels=mesesKeys.map(function(k){var p=k.split('-');return MES_K[parseInt(p[1],10)-1]+' '+p[0].slice(2);});
+  mkChart('cIngGasMes', {type:'bar', data:{labels:mLabels, datasets:[
+    {label:'Ingresos', data:mesesKeys.map(function(k){return ingMes[k]||0;}), backgroundColor:TEAL+'cc', borderRadius:3,
+     datalabels:{display:true,anchor:'end',align:'top',color:TEAL,font:{size:8,weight:'700'},formatter:function(v){return v>0?fmtMoney(v):'';}}},
+    {label:'Gastos', data:mesesKeys.map(function(k){return gasMes[k]||0;}), backgroundColor:RED+'cc', borderRadius:3,
+     datalabels:{display:true,anchor:'end',align:'top',color:RED,font:{size:8,weight:'700'},formatter:function(v){return v>0?fmtMoney(v):'';}}}
+  ]}, options:{responsive:true,maintainAspectRatio:false,
+    scales:{x:{ticks:{font:{size:10}}}, y:{ticks:{callback:function(v){return fmtMoney(v);}}}},
+    plugins:{legend:{display:true,position:'bottom'}}}, plugins:[ChartDataLabels]});
+
+  // Tabla detalle
+  var TH='font-size:10px;font-weight:700;color:#fff;padding:8px 12px;text-align:right;';
+  var THL='font-size:10px;font-weight:700;color:#fff;padding:8px 12px;text-align:left;';
+  var TD='font-size:11px;padding:7px 12px;text-align:right;color:#1e293b;';
+  var TDL='font-size:11px;padding:7px 12px;text-align:left;color:#1e293b;';
+  var tbl='<table style="width:100%;border-collapse:collapse"><thead><tr style="background:#0d4f3c">'+
+    '<th style="'+THL+'">Tipo</th><th style="'+TH+'">Categor&iacute;a</th><th style="'+TH+'">Monto</th><th style="'+TH+'">% del total</th></tr></thead><tbody>';
+  ingLabels.forEach(function(k,i){
+    var bg=i%2===0?'#fff':'#f8fafb';
+    tbl+='<tr style="background:'+bg+';border-bottom:1px solid #f1f5f9"><td style="'+TDL+'">💰 '+k+'</td><td style="'+TD+'">Ingreso</td><td style="'+TD+'font-weight:700;color:'+TEAL+'">'+fmtMoney(ingTipo[k])+'</td><td style="'+TD+'">'+(totalIngresos>0?(ingTipo[k]/totalIngresos*100).toFixed(1):0)+'%</td></tr>';
+  });
+  gasLabels.forEach(function(k,i){
+    var bg=i%2===0?'#fff':'#f8fafb';
+    tbl+='<tr style="background:'+bg+';border-bottom:1px solid #f1f5f9"><td style="'+TDL+'">🧾 '+k+'</td><td style="'+TD+'">Gasto</td><td style="'+TD+'font-weight:700;color:'+RED+'">'+fmtMoney(gasCat[k])+'</td><td style="'+TD+'">'+(totalGastos>0?(gasCat[k]/totalGastos*100).toFixed(1):0)+'%</td></tr>';
+  });
+  tbl+='</tbody></table>';
+  document.getElementById('tblDetalle').innerHTML=tbl;
+}
+
+var _waitTries=0;
+(function waitLibs(){
+  if(typeof Papa!=='undefined' && typeof Chart!=='undefined'){ boot(); return; }
+  _waitTries++;
+  if(_waitTries>100){ setDiag('&#9888; No se pudieron cargar las librer&iacute;as Chart.js/PapaParse.', true, true); return; }
+  setTimeout(waitLibs, 150);
+})();
+</script>
+
+</body>
+</html>
