@@ -804,8 +804,10 @@ function injectDeferred(){
   document.body.appendChild(s);
 }
 
-function setDiag(html, isError){
+function setDiag(html, isError, isFinal){
   var el=document.getElementById('diagBanner');
+  if(window._diagFinal && !isFinal) { console.warn('[diag suprimido, ya hab\u00eda un mensaje final]', html); return; }
+  if(isFinal) window._diagFinal = true;
   if(!el) return;
   el.style.background = isError ? '#fef2f2' : '#f0fdf4';
   el.style.borderColor = isError ? '#fecaca' : '#86efac';
@@ -817,7 +819,7 @@ function boot(){
   var t0=performance.now();
   setDiag('&#9203; Descargando hojas de Google Sheets&hellip;');
   var watchdog=setTimeout(function(){
-    setDiag('&#9888; Llevamos m&aacute;s de 25s esperando la respuesta de Google Sheets. Puede ser tu conexi&oacute;n, o que alguna hoja publicada haya cambiado de gid/URL. Revisa la consola (F12) y recarga la p&aacute;gina.', true);
+    setDiag('&#9888; Llevamos m&aacute;s de 25s esperando la respuesta de Google Sheets. Puede ser tu conexi&oacute;n, o que alguna hoja publicada haya cambiado de gid/URL. Revisa la consola (F12) y recarga la p&aacute;gina.', true, true);
   }, 25000);
   Promise.all([
     fetchCSV(GIDS.movimientos),
@@ -831,7 +833,7 @@ function boot(){
     var movRows=res[0], mttoRows=res[1], opRows=res[2], costRows=res[3], pesosRows=res[4];
     var counts='Movimientos: '+movRows.length+' filas &middot; Mantenimiento: '+mttoRows.length+' &middot; Operaci&oacute;n/hora: '+opRows.length+' &middot; Costos: '+costRows.length+' &middot; Pesos: '+pesosRows.length;
     if(movRows.length===0){
-      setDiag('&#9888; Se descargaron 0 filas de Movimientos. Si abriste este archivo con doble clic (file://) el navegador bloquea la descarga por CORS — sube el archivo a GitHub Pages y &aacute;brelo desde esa URL https. '+counts, true);
+      setDiag('&#9888; Se descargaron 0 filas de Movimientos. Si abriste este archivo con doble clic (file://) el navegador bloquea la descarga por CORS — sube el archivo a GitHub Pages y &aacute;brelo desde esa URL https. '+counts, true, true);
       return;
     }
     var D = buildD(movRows);
@@ -856,17 +858,20 @@ function boot(){
     injectDeferred();
     var tRender=performance.now();
     var timing='descarga '+((tFetch-t0)/1000).toFixed(1)+'s &middot; procesado '+((tBuild-tFetch)/1000).toFixed(1)+'s &middot; render '+((tRender-tBuild)/1000).toFixed(1)+'s';
-    setDiag('&#10003; Datos actualizados ('+timing+') &middot; '+counts);
+    setDiag('&#10003; Datos actualizados ('+timing+') &middot; '+counts, false, true);
     setTimeout(function(){ var el=document.getElementById('diagBanner'); if(el) el.style.display='none'; }, 8000);
   }).catch(function(err){
     clearTimeout(watchdog);
     console.error(err);
-    setDiag('&#9888; Error al cargar/procesar los datos: '+(err&&err.message||err)+'. Revisa la consola del navegador (F12) para el detalle completo.', true);
+    setDiag('&#9888; Error al cargar/procesar los datos: '+(err&&err.message||err)+'. Revisa la consola del navegador (F12) para el detalle completo.', true, true);
   });
 }
 
 window.addEventListener('error', function(ev){
-  setDiag('&#9888; Error de JavaScript: '+(ev.message||'desconocido')+' (l&iacute;nea '+(ev.lineno||'?')+'). Abre la consola del navegador (F12) para el detalle.', true);
+  console.error('[window.onerror]', ev.message, ev.filename, ev.lineno);
+  if(!window._diagFinal){
+    setDiag('&#9888; Error de JavaScript antes de terminar de cargar: '+(ev.message||'desconocido')+' (l&iacute;nea '+(ev.lineno||'?')+'). Abre la consola del navegador (F12) para el detalle.', true, true);
+  }
 });
 
 var _waitPapaTries=0;
@@ -874,7 +879,7 @@ var _waitPapaTries=0;
   if(typeof Papa!=='undefined' && typeof Chart!=='undefined'){ boot(); return; }
   _waitPapaTries++;
   if(_waitPapaTries>100){ // ~15s sin cargar Chart.js/PapaParse
-    setDiag('&#9888; No se pudieron cargar las librer&iacute;as Chart.js/PapaParse (revisa tu conexi&oacute;n o si un bloqueador de anuncios est&aacute; frenando los CDN).', true);
+    setDiag('&#9888; No se pudieron cargar las librer&iacute;as Chart.js/PapaParse (revisa tu conexi&oacute;n o si un bloqueador de anuncios est&aacute; frenando los CDN).', true, true);
     return;
   }
   setTimeout(waitPapa, 150);
