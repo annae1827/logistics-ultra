@@ -59,7 +59,7 @@ select.fb{appearance:none;padding-right:20px;background-image:url("data:image/sv
 
 <div class="fbar">
   <label>AÑO:</label>
-  <button class="fb act" id="yAll" onclick="setYr('all',this)">Todos</button>
+  <button class="fb" id="yAll" onclick="setYr('all',this)">Todos</button>
   <button class="fb" id="y2024" onclick="setYr(2024,this)">2024</button>
   <button class="fb" id="y2025" onclick="setYr(2025,this)">2025</button>
   <button class="fb" id="y2026" onclick="setYr(2026,this)">2026</button>
@@ -130,9 +130,11 @@ select.fb{appearance:none;padding-right:20px;background-image:url("data:image/sv
 </div></div>
 
 <div id="p1" class="panel"><div class="shell">
+  <div class="kg" id="kHoy" style="grid-template-columns:repeat(4,1fr)"></div>
+
   <div class="card">
     <div class="ct">📅 VIAJES Y FACTURACI&Oacute;N DIARIA VS A&Ntilde;O ANTERIOR <em id="ctDiario" style="font-weight:400;font-size:10px;color:#94a3b8">selecciona un mes espec&iacute;fico arriba</em></div>
-    <div id="tblDiario" style="overflow-x:auto"></div>
+    <div id="tblDiario" style="overflow-x:auto;overflow-y:auto;max-height:520px"></div>
   </div>
 
   <div class="card">
@@ -141,13 +143,13 @@ select.fb{appearance:none;padding-right:20px;background-image:url("data:image/sv
   </div>
 
   <div class="card">
-    <div class="ct">🚚 FACTURACI&Oacute;N POR CAMI&Oacute;N <em id="ctCamion" style="font-weight:400;font-size:10px;color:#94a3b8">pendiente: columna de unidad en Viajes</em></div>
-    <div id="tblCamion" style="overflow-x:auto"><div style="padding:24px;text-align:center;color:#94a3b8;font-size:12px">A&uacute;n no tengo la relaci&oacute;n viaje &rarr; cami&oacute;n. Confirma d&oacute;nde vive esa columna y la conecto.</div></div>
+    <div class="ct">🚚 FACTURACI&Oacute;N POR CAMI&Oacute;N <em id="ctCamion" style="font-weight:400;font-size:10px;color:#94a3b8"></em></div>
+    <div id="tblCamion" style="overflow-x:auto;overflow-y:auto;max-height:520px"></div>
   </div>
 
   <div class="card">
-    <div class="ct">🚛 CAMIONES OPERANDO POR D&Iacute;A <em id="ctCamionesDia" style="font-weight:400;font-size:10px;color:#94a3b8">meta: 17 m&iacute;nimo &middot; pendiente columna de unidad en Viajes</em></div>
-    <div id="tblCamionesDia" style="overflow-x:auto"><div style="padding:24px;text-align:center;color:#94a3b8;font-size:12px">Igual que arriba, necesito la unidad por viaje para calcular cami&oacute;n activos por d&iacute;a.</div></div>
+    <div class="ct">🚛 CAMIONES OPERANDO POR D&Iacute;A <em id="ctCamionesDia" style="font-weight:400;font-size:10px;color:#94a3b8">meta: 17 m&iacute;nimo</em></div>
+    <div id="tblCamionesDia" style="overflow-x:auto;overflow-y:auto;max-height:520px"></div>
   </div>
 </div></div>
 
@@ -208,7 +210,8 @@ function toNum(v){ var n=parseFloat((v||'').toString().replace(/,/g,'').replace(
 function fmtMoney(n){ return '$'+Math.round(n).toLocaleString('es-MX'); }
 function fmtN(n){ return Math.round(n).toLocaleString('es-MX'); }
 
-var SEL={yr:'all', mes:'all', cliente:'all'};
+var TODAY=new Date();
+var SEL={yr:TODAY.getFullYear(), mes:TODAY.getMonth()+1, cliente:'all'};
 function setYr(y,btn){
   SEL.yr=y;
   document.querySelectorAll('#yAll,#y2024,#y2025,#y2026').forEach(function(b){b.classList.remove('act');});
@@ -249,6 +252,7 @@ function boot(){
         tipo:(r['Tipo de Servicio']||r['Tipo de servicio']||'Sin clasificar').trim(),
         cliente:(r['Cliente']||'').trim(), operador:(r['Operador']||'').trim(),
         tarifa:toNum(r['Tarifa']),
+        unidad:(r['Unidad']||'').toString().trim(),
         facturado: !!(r['No. Factura'] && String(r['No. Factura']).trim())};
     }).filter(function(r){return r.dt && r.tarifa>0;});
 
@@ -273,6 +277,7 @@ function boot(){
 
     setDiag('&#10003; Datos actualizados &middot; '+counts, false, true);
     setTimeout(function(){ var el=document.getElementById('diagBanner'); if(el) el.style.display='none'; }, 7000);
+    renderHoy();
     render();
   }).catch(function(err){
     clearTimeout(watchdog);
@@ -447,6 +452,8 @@ function render(){
 
   // Facturación y Viajes Diarios — requiere un mes específico seleccionado
   renderDiario();
+  renderCamion();
+  renderCamionesDia();
 
   // Tabla detalle
   var TH='font-size:10px;font-weight:700;color:#fff;padding:8px 12px;text-align:right;';
@@ -498,6 +505,25 @@ function diaBlock(year, month){
   return rows;
 }
 
+function renderHoy(){
+  var el=document.getElementById('kHoy');
+  if(!el) return;
+  var y=TODAY.getFullYear(), m=TODAY.getMonth()+1, d=TODAY.getDate();
+  var hoyRows=VIAJES_RAW.filter(function(r){return r.year===y && r.month===m && r.dt.getDate()===d;});
+  var cant=hoyRows.length;
+  var cantFact=hoyRows.filter(function(r){return r.facturado;}).length;
+  var fact=hoyRows.reduce(function(a,r){return a+r.tarifa;},0);
+  var obj=objetivoDiario(TODAY);
+  var pct=obj>0?(fact/obj*100):0;
+  var fechaTxt=DOW_ES[TODAY.getDay()]+' '+String(d).padStart(2,'0')+' de '+MES_N[m].toLowerCase()+' '+y;
+
+  el.innerHTML=
+    '<div class="kpi" style="border-top:3px solid '+TEAL+'"><div class="klbl">📅 Hoy</div><div class="kval" style="font-size:16px">'+fechaTxt+'</div><div class="ksub">actualizado al abrir el dashboard</div></div>'+
+    '<div class="kpi" style="border-top:3px solid '+TEAL2+'"><div class="klbl">🚛 Viajes hechos hoy</div><div class="kval">'+cant+'</div><div class="ksub">'+cantFact+' facturados</div></div>'+
+    '<div class="kpi" style="border-top:3px solid '+AMBER+'"><div class="klbl">💰 Facturaci&oacute;n de hoy</div><div class="kval">'+fmtMoney(fact)+'</div><div class="ksub">meta: '+fmtMoney(obj)+'</div></div>'+
+    '<div class="kpi" style="border-top:3px solid '+(pct>=100?TEAL:(pct>=50?AMBER:RED))+'"><div class="klbl">📊 % de meta diaria</div><div class="kval">'+pct.toFixed(1)+'%</div><div class="ksub">'+(TODAY.getDay()===0||TODAY.getDay()===6?'fin de semana':'entre semana')+'</div></div>';
+}
+
 function renderDiario(){
   var el=document.getElementById('tblDiario');
   var ctEl=document.getElementById('ctDiario');
@@ -532,10 +558,10 @@ function renderDiario(){
     plugins:{legend:{display:true,position:'bottom'},
       subtitle:{display:true,text:totFacturadosMes+' de '+totViajesMes+' viajes facturados ('+(totViajesMes>0?(totFacturadosMes/totViajesMes*100).toFixed(1):0)+'%) en '+MES_N[SEL.mes]+' '+curYear,font:{size:10}}}}, plugins:[ChartDataLabels]});
 
-  var TH='font-size:10px;font-weight:700;color:#fff;padding:7px 10px;text-align:right;white-space:nowrap;';
-  var THL='font-size:10px;font-weight:700;color:#fff;padding:7px 10px;text-align:left;white-space:nowrap;';
-  var TD='font-size:11px;padding:6px 10px;text-align:right;color:#1e293b;';
-  var TDL='font-size:11px;padding:6px 10px;text-align:left;color:#1e293b;';
+  var TH='font-size:9px;font-weight:700;color:#fff;padding:4px 8px;text-align:right;white-space:nowrap;';
+  var THL='font-size:9px;font-weight:700;color:#fff;padding:4px 8px;text-align:left;white-space:nowrap;';
+  var TD='font-size:10px;padding:3px 8px;text-align:right;color:#1e293b;line-height:1.3;';
+  var TDL='font-size:10px;padding:3px 8px;text-align:left;color:#1e293b;line-height:1.3;';
 
   var tbl='<table style="width:100%;border-collapse:collapse"><thead>';
   tbl+='<tr><th style="'+THL+'background:#0d4f3c" rowspan="2">D\u00eda</th><th colspan="4" style="'+TH+'background:#0d9488;text-align:center">'+MES_N[SEL.mes]+' '+curYear+'</th>';
@@ -578,7 +604,149 @@ function renderDiario(){
   el.innerHTML=tbl;
 }
 
+function yearMonthCtx(){
+  var years=[]; VIAJES_RAW.forEach(function(r){ if(years.indexOf(r.year)<0) years.push(r.year); });
+  years.sort();
+  var curYear=SEL.yr!=='all'?SEL.yr:years[years.length-1];
+  var prevYear=curYear-1;
+  var hasPrev=years.indexOf(prevYear)>=0;
+  return {curYear:curYear, prevYear:prevYear, hasPrev:hasPrev};
+}
+
+function renderCamion(){
+  var el=document.getElementById('tblCamion');
+  var ctEl=document.getElementById('ctCamion');
+  if(!el) return;
+  if(SEL.mes==='all'){
+    el.innerHTML='<div style="padding:16px;text-align:center;color:#94a3b8;font-size:11px">Selecciona un mes espec&iacute;fico arriba para ver la facturaci&oacute;n por cami&oacute;n.</div>';
+    if(ctEl) ctEl.textContent='selecciona un mes espec\u00edfico arriba';
+    return;
+  }
+  var ctx=yearMonthCtx();
+  if(ctEl) ctEl.textContent=MES_N[SEL.mes]+' '+ctx.curYear+(ctx.hasPrev?' vs '+MES_N[SEL.mes]+' '+ctx.prevYear:' (sin datos del a\u00f1o anterior)');
+
+  function camionAgg(year){
+    var rows=VIAJES_RAW.filter(function(r){return r.year===year && r.month===SEL.mes;});
+    var o={};
+    rows.forEach(function(r){
+      var u=r.unidad||'N/A';
+      if(!o[u]) o[u]={n:0, fact:0};
+      o[u].n++; o[u].fact+=r.tarifa;
+    });
+    return o;
+  }
+  var curAgg=camionAgg(ctx.curYear);
+  var prevAgg=ctx.hasPrev?camionAgg(ctx.prevYear):{};
+  var allUnidades={};
+  Object.keys(curAgg).forEach(function(u){allUnidades[u]=1;});
+  Object.keys(prevAgg).forEach(function(u){allUnidades[u]=1;});
+  var unidadList=Object.keys(allUnidades).sort(function(a,b){
+    if(a==='N/A') return 1; if(b==='N/A') return -1;
+    return (parseFloat(a)||0)-(parseFloat(b)||0);
+  });
+
+  var TH='font-size:9px;font-weight:700;color:#fff;padding:4px 8px;text-align:right;white-space:nowrap;';
+  var THL='font-size:9px;font-weight:700;color:#fff;padding:4px 8px;text-align:left;white-space:nowrap;';
+  var TD='font-size:10px;padding:3px 8px;text-align:right;color:#1e293b;line-height:1.3;';
+  var TDL='font-size:10px;padding:3px 8px;text-align:left;color:#1e293b;line-height:1.3;';
+
+  var tbl='<table style="width:100%;border-collapse:collapse"><thead>';
+  tbl+='<tr><th style="'+THL+'background:#0d4f3c" rowspan="2">Cami&oacute;n</th><th colspan="3" style="'+TH+'background:#0d9488;text-align:center">'+MES_N[SEL.mes]+' '+ctx.curYear+'</th>';
+  if(ctx.hasPrev) tbl+='<th colspan="3" style="'+TH+'background:#b45309;text-align:center">'+MES_N[SEL.mes]+' '+ctx.prevYear+'</th>';
+  tbl+='</tr><tr><th style="'+TH+'background:#0d9488"># Viajes</th><th style="'+TH+'background:#0d9488">Total Facturado</th><th style="'+TH+'background:#0d9488">Promedio/Viaje</th>';
+  if(ctx.hasPrev) tbl+='<th style="'+TH+'background:#b45309"># Viajes</th><th style="'+TH+'background:#b45309">Total Facturado</th><th style="'+TH+'background:#b45309">Promedio/Viaje</th>';
+  tbl+='</tr></thead><tbody>';
+
+  unidadList.forEach(function(u,i){
+    var c=curAgg[u]||{n:0,fact:0}, p=prevAgg[u]||{n:0,fact:0};
+    var bg=i%2===0?'#fff':'#f8fafb';
+    tbl+='<tr style="background:'+bg+';border-bottom:1px solid #f1f5f9">';
+    tbl+='<td style="'+TDL+'font-weight:600">'+u+'</td>';
+    tbl+='<td style="'+TD+'">'+c.n+'</td><td style="'+TD+'font-weight:700">'+(c.fact>0?fmtMoney(c.fact):'$0')+'</td><td style="'+TD+'">'+(c.n>0?fmtMoney(c.fact/c.n):'-')+'</td>';
+    if(ctx.hasPrev) tbl+='<td style="'+TD+'">'+p.n+'</td><td style="'+TD+'font-weight:700">'+(p.fact>0?fmtMoney(p.fact):'$0')+'</td><td style="'+TD+'">'+(p.n>0?fmtMoney(p.fact/p.n):'-')+'</td>';
+    tbl+='</tr>';
+  });
+
+  var totCurN=Object.values(curAgg).reduce(function(a,r){return a+r.n;},0);
+  var totCurFact=Object.values(curAgg).reduce(function(a,r){return a+r.fact;},0);
+  var totPrevN=Object.values(prevAgg).reduce(function(a,r){return a+r.n;},0);
+  var totPrevFact=Object.values(prevAgg).reduce(function(a,r){return a+r.fact;},0);
+  tbl+='<tr style="background:#0d4f3c;color:#fff;font-weight:700"><td style="'+TDL+'color:#fff">Total Mensual</td>'+
+    '<td style="'+TD+'color:#fff">'+totCurN+'</td><td style="'+TD+'color:#fff">'+fmtMoney(totCurFact)+'</td><td style="'+TD+'color:#fff">'+(totCurN>0?fmtMoney(totCurFact/totCurN):'-')+'</td>';
+  if(ctx.hasPrev) tbl+='<td style="'+TD+'color:#fff">'+totPrevN+'</td><td style="'+TD+'color:#fff">'+fmtMoney(totPrevFact)+'</td><td style="'+TD+'color:#fff">'+(totPrevN>0?fmtMoney(totPrevFact/totPrevN):'-')+'</td>';
+  tbl+='</tr></tbody></table>';
+  el.innerHTML=tbl;
+}
+
+function pctMeta2color(pct){
+  if(pct<=0) return '#fca5a5';
+  if(pct<50) return '#fdba74';
+  if(pct<70) return '#fde68a';
+  if(pct<100) return '#bbf7d0';
+  return '#5eead4';
+}
+
+function renderCamionesDia(){
+  var el=document.getElementById('tblCamionesDia');
+  var ctEl=document.getElementById('ctCamionesDia');
+  if(!el) return;
+  if(SEL.mes==='all'){
+    el.innerHTML='<div style="padding:16px;text-align:center;color:#94a3b8;font-size:11px">Selecciona un mes espec&iacute;fico arriba para ver camiones activos por d&iacute;a.</div>';
+    if(ctEl) ctEl.textContent='meta: 17 m\u00ednimo';
+    return;
+  }
+  var ctx=yearMonthCtx();
+  var META_CAMIONES=17;
+  if(ctEl) ctEl.textContent='meta: '+META_CAMIONES+' m\u00ednimo &middot; '+MES_N[SEL.mes]+' '+ctx.curYear+(ctx.hasPrev?' vs '+ctx.prevYear:'');
+
+  function camionesActivosDia(year){
+    var daysInMonth=new Date(year, SEL.mes, 0).getDate();
+    var out=[];
+    for(var d=1; d<=daysInMonth; d++){
+      var dayRows=VIAJES_RAW.filter(function(r){return r.year===year && r.month===SEL.mes && r.dt.getDate()===d;});
+      var unidadesSet={};
+      dayRows.forEach(function(r){ if(r.unidad && r.unidad!=='N/A') unidadesSet[r.unidad]=1; });
+      var n=Object.keys(unidadesSet).length;
+      out.push({d:d, n:n, pct:n/META_CAMIONES*100});
+    }
+    return out;
+  }
+  var curDias=camionesActivosDia(ctx.curYear);
+  var prevDias=ctx.hasPrev?camionesActivosDia(ctx.prevYear):[];
+
+  var TH='font-size:9px;font-weight:700;color:#fff;padding:4px 8px;text-align:right;white-space:nowrap;';
+  var THL='font-size:9px;font-weight:700;color:#fff;padding:4px 8px;text-align:left;white-space:nowrap;';
+  var TD='font-size:10px;padding:3px 8px;text-align:right;color:#1e293b;line-height:1.3;';
+  var TDL='font-size:10px;padding:3px 8px;text-align:left;color:#1e293b;line-height:1.3;';
+
+  var tbl='<table style="width:100%;border-collapse:collapse"><thead>';
+  tbl+='<tr><th style="'+THL+'background:#0d4f3c" rowspan="2">D&iacute;a</th><th colspan="2" style="'+TH+'background:#0d9488;text-align:center">'+MES_N[SEL.mes]+' '+ctx.curYear+'</th>';
+  if(ctx.hasPrev) tbl+='<th colspan="2" style="'+TH+'background:#b45309;text-align:center">'+MES_N[SEL.mes]+' '+ctx.prevYear+'</th>';
+  tbl+='</tr><tr><th style="'+TH+'background:#0d9488">Camiones Activos</th><th style="'+TH+'background:#0d9488">% Meta '+META_CAMIONES+'</th>';
+  if(ctx.hasPrev) tbl+='<th style="'+TH+'background:#b45309">Camiones Activos</th><th style="'+TH+'background:#b45309">% Meta '+META_CAMIONES+'</th>';
+  tbl+='</tr></thead><tbody>';
+
+  curDias.forEach(function(r,i){
+    var p=prevDias[i];
+    var bg=i%2===0?'#fff':'#f8fafb';
+    tbl+='<tr style="background:'+bg+';border-bottom:1px solid #f1f5f9">';
+    tbl+='<td style="'+TDL+'font-weight:600">'+String(r.d).padStart(2,'0')+'-'+MES_K[SEL.mes-1].toLowerCase()+'-'+String(ctx.curYear).slice(2)+'</td>';
+    tbl+='<td style="'+TD+'">'+r.n+'</td><td style="'+TD+'background:'+pctMeta2color(r.pct)+';font-weight:700">'+r.pct.toFixed(2)+'%</td>';
+    if(ctx.hasPrev && p) tbl+='<td style="'+TD+'">'+p.n+'</td><td style="'+TD+'background:'+pctMeta2color(p.pct)+';font-weight:700">'+p.pct.toFixed(2)+'%</td>';
+    else if(ctx.hasPrev) tbl+='<td style="'+TD+'" colspan="2">-</td>';
+    tbl+='</tr>';
+  });
+  tbl+='</tbody></table>';
+  el.innerHTML=tbl;
+}
+
 var _waitTries=0;
+(function initUI(){
+  var yBtn=document.getElementById('y'+TODAY.getFullYear());
+  if(yBtn) yBtn.classList.add('act'); else document.getElementById('yAll').classList.add('act');
+  var mesSel=document.getElementById('selMes');
+  if(mesSel) mesSel.value=String(TODAY.getMonth()+1);
+})();
 (function waitLibs(){
   if(typeof Papa!=='undefined' && typeof Chart!=='undefined'){ boot(); return; }
   _waitTries++;
