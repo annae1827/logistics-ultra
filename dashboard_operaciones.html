@@ -562,12 +562,12 @@ function renderDiario(){
     plugins:{legend:{display:true,position:'bottom'},
       subtitle:{display:true,text:totFacturadosMes+' de '+totViajesMes+' viajes facturados ('+(totViajesMes>0?(totFacturadosMes/totViajesMes*100).toFixed(1):0)+'%) en '+MES_N[SEL.mes]+' '+curYear,font:{size:10}}}}, plugins:[ChartDataLabels]});
 
-  var TH='font-size:9px;font-weight:700;color:#fff;padding:4px 8px;text-align:right;white-space:nowrap;';
-  var THL='font-size:9px;font-weight:700;color:#fff;padding:4px 8px;text-align:left;white-space:nowrap;';
-  var TD='font-size:10px;padding:3px 8px;text-align:right;color:#1e293b;line-height:1.3;';
-  var TDL='font-size:10px;padding:3px 8px;text-align:left;color:#1e293b;line-height:1.3;';
+  var TH='font-size:9px;font-weight:700;color:#fff;padding:4px 6px;text-align:right;white-space:nowrap;';
+  var THL='font-size:9px;font-weight:700;color:#fff;padding:4px 6px;text-align:left;white-space:nowrap;';
+  var TD='font-size:10px;padding:3px 6px;text-align:right;color:#1e293b;line-height:1.3;white-space:nowrap;';
+  var TDL='font-size:10px;padding:3px 6px;text-align:left;color:#1e293b;line-height:1.3;white-space:nowrap;';
 
-  var tbl='<table style="width:100%;border-collapse:collapse"><thead>';
+  var tbl='<table style="border-collapse:collapse;width:auto"><thead>';
   tbl+='<tr><th style="'+THL+'background:#0d4f3c" rowspan="2">D\u00eda</th><th colspan="4" style="'+TH+'background:#0d9488;text-align:center">'+MES_N[SEL.mes]+' '+curYear+'</th>';
   if(hasPrev) tbl+='<th colspan="4" style="'+TH+'background:#b45309;text-align:center">'+MES_N[SEL.mes]+' '+prevYear+'</th>';
   tbl+='</tr><tr>'+
@@ -649,12 +649,12 @@ function renderCamion(){
     return (parseFloat(a)||0)-(parseFloat(b)||0);
   });
 
-  var TH='font-size:9px;font-weight:700;color:#fff;padding:4px 8px;text-align:right;white-space:nowrap;';
-  var THL='font-size:9px;font-weight:700;color:#fff;padding:4px 8px;text-align:left;white-space:nowrap;';
-  var TD='font-size:10px;padding:3px 8px;text-align:right;color:#1e293b;line-height:1.3;';
-  var TDL='font-size:10px;padding:3px 8px;text-align:left;color:#1e293b;line-height:1.3;';
+  var TH='font-size:9px;font-weight:700;color:#fff;padding:4px 6px;text-align:right;white-space:nowrap;';
+  var THL='font-size:9px;font-weight:700;color:#fff;padding:4px 6px;text-align:left;white-space:nowrap;';
+  var TD='font-size:10px;padding:3px 6px;text-align:right;color:#1e293b;line-height:1.3;white-space:nowrap;';
+  var TDL='font-size:10px;padding:3px 6px;text-align:left;color:#1e293b;line-height:1.3;white-space:nowrap;';
 
-  var tbl='<table style="width:100%;border-collapse:collapse"><thead>';
+  var tbl='<table style="border-collapse:collapse;width:auto"><thead>';
   tbl+='<tr><th style="'+THL+'background:#0d4f3c" rowspan="2">Cami&oacute;n</th><th colspan="3" style="'+TH+'background:#0d9488;text-align:center">'+MES_N[SEL.mes]+' '+ctx.curYear+'</th>';
   if(ctx.hasPrev) tbl+='<th colspan="3" style="'+TH+'background:#b45309;text-align:center">'+MES_N[SEL.mes]+' '+ctx.prevYear+'</th>';
   tbl+='</tr><tr><th style="'+TH+'background:#0d9488"># Viajes</th><th style="'+TH+'background:#0d9488">Total Facturado</th><th style="'+TH+'background:#0d9488">Promedio/Viaje</th>';
@@ -718,12 +718,12 @@ function renderCamionesDia(){
   var curDias=camionesActivosDia(ctx.curYear);
   var prevDias=ctx.hasPrev?camionesActivosDia(ctx.prevYear):[];
 
-  var TH='font-size:9px;font-weight:700;color:#fff;padding:4px 8px;text-align:right;white-space:nowrap;';
-  var THL='font-size:9px;font-weight:700;color:#fff;padding:4px 8px;text-align:left;white-space:nowrap;';
-  var TD='font-size:10px;padding:3px 8px;text-align:right;color:#1e293b;line-height:1.3;';
-  var TDL='font-size:10px;padding:3px 8px;text-align:left;color:#1e293b;line-height:1.3;';
+  var TH='font-size:9px;font-weight:700;color:#fff;padding:4px 6px;text-align:right;white-space:nowrap;';
+  var THL='font-size:9px;font-weight:700;color:#fff;padding:4px 6px;text-align:left;white-space:nowrap;';
+  var TD='font-size:10px;padding:3px 6px;text-align:right;color:#1e293b;line-height:1.3;white-space:nowrap;';
+  var TDL='font-size:10px;padding:3px 6px;text-align:left;color:#1e293b;line-height:1.3;white-space:nowrap;';
 
-  var tbl='<table style="width:100%;border-collapse:collapse"><thead>';
+  var tbl='<table style="border-collapse:collapse;width:auto"><thead>';
   tbl+='<tr><th style="'+THL+'background:#0d4f3c" rowspan="2">D&iacute;a</th><th colspan="2" style="'+TH+'background:#0d9488;text-align:center">'+MES_N[SEL.mes]+' '+ctx.curYear+'</th>';
   if(ctx.hasPrev) tbl+='<th colspan="2" style="'+TH+'background:#b45309;text-align:center">'+MES_N[SEL.mes]+' '+ctx.prevYear+'</th>';
   tbl+='</tr><tr><th style="'+TH+'background:#0d9488">Camiones Activos</th><th style="'+TH+'background:#0d9488">% Meta '+META_CAMIONES+'</th>';
