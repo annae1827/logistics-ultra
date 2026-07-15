@@ -505,23 +505,27 @@ function diaBlock(year, month){
   return rows;
 }
 
+function diaKpis(dt, etiqueta, iconoDia){
+  var y=dt.getFullYear(), m=dt.getMonth()+1, d=dt.getDate();
+  var rows=VIAJES_RAW.filter(function(r){return r.year===y && r.month===m && r.dt.getDate()===d;});
+  var cant=rows.length;
+  var cantFact=rows.filter(function(r){return r.facturado;}).length;
+  var fact=rows.reduce(function(a,r){return a+r.tarifa;},0);
+  var obj=objetivoDiario(dt);
+  var pct=obj>0?(fact/obj*100):0;
+  var fechaTxt=DOW_ES[dt.getDay()]+' '+String(d).padStart(2,'0')+' de '+MES_N[m].toLowerCase()+' '+y;
+
+  return '<div class="kpi" style="border-top:3px solid '+TEAL+'"><div class="klbl">'+iconoDia+' '+etiqueta+'</div><div class="kval" style="font-size:16px">'+fechaTxt+'</div><div class="ksub">actualizado al abrir el dashboard</div></div>'+
+    '<div class="kpi" style="border-top:3px solid '+TEAL2+'"><div class="klbl">🚛 Viajes hechos</div><div class="kval">'+cant+'</div><div class="ksub">'+cantFact+' facturados</div></div>'+
+    '<div class="kpi" style="border-top:3px solid '+AMBER+'"><div class="klbl">💰 Facturaci&oacute;n</div><div class="kval">'+fmtMoney(fact)+'</div><div class="ksub">meta: '+fmtMoney(obj)+'</div></div>'+
+    '<div class="kpi" style="border-top:3px solid '+(pct>=100?TEAL:(pct>=50?AMBER:RED))+'"><div class="klbl">📊 % de meta diaria</div><div class="kval">'+pct.toFixed(1)+'%</div><div class="ksub">'+(dt.getDay()===0||dt.getDay()===6?'fin de semana':'entre semana')+'</div></div>';
+}
+
 function renderHoy(){
   var el=document.getElementById('kHoy');
   if(!el) return;
-  var y=TODAY.getFullYear(), m=TODAY.getMonth()+1, d=TODAY.getDate();
-  var hoyRows=VIAJES_RAW.filter(function(r){return r.year===y && r.month===m && r.dt.getDate()===d;});
-  var cant=hoyRows.length;
-  var cantFact=hoyRows.filter(function(r){return r.facturado;}).length;
-  var fact=hoyRows.reduce(function(a,r){return a+r.tarifa;},0);
-  var obj=objetivoDiario(TODAY);
-  var pct=obj>0?(fact/obj*100):0;
-  var fechaTxt=DOW_ES[TODAY.getDay()]+' '+String(d).padStart(2,'0')+' de '+MES_N[m].toLowerCase()+' '+y;
-
-  el.innerHTML=
-    '<div class="kpi" style="border-top:3px solid '+TEAL+'"><div class="klbl">📅 Hoy</div><div class="kval" style="font-size:16px">'+fechaTxt+'</div><div class="ksub">actualizado al abrir el dashboard</div></div>'+
-    '<div class="kpi" style="border-top:3px solid '+TEAL2+'"><div class="klbl">🚛 Viajes hechos hoy</div><div class="kval">'+cant+'</div><div class="ksub">'+cantFact+' facturados</div></div>'+
-    '<div class="kpi" style="border-top:3px solid '+AMBER+'"><div class="klbl">💰 Facturaci&oacute;n de hoy</div><div class="kval">'+fmtMoney(fact)+'</div><div class="ksub">meta: '+fmtMoney(obj)+'</div></div>'+
-    '<div class="kpi" style="border-top:3px solid '+(pct>=100?TEAL:(pct>=50?AMBER:RED))+'"><div class="klbl">📊 % de meta diaria</div><div class="kval">'+pct.toFixed(1)+'%</div><div class="ksub">'+(TODAY.getDay()===0||TODAY.getDay()===6?'fin de semana':'entre semana')+'</div></div>';
+  var ayer=new Date(TODAY.getFullYear(), TODAY.getMonth(), TODAY.getDate()-1);
+  el.innerHTML = diaKpis(ayer, 'Ayer', '📅') + diaKpis(TODAY, 'Hoy', '📅');
 }
 
 function renderDiario(){
