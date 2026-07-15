@@ -17,6 +17,11 @@ body{font-family:Inter,-apple-system,sans-serif;background:#f8fafb;color:#0f172a
 .brand b{font-size:14px;font-weight:700}
 .brand span{font-size:10px;color:var(--slate2);letter-spacing:.05em;text-transform:uppercase}
 .ipbtn{margin-left:auto;font-size:12px;font-weight:700;color:#fff;background:var(--teal);border:none;border-radius:8px;padding:10px 18px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:6px;transition:.15s}
+.tabbtn{font-size:12px;font-weight:600;color:var(--slate);background:transparent;border:none;border-bottom:3px solid transparent;padding:10px 4px;cursor:pointer;transition:.15s}
+.tabbtn:hover{color:var(--teal)}
+.tabbtn.active{color:var(--teal);border-bottom-color:var(--teal);font-weight:700}
+.panel{display:none}
+.panel.active{display:block}
 .ipbtn:hover{background:#0f766e}
 .fbar{background:#fff;border-bottom:1px solid #e2e8f0;padding:10px 24px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .fbar label{font-size:10px;font-weight:700;color:var(--slate2);letter-spacing:.06em}
@@ -41,6 +46,10 @@ select.fb{appearance:none;padding-right:20px;background-image:url("data:image/sv
 <div class="hdr">
   <div class="logo">LU</div>
   <div class="brand"><b>Logistics Ultra</b><span>Operaciones &middot; General</span></div>
+  <div class="tabs" style="display:flex;gap:6px;margin-left:20px">
+    <button class="tabbtn active" id="tt0" onclick="showTab(0)">📊 Resumen</button>
+    <button class="tabbtn" id="tt1" onclick="showTab(1)">📅 Operaci&oacute;n Diaria</button>
+  </div>
   <a class="ipbtn" href="alenip.html">🚚 Ver Interplantas (AlEn) &rarr;</a>
 </div>
 
@@ -68,7 +77,7 @@ select.fb{appearance:none;padding-right:20px;background-image:url("data:image/sv
   </select>
 </div>
 
-<div class="shell">
+<div id="p0" class="panel active"><div class="shell">
   <div class="kg" id="kMain"></div>
 
   <div class="c2">
@@ -115,15 +124,32 @@ select.fb{appearance:none;padding-right:20px;background-image:url("data:image/sv
   </div>
 
   <div class="card">
-    <div class="ct">📅 FACTURACI&Oacute;N Y VIAJES DIARIOS <em id="ctDiario" style="font-weight:400;font-size:10px;color:#94a3b8">selecciona un mes espec&iacute;fico arriba</em></div>
+    <div class="ct">📋 DETALLE POR TIPO</div>
+    <div id="tblDetalle" style="overflow-x:auto"></div>
+  </div>
+</div></div>
+
+<div id="p1" class="panel"><div class="shell">
+  <div class="card">
+    <div class="ct">📅 VIAJES Y FACTURACI&Oacute;N DIARIA VS A&Ntilde;O ANTERIOR <em id="ctDiario" style="font-weight:400;font-size:10px;color:#94a3b8">selecciona un mes espec&iacute;fico arriba</em></div>
     <div id="tblDiario" style="overflow-x:auto"></div>
   </div>
 
   <div class="card">
-    <div class="ct">📋 DETALLE POR TIPO</div>
-    <div id="tblDetalle" style="overflow-x:auto"></div>
+    <div class="ct">🧾 VIAJES HECHOS VS FACTURADOS POR D&Iacute;A <em style="font-weight:400;font-size:10px;color:#94a3b8">seg&uacute;n columna "No. Factura"</em></div>
+    <div class="cw" style="height:280px"><canvas id="cFacturados"></canvas></div>
   </div>
-</div>
+
+  <div class="card">
+    <div class="ct">🚚 FACTURACI&Oacute;N POR CAMI&Oacute;N <em id="ctCamion" style="font-weight:400;font-size:10px;color:#94a3b8">pendiente: columna de unidad en Viajes</em></div>
+    <div id="tblCamion" style="overflow-x:auto"><div style="padding:24px;text-align:center;color:#94a3b8;font-size:12px">A&uacute;n no tengo la relaci&oacute;n viaje &rarr; cami&oacute;n. Confirma d&oacute;nde vive esa columna y la conecto.</div></div>
+  </div>
+
+  <div class="card">
+    <div class="ct">🚛 CAMIONES OPERANDO POR D&Iacute;A <em id="ctCamionesDia" style="font-weight:400;font-size:10px;color:#94a3b8">meta: 17 m&iacute;nimo &middot; pendiente columna de unidad en Viajes</em></div>
+    <div id="tblCamionesDia" style="overflow-x:auto"><div style="padding:24px;text-align:center;color:#94a3b8;font-size:12px">Igual que arriba, necesito la unidad por viaje para calcular cami&oacute;n activos por d&iacute;a.</div></div>
+  </div>
+</div></div>
 
 <script>
 Chart.register(ChartDataLabels);
@@ -191,6 +217,12 @@ function setYr(y,btn){
 }
 function setMes(v){ SEL.mes=v==='all'?'all':parseInt(v,10); render(); }
 function setCliente(v){ SEL.cliente=v; render(); }
+function showTab(i){
+  document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('active');});
+  document.querySelectorAll('.tabbtn').forEach(function(b){b.classList.remove('active');});
+  document.getElementById('p'+i).classList.add('active');
+  document.getElementById('tt'+i).classList.add('active');
+}
 
 var _charts={};
 function mkChart(id, config){
@@ -216,7 +248,8 @@ function boot(){
       return {dt:dt, year:dt?dt.getFullYear():(parseInt(r['AÑO'],10)||null), month:dt?dt.getMonth()+1:null,
         tipo:(r['Tipo de Servicio']||r['Tipo de servicio']||'Sin clasificar').trim(),
         cliente:(r['Cliente']||'').trim(), operador:(r['Operador']||'').trim(),
-        tarifa:toNum(r['Tarifa'])};
+        tarifa:toNum(r['Tarifa']),
+        facturado: !!(r['No. Factura'] && String(r['No. Factura']).trim())};
     }).filter(function(r){return r.dt && r.tarifa>0;});
 
     GASTOS_RAW = gastosRows.map(function(r){
@@ -455,11 +488,12 @@ function diaBlock(year, month){
     var dt=new Date(year, month-1, d);
     var dayRows=VIAJES_RAW.filter(function(r){return r.year===year && r.month===month && r.dt.getDate()===d;});
     var cant=dayRows.length;
+    var cantFact=dayRows.filter(function(r){return r.facturado;}).length;
     var fact=dayRows.reduce(function(a,r){return a+r.tarifa;},0);
     var prom=cant>0?fact/cant:0;
     var obj=objetivoDiario(dt);
     var pct=obj>0?(fact/obj*100):0;
-    rows.push({d:d, dow:DOW_ES[dt.getDay()], cant:cant, fact:fact, prom:prom, pct:pct});
+    rows.push({d:d, dow:DOW_ES[dt.getDay()], cant:cant, cantFact:cantFact, fact:fact, prom:prom, pct:pct});
   }
   return rows;
 }
@@ -471,6 +505,7 @@ function renderDiario(){
   if(SEL.mes==='all'){
     el.innerHTML='<div style="padding:16px;text-align:center;color:#94a3b8;font-size:11px">Selecciona un mes espec&iacute;fico arriba (no "Todos los meses") para ver el detalle d&iacute;a por d&iacute;a.</div>';
     if(ctEl) ctEl.textContent='selecciona un mes espec\u00edfico arriba';
+    if(_charts['cFacturados']){ _charts['cFacturados'].destroy(); delete _charts['cFacturados']; }
     return;
   }
   var years=[]; VIAJES_RAW.forEach(function(r){ if(years.indexOf(r.year)<0) years.push(r.year); });
@@ -483,6 +518,19 @@ function renderDiario(){
 
   var curRows=diaBlock(curYear, SEL.mes);
   var prevRows=hasPrev?diaBlock(prevYear, SEL.mes):[];
+
+  var dayLabels=curRows.map(function(r){return String(r.d).padStart(2,'0');});
+  var totFacturadosMes=curRows.reduce(function(a,r){return a+r.cantFact;},0);
+  var totViajesMes=curRows.reduce(function(a,r){return a+r.cant;},0);
+  mkChart('cFacturados', {type:'bar', data:{labels:dayLabels, datasets:[
+    {label:'Viajes hechos', data:curRows.map(function(r){return r.cant;}), backgroundColor:'#0d9488cc', borderRadius:3,
+     datalabels:{display:true,anchor:'end',align:'top',color:'#0d9488',font:{size:8,weight:'700'},formatter:function(v){return v>0?v:'';}}},
+    {label:'Viajes facturados', data:curRows.map(function(r){return r.cantFact;}), backgroundColor:'#d97706cc', borderRadius:3,
+     datalabels:{display:true,anchor:'end',align:'top',color:'#d97706',font:{size:8,weight:'700'},formatter:function(v){return v>0?v:'';}}}
+  ]}, options:{responsive:true,maintainAspectRatio:false,
+    scales:{x:{ticks:{font:{size:9}}}, y:{ticks:{precision:0}}},
+    plugins:{legend:{display:true,position:'bottom'},
+      subtitle:{display:true,text:totFacturadosMes+' de '+totViajesMes+' viajes facturados ('+(totViajesMes>0?(totFacturadosMes/totViajesMes*100).toFixed(1):0)+'%) en '+MES_N[SEL.mes]+' '+curYear,font:{size:10}}}}, plugins:[ChartDataLabels]});
 
   var TH='font-size:10px;font-weight:700;color:#fff;padding:7px 10px;text-align:right;white-space:nowrap;';
   var THL='font-size:10px;font-weight:700;color:#fff;padding:7px 10px;text-align:left;white-space:nowrap;';
