@@ -132,24 +132,28 @@ select.fb{appearance:none;padding-right:20px;background-image:url("data:image/sv
 <div id="p1" class="panel"><div class="shell">
   <div class="kg" id="kHoy" style="grid-template-columns:repeat(4,1fr)"></div>
 
-  <div class="card">
-    <div class="ct">📅 VIAJES Y FACTURACI&Oacute;N DIARIA VS A&Ntilde;O ANTERIOR <em id="ctDiario" style="font-weight:400;font-size:10px;color:#94a3b8">selecciona un mes espec&iacute;fico arriba</em></div>
-    <div id="tblDiario" style="overflow-x:auto;overflow-y:auto;max-height:520px"></div>
+  <div style="display:grid;grid-template-columns:auto 1fr;gap:16px;align-items:start">
+    <div class="card" style="min-width:0">
+      <div class="ct">📅 VIAJES Y FACTURACI&Oacute;N DIARIA VS A&Ntilde;O ANTERIOR <em id="ctDiario" style="font-weight:400;font-size:10px;color:#94a3b8">selecciona un mes espec&iacute;fico arriba</em></div>
+      <div id="tblDiario" style="overflow-x:auto;overflow-y:auto;max-height:520px"></div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:16px;min-width:340px">
+      <div class="card">
+        <div class="ct">🚚 FACTURACI&Oacute;N POR CAMI&Oacute;N <em id="ctCamion" style="font-weight:400;font-size:10px;color:#94a3b8"></em></div>
+        <div id="tblCamion" style="overflow-x:auto;overflow-y:auto;max-height:245px"></div>
+      </div>
+
+      <div class="card">
+        <div class="ct">🚛 CAMIONES OPERANDO POR D&Iacute;A <em id="ctCamionesDia" style="font-weight:400;font-size:10px;color:#94a3b8">meta: 17 m&iacute;nimo</em></div>
+        <div id="tblCamionesDia" style="overflow-x:auto;overflow-y:auto;max-height:245px"></div>
+      </div>
+    </div>
   </div>
 
   <div class="card">
     <div class="ct">🧾 VIAJES HECHOS VS FACTURADOS POR D&Iacute;A <em style="font-weight:400;font-size:10px;color:#94a3b8">seg&uacute;n columna "No. Factura"</em></div>
     <div class="cw" style="height:280px"><canvas id="cFacturados"></canvas></div>
-  </div>
-
-  <div class="card">
-    <div class="ct">🚚 FACTURACI&Oacute;N POR CAMI&Oacute;N <em id="ctCamion" style="font-weight:400;font-size:10px;color:#94a3b8"></em></div>
-    <div id="tblCamion" style="overflow-x:auto;overflow-y:auto;max-height:520px"></div>
-  </div>
-
-  <div class="card">
-    <div class="ct">🚛 CAMIONES OPERANDO POR D&Iacute;A <em id="ctCamionesDia" style="font-weight:400;font-size:10px;color:#94a3b8">meta: 17 m&iacute;nimo</em></div>
-    <div id="tblCamionesDia" style="overflow-x:auto;overflow-y:auto;max-height:520px"></div>
   </div>
 </div></div>
 
