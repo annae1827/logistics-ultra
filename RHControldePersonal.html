@@ -553,7 +553,7 @@ tbody tr:hover{background:#f6f8f4;}
           <div class="section-title"><h3>Saldo de vacaciones</h3><span class="hint">por empleado activo</span></div>
           <div class="table-wrap" style="max-height:560px;overflow-y:auto;">
             <table>
-              <thead><tr><th>Empleado</th><th>Antigüedad</th><th>Días ley (año actual)</th><th>Tomados (año actual)</th><th>Disponibles</th></tr></thead>
+              <thead><tr><th>Empleado</th><th>Antigüedad</th><th>Días ley (año actual)</th><th>Tomados (año actual)</th><th>Disponibles</th><th>Prima vacacional (total del año)</th></tr></thead>
               <tbody id="tblVacaciones"></tbody>
             </table>
           </div>
@@ -1106,6 +1106,7 @@ function renderActivos(){
             </div>
             <div class="btnrow">
               <button class="btn btn-outline" onclick="irAVacaciones('${e.id}')">Vacaciones</button>
+              <button class="btn btn-outline" onclick="generarPrimaVacacionalPDF('${e.id}')">Prima vacacional</button>
               <button class="btn btn-outline" onclick="irAFiniquito('${e.id}')">Finiquito</button>
               <button class="btn btn-outline" onclick="irAActa('${e.id}')">Acta admin.</button>
               <button class="btn btn-outline" onclick="tarjeta('${e.id}','cumple')">🎂 Cumpleaños</button>
@@ -1228,6 +1229,77 @@ function tarjeta(id, tipo){
       </div>
     </body></html>
   `);
+  win.document.close();
+}
+
+/* ---------- PRIMA VACACIONAL (recibo independiente) ---------- */
+function generarPrimaVacacionalPDF(empId){
+  const e = DB.empleados.find(x=>x.id===empId);
+  if(!e){ toast('Empleado no encontrado.', 'err'); return; }
+  const per = periodoVigente(e);
+  const s = saldoVacaciones(e);
+  const salario = e.salarioDiario || SALARIO_DIARIO_DEFAULT;
+  const montoVacaciones = s.diasLey * salario;
+  const montoPrima = 0.25 * montoVacaciones;
+  const montoVacacionesTomadas = s.tomados * salario;
+  const montoPrimaTomada = 0.25 * montoVacacionesTomadas;
+
+  const win = window.open('', '_blank', 'width=850,height=1000');
+  win.document.write(`
+  <html><head><title>Prima vacacional — ${nombreCompleto(e)}</title>
+  <style>
+    body{font-family:Georgia,'Times New Roman',serif;color:#1a241a;max-width:760px;margin:36px auto;padding:0 20px;}
+    .hd{display:flex;align-items:center;gap:14px;border-bottom:3px solid #16281a;padding-bottom:16px;margin-bottom:24px;}
+    .hd img{width:56px;height:56px;object-fit:contain;}
+    .hd h1{font-size:20px;margin:0;color:#16281a;font-family:Arial,sans-serif;}
+    .hd p{margin:2px 0 0;font-size:11px;color:#5c6b57;font-family:Arial,sans-serif;letter-spacing:1px;text-transform:uppercase;}
+    h2{font-size:16px;text-align:center;font-family:Arial,sans-serif;letter-spacing:1px;text-transform:uppercase;margin:22px 0;color:#16281a;}
+    table{width:100%;border-collapse:collapse;font-family:Arial,sans-serif;font-size:12.5px;margin-bottom:14px;}
+    td,th{padding:7px 9px;border:1px solid #ddd;}
+    td.lbl{background:#f5f7f2;font-weight:700;}
+    .num{text-align:right;}
+    th{text-align:left;letter-spacing:.4px;text-transform:uppercase;font-size:11px;}
+    .band-row td,.band-row th{font-weight:700;background:#284628;color:#fff;border-color:#284628;}
+    p.legal{font-family:Arial,sans-serif;font-size:11.5px;color:#5c6b57;line-height:1.6;}
+    .sign{display:flex;justify-content:space-between;margin-top:60px;font-family:Arial,sans-serif;font-size:12px;text-align:center;}
+    .sign div{width:44%;border-top:1px solid #333;padding-top:8px;}
+    @media print{.noprint{display:none;}}
+  </style></head>
+  <body>
+    <div class="hd">
+      <img src="data:image/png;base64,${window.__LOGO_B64__}">
+      <div><h1>Logistics Ultra</h1><p>Recursos Humanos</p></div>
+    </div>
+    <h2>Recibo de Prima Vacacional</h2>
+    <table>
+      <tr><td class="lbl">Colaborador</td><td>${nombreCompleto(e)}</td><td class="lbl">Puesto</td><td>${e.puesto}</td></tr>
+      <tr><td class="lbl">Año de servicio en curso</td><td>Año ${s.svc.anioEnCurso}</td><td class="lbl">Sueldo diario</td><td>${fmtDinero(salario)}</td></tr>
+      <tr><td class="lbl">Inicio del año de servicio</td><td>${fmtFecha(s.svc.inicioISO)}</td><td class="lbl">Ingreso (periodo vigente)</td><td>${fmtFecha(per.fechaIngreso)}</td></tr>
+    </table>
+    <table>
+      <tr class="band-row"><th colspan="2">Días de vacaciones del año en curso (Art. 76 LFT)</th></tr>
+      <tr><td>Días de vacaciones que corresponden por ley</td><td class="num">${s.diasLey} días</td></tr>
+      <tr><td>Valor de esos días al sueldo diario</td><td class="num">${fmtDinero(montoVacaciones)}</td></tr>
+      <tr><td><b>Prima vacacional total del año (25%)</b></td><td class="num"><b>${fmtDinero(montoPrima)}</b></td></tr>
+    </table>
+    <table>
+      <tr class="band-row"><th colspan="2">Correspondiente a los días ya tomados</th></tr>
+      <tr><td>Días de vacaciones tomados en el año en curso</td><td class="num">${s.tomados} días</td></tr>
+      <tr><td>Valor de esos días al sueldo diario</td><td class="num">${fmtDinero(montoVacacionesTomadas)}</td></tr>
+      <tr><td><b>Prima vacacional a pagar por días tomados (25%)</b></td><td class="num"><b>${fmtDinero(montoPrimaTomada)}</b></td></tr>
+    </table>
+    <p class="legal">La prima vacacional equivale al 25% del salario correspondiente a los días de vacaciones, conforme al
+    Artículo 80 de la Ley Federal del Trabajo. El monto de "días ya tomados" es el que normalmente se paga junto con el
+    periodo vacacional disfrutado; el total del año se muestra como referencia de lo que corresponde en su totalidad al
+    colaborador conforme avance el año de servicio.</p>
+    <div class="sign">
+      <div>Nombre y firma del colaborador</div>
+      <div>Firma de Recursos Humanos</div>
+    </div>
+    <div class="noprint" style="text-align:center;margin-top:30px;">
+      <button onclick="window.print()" style="padding:10px 20px;border-radius:8px;border:none;background:#e8a33d;font-weight:700;cursor:pointer;font-family:Arial;">Imprimir / Guardar PDF</button>
+    </div>
+  </body></html>`);
   win.document.close();
 }
 
@@ -1443,19 +1515,22 @@ function renderVacaciones(){
   const activos = DB.empleados.filter(esActivo).sort((a,b)=>nombreCompleto(a).localeCompare(nombreCompleto(b)));
   const tbody = document.getElementById('tblVacaciones');
   if(!activos.length){
-    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--ink-soft);padding:30px;">Sin empleados activos.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--ink-soft);padding:30px;">Sin empleados activos.</td></tr>`;
     return;
   }
   tbody.innerHTML = activos.map(e=>{
     const per = periodoVigente(e);
     const ant = calcAntiguedad(per.fechaIngreso);
     const s = saldoVacaciones(e);
+    const salario = e.salarioDiario || SALARIO_DIARIO_DEFAULT;
+    const primaTotal = 0.25 * s.diasLey * salario;
     return `<tr>
       <td class="name-cell"><div class="avatar-ini">${e.iniciales.slice(0,3)}</div><span class="nm">${nombreCompleto(e)}</span></td>
       <td>${ant.years}a ${ant.months}m</td>
       <td>${s.diasLey}</td>
       <td>${s.tomados}</td>
       <td><span class="tag ${s.disponibles>0?'tag-green':'tag-red'}">${s.disponibles}</span></td>
+      <td>${fmtDinero(primaTotal)}</td>
     </tr>`;
   }).join('');
 }
