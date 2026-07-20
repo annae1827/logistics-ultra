@@ -211,6 +211,19 @@ tbody tr:hover{background:#f6f8f4;}
 .stat-strip .si b{color:var(--navy-900);font-family:'Barlow Condensed';font-size:16px;font-weight:700;}
 
 .divider{height:1px;background:var(--line);margin:18px 0;}
+.rot-chart{display:flex;align-items:flex-end;gap:10px;height:180px;padding:10px 4px 0;overflow-x:auto;}
+.rot-col{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;min-width:46px;flex:1;height:100%;}
+.rot-bars{display:flex;align-items:flex-end;gap:3px;height:140px;}
+.rot-bar{width:14px;border-radius:3px 3px 0 0;position:relative;}
+.rot-bar.altas{background:var(--green);}
+.rot-bar.bajas{background:var(--red);}
+.rot-col .lbl{font-size:10.5px;color:var(--ink-soft);margin-top:6px;text-align:center;white-space:nowrap;}
+.rot-col .val{font-size:9.5px;color:var(--ink-soft);margin-top:2px;}
+.rot-legend{display:flex;gap:16px;font-size:11.5px;color:var(--ink-soft);margin-bottom:6px;}
+.rot-legend span{display:inline-flex;align-items:center;gap:5px;}
+.rot-legend .dot{width:9px;height:9px;border-radius:2px;display:inline-block;}
+.rot-top-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--line);font-size:13px;}
+.rot-top-row:last-child{border-bottom:none;}
 .req::after{content:' *';color:var(--red);}
 .small-note{font-size:11.5px;color:var(--ink-soft);background:#f5f7f2;border:1px dashed var(--line);border-radius:8px;padding:9px 11px;}
 
@@ -287,6 +300,15 @@ tbody tr:hover{background:#f6f8f4;}
       <div class="card card-pad" style="margin-top:18px;">
         <div class="section-title"><h3>Plantilla por puesto</h3><span class="hint">activos</span></div>
         <div id="resumenPuestos" class="grid grid-4"></div>
+      </div>
+
+      <div class="card card-pad" style="margin-top:18px;">
+        <div class="section-title"><h3>Rotación de personal</h3><span class="hint">altas y bajas por mes · últimos 12 meses</span></div>
+        <div class="stat-strip" id="rotacionKpis" style="margin-bottom:16px;"></div>
+        <div id="rotacionChart" class="table-wrap"></div>
+        <div class="divider"></div>
+        <div class="section-title" style="margin-bottom:8px;"><h3 style="font-size:16px;">Meses con más rotación</h3></div>
+        <div id="rotacionTop"></div>
       </div>
     </section>
 
@@ -822,6 +844,94 @@ function renderResumen(){
     Object.entries(porPuesto).sort((a,b)=>b[1]-a[1]).map(([p,c])=>`
       <div class="kpi card accent-navy"><div class="num">${c}</div><div class="lbl">${p}</div></div>
     `).join('') : `<p class="help">Aún no hay empleados activos.</p>`;
+
+  renderRotacion();
+}
+
+/* ---------- ROTACIÓN DE PERSONAL ---------- */
+const MESES_CORTOS = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+
+// Devuelve los últimos n meses (incluyendo el actual) como {key:'YYYY-MM', label:'Ene 25'}
+function ultimosMeses(n){
+  const hoy = new Date();
+  const out = [];
+  for(let i=n-1; i>=0; i--){
+    const d = new Date(hoy.getFullYear(), hoy.getMonth()-i, 1);
+    const key = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+    out.push({ key, label: MESES_CORTOS[d.getMonth()] + " '" + String(d.getFullYear()).slice(2) });
+  }
+  return out;
+}
+
+function calcRotacionMensual(nMeses){
+  const meses = ultimosMeses(nMeses);
+  const porMes = {};
+  meses.forEach(m => porMes[m.key] = { altas: 0, bajas: 0 });
+
+  DB.empleados.forEach(e=>{
+    (e.periodos||[]).forEach(p=>{
+      if(p.fechaIngreso){
+        const key = p.fechaIngreso.slice(0,7);
+        if(porMes[key]) porMes[key].altas++;
+      }
+      if(p.fechaBaja){
+        const key = p.fechaBaja.slice(0,7);
+        if(porMes[key]) porMes[key].bajas++;
+      }
+    });
+  });
+
+  return meses.map(m => ({ ...m, altas: porMes[m.key].altas, bajas: porMes[m.key].bajas }));
+}
+
+function renderRotacion(){
+  const datos = calcRotacionMensual(12);
+  const totalAltas = datos.reduce((s,m)=>s+m.altas, 0);
+  const totalBajas = datos.reduce((s,m)=>s+m.bajas, 0);
+  const activosHoy = DB.empleados.filter(esActivo).length;
+  // Tasa de rotación anualizada aprox.: bajas del periodo / plantilla promedio
+  const plantillaPromedio = Math.max(1, activosHoy + totalBajas/2);
+  const tasaRotacion = (totalBajas / plantillaPromedio) * 100;
+
+  document.getElementById('rotacionKpis').innerHTML = `
+    <div class="si"><b>${totalAltas}</b> altas (12 meses)</div>
+    <div class="si"><b>${totalBajas}</b> bajas (12 meses)</div>
+    <div class="si"><b>${tasaRotacion.toFixed(1)}%</b> tasa de rotación anualizada</div>
+  `;
+
+  const maxVal = Math.max(1, ...datos.map(m=>Math.max(m.altas, m.bajas)));
+  document.getElementById('rotacionChart').innerHTML = `
+    <div class="rot-legend">
+      <span><span class="dot" style="background:var(--green);"></span>Altas</span>
+      <span><span class="dot" style="background:var(--red);"></span>Bajas</span>
+    </div>
+    <div class="rot-chart">
+      ${datos.map(m=>{
+        const hAltas = Math.round((m.altas/maxVal)*140);
+        const hBajas = Math.round((m.bajas/maxVal)*140);
+        return `<div class="rot-col">
+          <div class="rot-bars">
+            <div class="rot-bar altas" style="height:${hAltas}px;" title="${m.altas} altas"></div>
+            <div class="rot-bar bajas" style="height:${hBajas}px;" title="${m.bajas} bajas"></div>
+          </div>
+          <div class="lbl">${m.label}</div>
+          <div class="val">${m.altas}↑ ${m.bajas}↓</div>
+        </div>`;
+      }).join('')}
+    </div>
+  `;
+
+  const top = datos.slice().filter(m=>m.altas+m.bajas>0)
+    .sort((a,b)=> (b.altas+b.bajas) - (a.altas+a.bajas)).slice(0,5);
+  document.getElementById('rotacionTop').innerHTML = top.length ? top.map(m=>`
+    <div class="rot-top-row">
+      <span>${m.label}</span>
+      <span>
+        <span class="tag tag-green">${m.altas} altas</span>
+        <span class="tag tag-red" style="margin-left:6px;">${m.bajas} bajas</span>
+      </span>
+    </div>
+  `).join('') : `<p class="help">Sin movimientos de alta/baja en los últimos 12 meses.</p>`;
 }
 
 /* ---------- ALTA Y BÚSQUEDA ---------- */
