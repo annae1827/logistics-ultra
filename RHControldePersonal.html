@@ -985,6 +985,9 @@ function abrirEmpleado(id){
   }
 
   document.getElementById('modalEmpBody').innerHTML = `
+    <div style="display:flex;justify-content:flex-end;margin-bottom:10px;">
+      <button type="button" class="btn btn-outline btn-sm" onclick="abrirEdicionEmpleado('${e.id}')">✏️ Editar datos</button>
+    </div>
     <div class="field-row two">
       <div><label>Puesto</label><div>${e.puesto}</div></div>
       <div><label>Estatus</label><div>${esActivo(e)?'<span class="tag tag-green">Activo</span>':'<span class="tag tag-red">Baja</span>'}</div></div>
@@ -1014,6 +1017,99 @@ function abrirEmpleado(id){
   document.getElementById('modalEmpBody').dataset.empId = e.id;
   document.getElementById('motivoBajaSel') && document.getElementById('motivoBajaSel').addEventListener('change', function(){});
   openModal('modalEmpleado');
+}
+
+function abrirEdicionEmpleado(id){
+  const e = DB.empleados.find(x=>x.id===id);
+  if(!e) return;
+  document.getElementById('modalEmpTitulo').textContent = 'Editar — ' + nombreCompleto(e);
+  document.getElementById('modalEmpBody').innerHTML = `
+    <div class="field-row two">
+      <div class="field"><label class="req">Nombre(s)</label><input id="ed_nombres" value="${e.nombres}"></div>
+      <div class="field"><label class="req">Apellido paterno</label><input id="ed_apP" value="${e.apellidoP}"></div>
+    </div>
+    <div class="field-row two">
+      <div class="field"><label>Apellido materno</label><input id="ed_apM" value="${e.apellidoM||''}"></div>
+      <div class="field"><label class="req">Iniciales</label><input id="ed_iniciales" class="mono" value="${e.iniciales}"></div>
+    </div>
+    <div class="field-row two">
+      <div class="field"><label>NSS</label><input id="ed_nss" class="mono" maxlength="11" value="${e.nss||''}"></div>
+      <div class="field"><label class="req">Fecha de nacimiento</label><input type="date" id="ed_fnac" value="${e.fechaNacimiento||''}"></div>
+    </div>
+    <div class="field-row two">
+      <div class="field"><label>RFC</label><input id="ed_rfc" class="mono" style="text-transform:uppercase;" value="${e.rfc||''}"></div>
+      <div class="field"><label>CURP</label><input id="ed_curp" class="mono" style="text-transform:uppercase;" value="${e.curp||''}"></div>
+    </div>
+    <div class="field-row two">
+      <div class="field"><label class="req">Puesto / Área</label><input id="ed_puesto" list="listaAreas" value="${e.puesto}"></div>
+      <div class="field"><label>CP</label><input id="ed_cp" class="mono" maxlength="5" value="${e.cp||''}"></div>
+    </div>
+    <div class="divider"></div>
+    <label style="font-size:13px;color:var(--navy-900);font-weight:700;margin-bottom:10px;">Datos bancarios y salario</label>
+    <div class="field-row">
+      <div class="field">
+        <label>Banco</label>
+        <select id="ed_banco">
+          <option value="" ${!e.banco?'selected':''}>Selecciona…</option>
+          ${['BBVA','Banorte','Santander','Citibanamex','HSBC','Scotiabank','Banco Azteca','Inbursa','Otro'].map(b=>`<option ${e.banco===b?'selected':''}>${b}</option>`).join('')}
+        </select>
+      </div>
+      <div class="field">
+        <label>Tipo de dato</label>
+        <select id="ed_tipoPago">
+          <option value="Cuenta" ${e.tipoPago==='Cuenta'?'selected':''}>Número de cuenta</option>
+          <option value="CLABE" ${e.tipoPago==='CLABE'?'selected':''}>CLABE interbancaria</option>
+          <option value="Tarjeta" ${(!e.tipoPago||e.tipoPago==='Tarjeta')?'selected':''}>Número de tarjeta</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Dato de pago</label>
+        <input id="ed_datoPago" class="mono" value="${e.datoPago||''}">
+      </div>
+    </div>
+    <div class="field" style="max-width:220px;">
+      <label>Salario diario (MXN)</label>
+      <input type="number" step="0.01" min="0" id="ed_salario" value="${e.salarioDiario||SALARIO_DIARIO_DEFAULT}">
+    </div>
+    <div class="divider"></div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-amber" onclick="guardarEdicionEmpleado('${e.id}')">Guardar cambios</button>
+      <button class="btn btn-outline" onclick="abrirEmpleado('${e.id}')">Cancelar</button>
+    </div>
+  `;
+  openModal('modalEmpleado');
+}
+
+function guardarEdicionEmpleado(id){
+  const e = DB.empleados.find(x=>x.id===id);
+  if(!e) return;
+  const nss = document.getElementById('ed_nss').value.trim();
+  if(nss && !/^\d{11}$/.test(nss)){
+    if(!confirm('El NSS no tiene 11 dígitos. ¿Guardar de todas formas?')) return;
+  }
+  const tipoPago = document.getElementById('ed_tipoPago').value;
+  const datoPago = document.getElementById('ed_datoPago').value.trim();
+  if(tipoPago === 'CLABE' && datoPago && !/^\d{18}$/.test(datoPago)){
+    toast('La CLABE debe tener 18 dígitos.', 'err'); return;
+  }
+  e.nombres = document.getElementById('ed_nombres').value.trim();
+  e.apellidoP = document.getElementById('ed_apP').value.trim();
+  e.apellidoM = document.getElementById('ed_apM').value.trim();
+  e.iniciales = document.getElementById('ed_iniciales').value.trim().toUpperCase();
+  e.nss = nss;
+  e.fechaNacimiento = document.getElementById('ed_fnac').value;
+  e.rfc = document.getElementById('ed_rfc').value.trim().toUpperCase();
+  e.curp = document.getElementById('ed_curp').value.trim().toUpperCase();
+  e.puesto = document.getElementById('ed_puesto').value.trim();
+  e.cp = document.getElementById('ed_cp').value.trim();
+  e.banco = document.getElementById('ed_banco').value;
+  e.tipoPago = tipoPago;
+  e.datoPago = datoPago;
+  e.salarioDiario = Number(document.getElementById('ed_salario').value || SALARIO_DIARIO_DEFAULT);
+  saveDB(DB);
+  toast('Datos actualizados: ' + nombreCompleto(e));
+  renderAll();
+  abrirEmpleado(id);
 }
 
 function enmascarar(valor){
