@@ -1044,6 +1044,14 @@ function abrirEdicionEmpleado(id){
       <div class="field"><label class="req">Puesto / Área</label><input id="ed_puesto" list="listaAreas" value="${e.puesto}"></div>
       <div class="field"><label>CP</label><input id="ed_cp" class="mono" maxlength="5" value="${e.cp||''}"></div>
     </div>
+    <div class="field-row two">
+      <div class="field">
+        <label class="req">Fecha de ingreso (periodo vigente)</label>
+        <input type="date" id="ed_fingreso" value="${periodoVigente(e).fechaIngreso}">
+        <div class="help">Corrige aquí si quedó con la fecha marcador de la migración.</div>
+      </div>
+      <div></div>
+    </div>
     <div class="divider"></div>
     <label style="font-size:13px;color:var(--navy-900);font-weight:700;margin-bottom:10px;">Datos bancarios y salario</label>
     <div class="field-row">
@@ -1102,6 +1110,8 @@ function guardarEdicionEmpleado(id){
   e.curp = document.getElementById('ed_curp').value.trim().toUpperCase();
   e.puesto = document.getElementById('ed_puesto').value.trim();
   e.cp = document.getElementById('ed_cp').value.trim();
+  const nuevaFingreso = document.getElementById('ed_fingreso').value;
+  if(nuevaFingreso) periodoVigente(e).fechaIngreso = nuevaFingreso;
   e.banco = document.getElementById('ed_banco').value;
   e.tipoPago = tipoPago;
   e.datoPago = datoPago;
