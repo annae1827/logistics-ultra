@@ -413,7 +413,7 @@ tbody tr:hover{background:#f6f8f4;}
                 <input required id="f_datoPago" maxlength="20" placeholder="Número de cuenta" class="mono">
               </div>
             </div>
-            <div class="small-note">El salario diario ($362.50) se asigna automáticamente a todos los ingresos y no se muestra como campo editable en el expediente general.</div>
+            <div class="small-note">El salario diario se asigna automáticamente según el puesto y no se muestra como campo editable ni en el expediente.</div>
             <div style="margin-top:16px;display:flex;gap:8px;">
               <button type="submit" class="btn btn-amber">Registrar alta</button>
               <button type="reset" class="btn btn-outline">Limpiar</button>
@@ -617,7 +617,9 @@ document.getElementById('brandLogo').src = "data:image/png;base64," + window.__L
 /* =========================================================================
    ULTRA RH — motor de datos EN VIVO (Google Sheets vía Apps Script)
    ========================================================================= */
-const SALARIO_DIARIO_DEFAULT = 362.50;
+const SALARIO_OPERADOR = 362.50;
+const SALARIO_OTROS = 351.50;
+function salarioEfectivo(e){ return (e && e.puesto === 'Operador') ? SALARIO_OPERADOR : SALARIO_OTROS; }
 
 // ⚠️ Pega aquí la URL de tu Web App de Apps Script (termina en /exec)
 const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbymnOQnWOjx8KMANw9dUjS4yzI1DWNoB3j0Zl2hk-3N3-3C9Y9jAqd29qef3ZTA1_ZhDw/exec";
@@ -998,7 +1000,7 @@ document.getElementById('formAlta').addEventListener('submit', function(ev){
     banco: document.getElementById('f_banco').value,
     tipoPago: tipoPago,
     datoPago: datoPago,
-    salarioDiario: SALARIO_DIARIO_DEFAULT,
+    salarioDiario: document.getElementById('f_puesto').value.trim() === 'Operador' ? SALARIO_OPERADOR : SALARIO_OTROS,
     periodos: [{ fechaIngreso: todayISO(), fechaBaja: null, motivoBaja: null }],
     estatus: 'Activo'
   };
@@ -1185,10 +1187,6 @@ function abrirEdicionEmpleado(id){
         <input id="ed_datoPago" class="mono" value="${e.datoPago||''}">
       </div>
     </div>
-    <div class="field" style="max-width:220px;">
-      <label>Salario diario (MXN)</label>
-      <input type="number" step="0.01" min="0" id="ed_salario" value="${e.salarioDiario||SALARIO_DIARIO_DEFAULT}">
-    </div>
     <div class="divider"></div>
     <div style="display:flex;gap:8px;">
       <button class="btn btn-amber" onclick="guardarEdicionEmpleado('${e.id}')">Guardar cambios</button>
@@ -1225,7 +1223,7 @@ function guardarEdicionEmpleado(id){
   e.banco = document.getElementById('ed_banco').value;
   e.tipoPago = tipoPago;
   e.datoPago = datoPago;
-  e.salarioDiario = Number(document.getElementById('ed_salario').value || SALARIO_DIARIO_DEFAULT);
+  e.salarioDiario = salarioEfectivo(e);
   saveDB(DB);
   toast('Datos actualizados: ' + nombreCompleto(e));
   renderAll();
@@ -1454,7 +1452,7 @@ function generarPrimaVacacionalPDF(empId){
   if(!e){ toast('Empleado no encontrado.', 'err'); return; }
   const per = periodoVigente(e);
   const s = saldoVacaciones(e);
-  const salario = e.salarioDiario || SALARIO_DIARIO_DEFAULT;
+  const salario = salarioEfectivo(e);
   const montoVacaciones = s.diasLey * salario;
   const montoPrima = 0.25 * montoVacaciones;
   const montoVacacionesTomadas = s.tomados * salario;
@@ -1489,8 +1487,8 @@ function generarPrimaVacacionalPDF(empId){
     <h2>Recibo de Prima Vacacional</h2>
     <table>
       <tr><td class="lbl">Colaborador</td><td>${nombreCompleto(e)}</td><td class="lbl">Puesto</td><td>${e.puesto}</td></tr>
-      <tr><td class="lbl">Año de servicio en curso</td><td>Año ${s.svc.anioEnCurso}</td><td class="lbl">Sueldo diario</td><td>${fmtDinero(salario)}</td></tr>
-      <tr><td class="lbl">Inicio del año de servicio</td><td>${fmtFecha(s.svc.inicioISO)}</td><td class="lbl">Ingreso (periodo vigente)</td><td>${fmtFecha(per.fechaIngreso)}</td></tr>
+      <tr><td class="lbl">Año de servicio en curso</td><td>Año ${s.svc.anioEnCurso}</td><td class="lbl">Ingreso (periodo vigente)</td><td>${fmtFecha(per.fechaIngreso)}</td></tr>
+      <tr><td class="lbl">Inicio del año de servicio</td><td colspan="3">${fmtFecha(s.svc.inicioISO)}</td></tr>
     </table>
     <table>
       <tr class="band-row"><th colspan="2">Días de vacaciones del año en curso (Art. 76 LFT)</th></tr>
@@ -1738,7 +1736,7 @@ function renderVacaciones(){
     const per = periodoVigente(e);
     const ant = calcAntiguedad(per.fechaIngreso);
     const s = saldoVacaciones(e);
-    const salario = e.salarioDiario || SALARIO_DIARIO_DEFAULT;
+    const salario = salarioEfectivo(e);
     const primaTotal = 0.25 * s.diasLey * salario;
     return `<tr>
       <td class="name-cell"><div class="avatar-ini">${e.iniciales.slice(0,3)}</div><span class="nm">${nombreCompleto(e)}</span></td>
@@ -1763,7 +1761,7 @@ function calcularFiniquito(e, fechaSalida, extras){
   extras = extras || {};
   const per = periodoVigente(e);
   const fechaIngreso = per.fechaIngreso;
-  const salario = e.salarioDiario || SALARIO_DIARIO_DEFAULT;
+  const salario = salarioEfectivo(e);
   const ant = calcAntiguedad(fechaIngreso, fechaSalida);
 
   const diasAguinaldo = diasTrabajadosAnioCalendario(fechaIngreso, fechaSalida);
@@ -1782,7 +1780,6 @@ function calcularFiniquito(e, fechaSalida, extras){
 
   const pagosPendientes = Number(extras.pagosPendientes||0);
   const adeudos = Number(extras.adeudos||0);
-  const isr = Number(extras.isr||0);
   const infonavit = Number(extras.infonavit||0);
   const otrasDeducciones = Number(extras.otrasDeducciones||0);
 
@@ -1792,6 +1789,8 @@ function calcularFiniquito(e, fechaSalida, extras){
   const montoSuspensiones = diasSuspendidos * salario;
 
   const subtotal = aguinaldoProp + vacacionesPendientesMonto + primaVacacional + pagosPendientes;
+  const ISR_TASA = 0.072;
+  const isr = subtotal * ISR_TASA;
   const deducciones = adeudos + isr + infonavit + otrasDeducciones + montoIncidencias + montoSuspensiones;
   const total = subtotal - deducciones;
 
@@ -1831,10 +1830,10 @@ function renderFiniquitoBody(){
           <div class="field"><label>Adeudos (préstamos / anticipos)</label><input type="number" step="0.01" min="0" id="fin_adeudos" value="0"></div>
         </div>
         <div class="field-row two">
-          <div class="field"><label>ISR</label><input type="number" step="0.01" min="0" id="fin_isr" value="0"></div>
           <div class="field"><label>Infonavit</label><input type="number" step="0.01" min="0" id="fin_infonavit" value="0"></div>
+          <div class="field"><label>Otras deducciones</label><input type="number" step="0.01" min="0" id="fin_otras" value="0"></div>
         </div>
-        <div class="field"><label>Otras deducciones</label><input type="number" step="0.01" min="0" id="fin_otras" value="0"></div>
+        <div class="help" style="margin-bottom:10px;">El ISR se calcula automáticamente (7.2% del monto bruto) y no es editable.</div>
         <button class="btn btn-amber" onclick="recalcularFiniquito()">Calcular finiquito</button>
       </div>
       <div id="finResultado"></div>
@@ -1853,7 +1852,7 @@ function renderFiniquitoBody(){
     </details>
   `;
   document.getElementById('fin_fechaSalida').addEventListener('change', recalcularFiniquito);
-  ['fin_pagosPendientes','fin_adeudos','fin_isr','fin_infonavit','fin_otras'].forEach(id=>{
+  ['fin_pagosPendientes','fin_adeudos','fin_infonavit','fin_otras'].forEach(id=>{
     document.getElementById(id).addEventListener('input', recalcularFiniquito);
   });
   renderFinIncidencias(e.id);
@@ -1894,7 +1893,6 @@ function recalcularFiniquito(){
   const extras = {
     pagosPendientes: document.getElementById('fin_pagosPendientes').value,
     adeudos: document.getElementById('fin_adeudos').value,
-    isr: document.getElementById('fin_isr').value,
     infonavit: document.getElementById('fin_infonavit').value,
     otrasDeducciones: document.getElementById('fin_otras').value
   };
@@ -1904,7 +1902,6 @@ function recalcularFiniquito(){
     <div class="card card-pad" style="background:#f6f8f4;">
       <div class="stat-strip" style="margin-bottom:12px;">
         <div class="si"><b>${c.ant.years}a ${c.ant.months}m ${c.ant.days}d</b> antigüedad</div>
-        <div class="si"><b>${fmtDinero(c.salario)}</b> salario diario</div>
       </div>
       <table style="font-size:12.5px;">
         <tr><td>Aguinaldo proporcional (${c.diasAguinaldo} días del año)</td><td style="text-align:right;">${fmtDinero(c.aguinaldoProp)}</td></tr>
@@ -1913,7 +1910,7 @@ function recalcularFiniquito(){
         <tr><td>Pagos pendientes</td><td style="text-align:right;">${fmtDinero(c.pagosPendientes)}</td></tr>
         <tr style="font-weight:700;border-top:1px solid var(--line);"><td>Subtotal</td><td style="text-align:right;">${fmtDinero(c.subtotal)}</td></tr>
         <tr><td>Adeudos</td><td style="text-align:right;color:var(--red);">− ${fmtDinero(c.adeudos)}</td></tr>
-        <tr><td>ISR</td><td style="text-align:right;color:var(--red);">− ${fmtDinero(c.isr)}</td></tr>
+        <tr><td>ISR (7.2%)</td><td style="text-align:right;color:var(--red);">− ${fmtDinero(c.isr)}</td></tr>
         <tr><td>Infonavit</td><td style="text-align:right;color:var(--red);">− ${fmtDinero(c.infonavit)}</td></tr>
         <tr><td>Otras deducciones</td><td style="text-align:right;color:var(--red);">− ${fmtDinero(c.otrasDeducciones)}</td></tr>
         <tr><td>Incidencias / infracciones (${c.actasEmp.length})</td><td style="text-align:right;color:var(--red);">− ${fmtDinero(c.montoIncidencias)}</td></tr>
@@ -1962,7 +1959,6 @@ function generarFiniquitoPDF(){
       <tr><td class="lbl">Colaborador</td><td colspan="3">${nombreCompleto(e)}</td></tr>
       <tr><td class="lbl">Puesto</td><td>${e.puesto}</td><td class="lbl">Antigüedad</td><td>${c.ant.years}a ${c.ant.months}m ${c.ant.days}d</td></tr>
       <tr><td class="lbl">Fecha de ingreso</td><td>${fmtFecha(c.fechaIngreso)}</td><td class="lbl">Fecha de salida</td><td>${fmtFecha(c.fechaSalida)}</td></tr>
-      <tr class="band-row"><td>Sueldo Semanal</td><td class="num">${fmtDinero(c.salario*7)}</td><td>Sueldo Diario</td><td class="num">${fmtDinero(c.salario)}</td></tr>
     </table>
     <table>
       <tr><th colspan="2">Percepciones</th></tr>
@@ -1975,7 +1971,7 @@ function generarFiniquitoPDF(){
     <table>
       <tr><th colspan="2">Adeudos y deducciones (préstamos, anticipos, penalizaciones)</th></tr>
       <tr><td class="deduc-lbl">Adelantos de nómina / préstamos</td><td class="num">${fmtDinero(c.adeudos)}</td></tr>
-      <tr><td class="deduc-lbl">ISR</td><td class="num">${fmtDinero(c.isr)}</td></tr>
+      <tr><td class="deduc-lbl">ISR (7.2% del monto bruto)</td><td class="num">${fmtDinero(c.isr)}</td></tr>
       <tr><td class="deduc-lbl">Infonavit</td><td class="num">${fmtDinero(c.infonavit)}</td></tr>
       <tr><td class="deduc-lbl">Otras deducciones</td><td class="num">${fmtDinero(c.otrasDeducciones)}</td></tr>
       <tr><td class="deduc-lbl">Incidencias / infracciones registradas (${c.actasEmp.length})</td><td class="num">${fmtDinero(c.montoIncidencias)}</td></tr>
