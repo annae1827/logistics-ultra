@@ -1739,9 +1739,15 @@ function abrirModalContrato(id, tipo){
     <div class="field-row">
       <div class="field"><label>Sábado — entrada</label><input type="time" id="ct_hSab_ini" value="08:00"></div>
       <div class="field"><label>Sábado — salida</label><input type="time" id="ct_hSab_fin" value="14:00"></div>
-      <div class="field"><label style="visibility:hidden;">.</label><label style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:500;color:var(--ink);margin-top:9px;"><input type="checkbox" id="ct_sinSabado" style="width:auto;"> No trabaja sábados</label></div>
+      <div class="field"><label style="visibility:hidden;">.</label><label style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:500;color:var(--ink);margin-top:9px;"><input type="checkbox" id="ct_trabajaSab" style="width:auto;" checked> Trabaja sábado</label></div>
     </div>
-    <button class="btn btn-amber" onclick="generarYGuardarContrato('${e.id}','${tipo}')">Generar contrato</button>
+    <div class="field-row">
+      <div class="field"><label>Domingo — entrada</label><input type="time" id="ct_hDom_ini" value="20:00"></div>
+      <div class="field"><label>Domingo — salida</label><input type="time" id="ct_hDom_fin" value="00:00"></div>
+      <div class="field"><label style="visibility:hidden;">.</label><label style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:500;color:var(--ink);margin-top:9px;"><input type="checkbox" id="ct_trabajaDom" style="width:auto;"> Trabaja domingo</label></div>
+    </div>
+    <div class="help">Marca solo los días que aplican. Deja la casilla sin marcar si ese día es de descanso.</div>
+    <button class="btn btn-amber" style="margin-top:10px;" onclick="generarYGuardarContrato('${e.id}','${tipo}')">Generar contrato</button>
   `;
   openModal('modalEmpleado');
 }
@@ -1754,9 +1760,12 @@ function generarYGuardarContrato(id, tipo){
   const horario = {
     lvIni: document.getElementById('ct_hLV_ini').value || '08:00',
     lvFin: document.getElementById('ct_hLV_fin').value || '18:00',
-    sinSabado: document.getElementById('ct_sinSabado').checked,
+    trabajaSab: document.getElementById('ct_trabajaSab').checked,
     sabIni: document.getElementById('ct_hSab_ini').value || '08:00',
-    sabFin: document.getElementById('ct_hSab_fin').value || '14:00'
+    sabFin: document.getElementById('ct_hSab_fin').value || '14:00',
+    trabajaDom: document.getElementById('ct_trabajaDom').checked,
+    domIni: document.getElementById('ct_hDom_ini').value || '20:00',
+    domFin: document.getElementById('ct_hDom_fin').value || '00:00'
   };
   let mesesPrueba = null, fechaFin = null;
   if(tipo === 'Temporal'){
@@ -1939,8 +1948,13 @@ function generarContratoPDF(e, tipo, datos){
 
   <div class="cl"><div class="cl-t">${esTmp?'CUARTA':'QUINTA'}. – JORNADA DE TRABAJO</div>
   <ul><li><strong>Lunes a viernes:</strong> ${fmtHora(horario.lvIni)} – ${fmtHora(horario.lvFin)}, con 1 hora de descanso para alimentos.</li>
-  ${horario.sinSabado ? '' : `<li><strong>Sábados:</strong> ${fmtHora(horario.sabIni)} – ${fmtHora(horario.sabFin)}.</li>`}</ul>
-  <p style="margin-top:5px;">Descanso semanal: <strong>domingo</strong> con goce de salario (Art. 69 LFT).</p></div>
+  ${horario.trabajaSab ? `<li><strong>Sábado:</strong> ${fmtHora(horario.sabIni)} – ${fmtHora(horario.sabFin)}.</li>` : ''}
+  ${horario.trabajaDom ? `<li><strong>Domingo:</strong> ${fmtHora(horario.domIni)} – ${fmtHora(horario.domFin)}.</li>` : ''}</ul>
+  <p style="margin-top:5px;">Descanso semanal: <strong>${
+    !horario.trabajaSab && !horario.trabajaDom ? 'sábado y domingo'
+    : horario.trabajaSab && horario.trabajaDom ? 'un día conforme al rol operativo asignado'
+    : horario.trabajaSab ? 'domingo' : 'sábado'
+  }</strong> con goce de salario (Art. 69 LFT).</p></div>
 
   <div class="cl"><div class="cl-t">${esTmp?'QUINTA':'SEXTA'}. – DÍAS DE DESCANSO OBLIGATORIOS</div>
   <p>Son días de descanso obligatorio con salario íntegro los del artículo 74 LFT: 1° enero, primer lunes de febrero, tercer lunes de marzo, 1° mayo, 16 septiembre, tercer lunes de noviembre, 1° octubre cada seis años y 25 diciembre.</p>
