@@ -205,6 +205,10 @@ tbody tr:hover{background:#f6f8f4;}
 .person-card .meta{font-size:11.5px;color:var(--ink-soft);display:flex;flex-direction:column;gap:2px;}
 .person-card .btnrow{display:flex;flex-wrap:wrap;gap:5px;margin-top:2px;}
 .person-card .btnrow .btn{flex:1;justify-content:center;padding:6px 8px;font-size:11px;}
+.contrato-badge{display:inline-flex;align-items:center;gap:4px;font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:20px;margin-top:4px;}
+.contrato-badge.ok{background:var(--green-bg);color:var(--green);}
+.contrato-badge.warn{background:#fdf1de;color:var(--amber-dark);}
+.contrato-badge.vencido{background:var(--red-bg);color:var(--red);}
 
 .stat-strip{display:flex;gap:22px;flex-wrap:wrap;margin-bottom:6px;}
 .stat-strip .si{font-size:12px;color:var(--ink-soft);}
@@ -310,6 +314,11 @@ tbody tr:hover{background:#f6f8f4;}
         <div class="section-title" style="margin-bottom:8px;"><h3 style="font-size:16px;">Meses con más rotación</h3></div>
         <div id="rotacionTop"></div>
       </div>
+
+      <div class="card card-pad" style="margin-top:18px;">
+        <div class="section-title"><h3>Contratos próximos a vencer</h3><span class="hint">temporales · próximos 30 días o ya vencidos</span></div>
+        <div id="contratosVencer"></div>
+      </div>
     </section>
 
     <!-- ============ ALTA Y BÚSQUEDA ============ -->
@@ -373,6 +382,23 @@ tbody tr:hover{background:#f6f8f4;}
                 <label>CP</label>
                 <input id="f_cp" maxlength="5" placeholder="Opcional" class="mono">
               </div>
+            </div>
+            <div class="field-row two">
+              <div class="field">
+                <label>Domicilio (calle y número)</label>
+                <input id="f_domicilio" placeholder="Opcional — para contratos">
+              </div>
+              <div class="field">
+                <label>Colonia</label>
+                <input id="f_colonia" placeholder="Opcional">
+              </div>
+            </div>
+            <div class="field-row two">
+              <div class="field">
+                <label>Ciudad / Municipio</label>
+                <input id="f_ciudad" placeholder="Opcional">
+              </div>
+              <div></div>
             </div>
             <div class="field-row two">
               <div class="field">
@@ -848,6 +874,44 @@ function renderResumen(){
     `).join('') : `<p class="help">Aún no hay empleados activos.</p>`;
 
   renderRotacion();
+  renderContratosVencer();
+}
+
+function renderContratosVencer(){
+  const activos = DB.empleados.filter(esActivo);
+  const conContrato = activos
+    .filter(e => e.contrato && e.contrato.tipo === 'Temporal' && e.contrato.fechaFin)
+    .map(e => ({ e, dias: diasParaVencerContrato(e) }))
+    .filter(x => x.dias <= 30)
+    .sort((a,b) => a.dias - b.dias);
+
+  const cont = document.getElementById('contratosVencer');
+  if(!conContrato.length){
+    cont.innerHTML = `<p class="help">Sin contratos temporales por vencer en los próximos 30 días.</p>`;
+    return;
+  }
+  cont.innerHTML = `<div class="table-wrap"><table>
+    <thead><tr><th>Empleado</th><th>Puesto</th><th>Vence</th><th>Estado</th><th>Renovar</th></tr></thead>
+    <tbody>
+    ${conContrato.map(x => {
+      const vencido = x.dias < 0;
+      const estado = vencido
+        ? `<span class="tag tag-red">Vencido hace ${Math.abs(x.dias)}d</span>`
+        : `<span class="tag ${x.dias<=15?'tag-red':'tag-amber'}">Vence en ${x.dias}d</span>`;
+      return `<tr>
+        <td class="name-cell"><div class="avatar-ini">${x.e.iniciales.slice(0,3)}</div><span class="nm">${nombreCompleto(x.e)}</span></td>
+        <td>${x.e.puesto}</td>
+        <td>${fmtFecha(x.e.contrato.fechaFin)}</td>
+        <td>${estado}</td>
+        <td class="actions-cell">
+          <button class="btn btn-outline btn-sm" onclick="renovarContrato('${x.e.id}', 1)">+1 mes</button>
+          <button class="btn btn-outline btn-sm" onclick="renovarContrato('${x.e.id}', 3)">+3 meses</button>
+          <button class="btn btn-green btn-sm" onclick="renovarContrato('${x.e.id}', 'indefinido')">A indefinido</button>
+        </td>
+      </tr>`;
+    }).join('')}
+    </tbody>
+  </table></div>`;
 }
 
 /* ---------- ROTACIÓN DE PERSONAL ---------- */
@@ -995,6 +1059,9 @@ document.getElementById('formAlta').addEventListener('submit', function(ev){
     rfc: document.getElementById('f_rfc').value.trim().toUpperCase(),
     curp: document.getElementById('f_curp').value.trim().toUpperCase(),
     cp: document.getElementById('f_cp').value.trim(),
+    domicilio: document.getElementById('f_domicilio').value.trim(),
+    colonia: document.getElementById('f_colonia').value.trim(),
+    ciudad: document.getElementById('f_ciudad').value.trim(),
     fechaNacimiento: document.getElementById('f_fnac').value,
     puesto: document.getElementById('f_puesto').value.trim(),
     banco: document.getElementById('f_banco').value,
@@ -1097,8 +1164,9 @@ function abrirEmpleado(id){
   }
 
   document.getElementById('modalEmpBody').innerHTML = `
-    <div style="display:flex;justify-content:flex-end;margin-bottom:10px;">
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:10px;">
       <button type="button" class="btn btn-outline btn-sm" onclick="abrirEdicionEmpleado('${e.id}')">✏️ Editar datos</button>
+      <button type="button" class="btn btn-red btn-sm" onclick="confirmarEliminarEmpleado('${e.id}')">🗑️ Eliminar empleado</button>
     </div>
     <div class="field-row two">
       <div><label>Puesto</label><div>${e.puesto}</div></div>
@@ -1155,6 +1223,14 @@ function abrirEdicionEmpleado(id){
     <div class="field-row two">
       <div class="field"><label class="req">Puesto / Área</label><input id="ed_puesto" list="listaAreas" value="${e.puesto}"></div>
       <div class="field"><label>CP</label><input id="ed_cp" class="mono" maxlength="5" value="${e.cp||''}"></div>
+    </div>
+    <div class="field-row two">
+      <div class="field"><label>Domicilio</label><input id="ed_domicilio" value="${e.domicilio||''}"></div>
+      <div class="field"><label>Colonia</label><input id="ed_colonia" value="${e.colonia||''}"></div>
+    </div>
+    <div class="field-row two">
+      <div class="field"><label>Ciudad / Municipio</label><input id="ed_ciudad" value="${e.ciudad||''}"></div>
+      <div></div>
     </div>
     <div class="field-row two">
       <div class="field">
@@ -1218,6 +1294,9 @@ function guardarEdicionEmpleado(id){
   e.curp = document.getElementById('ed_curp').value.trim().toUpperCase();
   e.puesto = document.getElementById('ed_puesto').value.trim();
   e.cp = document.getElementById('ed_cp').value.trim();
+  e.domicilio = document.getElementById('ed_domicilio').value.trim();
+  e.colonia = document.getElementById('ed_colonia').value.trim();
+  e.ciudad = document.getElementById('ed_ciudad').value.trim();
   const nuevaFingreso = document.getElementById('ed_fingreso').value;
   if(nuevaFingreso) periodoVigente(e).fechaIngreso = nuevaFingreso;
   e.banco = document.getElementById('ed_banco').value;
@@ -1285,6 +1364,40 @@ function reactivar(id){
   renderAll();
 }
 
+function confirmarEliminarEmpleado(id){
+  const e = DB.empleados.find(x=>x.id===id);
+  if(!e) return;
+  const numActas = DB.actas.filter(a=>a.empleadoId===id).length;
+  const numVac = DB.vacaciones.filter(v=>v.empleadoId===id).length;
+  document.getElementById('modalEmpTitulo').textContent = 'Eliminar — ' + nombreCompleto(e);
+  document.getElementById('modalEmpBody').innerHTML = `
+    <div class="small-note" style="border-color:var(--red);background:var(--red-bg);color:var(--red);">
+      Esto elimina permanentemente a <b>${nombreCompleto(e)}</b> (${e.iniciales}) de la base de datos, junto con
+      ${numActas} acta(s) y ${numVac} registro(s) de vacaciones asociados. <b>No se puede deshacer.</b>
+      Úsalo solo si esta alta fue un error de captura — si la persona realmente causó baja, usa "Dar de baja" en su
+      lugar para conservar su historial.
+    </div>
+    <div style="display:flex;gap:8px;margin-top:16px;">
+      <button class="btn btn-red" onclick="eliminarEmpleado('${e.id}')">Sí, eliminar definitivamente</button>
+      <button class="btn btn-outline" onclick="abrirEmpleado('${e.id}')">Cancelar</button>
+    </div>
+  `;
+  openModal('modalEmpleado');
+}
+
+function eliminarEmpleado(id){
+  const e = DB.empleados.find(x=>x.id===id);
+  if(!e) return;
+  const nombre = nombreCompleto(e);
+  DB.empleados = DB.empleados.filter(x=>x.id!==id);
+  DB.actas = DB.actas.filter(a=>a.empleadoId!==id);
+  DB.vacaciones = DB.vacaciones.filter(v=>v.empleadoId!==id);
+  saveDB(DB);
+  closeModal('modalEmpleado');
+  toast('Eliminado: ' + nombre);
+  renderAll();
+}
+
 /* ---------- EMPLEADOS ACTIVOS (por segmento) ---------- */
 const ORDEN_PUESTOS = ['Operador','Coordinador','Gerente Operaciones','Administrativo','Auxiliar','Mantenimiento','Limpieza'];
 function ordenPuesto(p){ const i = ORDEN_PUESTOS.indexOf(p); return i === -1 ? 999 : i; }
@@ -1309,6 +1422,7 @@ function renderActivos(){
         ${lista.map(e=>{
           const per = periodoVigente(e);
           const ant = calcAntiguedad(per.fechaIngreso);
+          const contratoBadge = badgeContrato(e);
           return `
           <div class="person-card">
             <div class="ph">
@@ -1316,6 +1430,7 @@ function renderActivos(){
               <div>
                 <div class="nm">${nombreCompleto(e)}</div>
                 <div class="meta"><span>${e.iniciales} · ${ant.years}a ${ant.months}m antigüedad</span></div>
+                ${contratoBadge}
               </div>
             </div>
             <div class="btnrow">
@@ -1323,6 +1438,8 @@ function renderActivos(){
               <button class="btn btn-outline" onclick="generarPrimaVacacionalPDF('${e.id}')">Prima vacacional</button>
               <button class="btn btn-outline" onclick="irAFiniquito('${e.id}')">Finiquito</button>
               <button class="btn btn-outline" onclick="irAActa('${e.id}')">Acta admin.</button>
+              <button class="btn btn-outline" onclick="abrirModalContrato('${e.id}','Temporal')">📄 Contrato 1 (temporal)</button>
+              <button class="btn btn-outline" onclick="abrirModalContrato('${e.id}','Indefinido')">📄 Contrato 2 (indefinido)</button>
               <button class="btn btn-outline" onclick="tarjeta('${e.id}','cumple')">🎂 Cumpleaños</button>
               <button class="btn btn-outline" onclick="tarjeta('${e.id}','aniversario')">🏆 Aniversario</button>
               <button class="btn btn-outline" onclick="abrirEmpleado('${e.id}')">Ver ficha</button>
@@ -1517,7 +1634,266 @@ function generarPrimaVacacionalPDF(empId){
   win.document.close();
 }
 
-/* ---------- ACTAS ADMINISTRATIVAS ---------- */
+/* ---------- CONTRATOS ---------- */
+function diasParaVencerContrato(e){
+  if(!e.contrato || e.contrato.tipo !== 'Temporal' || !e.contrato.fechaFin) return null;
+  return diffDias(todayISO(), e.contrato.fechaFin);
+}
+
+function badgeContrato(e){
+  if(!e.contrato || !e.contrato.tipo) return '';
+  if(e.contrato.tipo === 'Indefinido'){
+    return `<div class="contrato-badge ok">📄 Indefinido</div>`;
+  }
+  const dias = diasParaVencerContrato(e);
+  if(dias === null) return '';
+  if(dias < 0) return `<div class="contrato-badge vencido">⚠️ Venció hace ${Math.abs(dias)}d</div>`;
+  if(dias <= 15) return `<div class="contrato-badge vencido">⚠️ Vence en ${dias}d</div>`;
+  if(dias <= 30) return `<div class="contrato-badge warn">Vence en ${dias}d</div>`;
+  return `<div class="contrato-badge ok">📄 Temporal · vence ${fmtFecha(e.contrato.fechaFin)}</div>`;
+}
+
+function abrirModalContrato(id, tipo){
+  const e = DB.empleados.find(x=>x.id===id);
+  if(!e) return;
+  document.getElementById('modalEmpTitulo').textContent = (tipo==='Temporal'?'Contrato temporal':'Contrato indefinido') + ' — ' + nombreCompleto(e);
+  document.getElementById('modalEmpBody').innerHTML = `
+    <div class="small-note">Estos datos de sueldo solo se usan para generar el documento del contrato — no se guardan en el expediente ni afectan los cálculos del dashboard (finiquito, prima, etc. siguen usando su propia regla interna).</div>
+    <div class="field-row two" style="margin-top:14px;">
+      <div class="field"><label class="req">Sueldo semanal neto (MXN)</label><input type="number" step="0.01" min="0" id="ct_sueldoSemanal" placeholder="Ej. 4320"></div>
+      <div class="field"><label>Monto de alta IMSS (diario, MXN)</label><input type="number" step="0.01" min="0" id="ct_montoImss" value="356.00"></div>
+    </div>
+    <div class="field-row two">
+      <div class="field"><label>¿Tiene crédito Infonavit?</label>
+        <select id="ct_infonavit"><option value="no">No</option><option value="si">Sí</option></select>
+      </div>
+      ${tipo==='Temporal' ? `<div class="field"><label class="req">Meses de prueba</label><input type="number" min="1" max="12" id="ct_meses" value="3"></div>` : `<div></div>`}
+    </div>
+    <div class="field">
+      <label class="req">Fecha de inicio del contrato</label>
+      <input type="date" id="ct_fechaInicio" value="${periodoVigente(e).fechaIngreso}">
+    </div>
+    <button class="btn btn-amber" onclick="generarYGuardarContrato('${e.id}','${tipo}')">Generar contrato</button>
+  `;
+  openModal('modalEmpleado');
+}
+
+function generarYGuardarContrato(id, tipo){
+  const e = DB.empleados.find(x=>x.id===id);
+  if(!e) return;
+  const sueldoSemanal = Number(document.getElementById('ct_sueldoSemanal').value||0);
+  if(!sueldoSemanal){ toast('Captura el sueldo semanal neto.', 'err'); return; }
+  const montoImss = Number(document.getElementById('ct_montoImss').value||0);
+  const infonavit = document.getElementById('ct_infonavit').value === 'si';
+  const fechaInicio = document.getElementById('ct_fechaInicio').value || todayISO();
+  let mesesPrueba = null, fechaFin = null;
+  if(tipo === 'Temporal'){
+    mesesPrueba = Number(document.getElementById('ct_meses').value || 3);
+    const d = new Date(fechaInicio+'T00:00:00');
+    d.setMonth(d.getMonth() + mesesPrueba);
+    fechaFin = d.toISOString().slice(0,10);
+  }
+
+  if(!e.contrato) e.contrato = { historial: [] };
+  if(!e.contrato.historial) e.contrato.historial = [];
+  if(e.contrato.tipo){
+    e.contrato.historial.push({ tipo: e.contrato.tipo, fechaInicio: e.contrato.fechaInicio, fechaFin: e.contrato.fechaFin||null });
+  }
+  e.contrato.tipo = tipo;
+  e.contrato.fechaInicio = fechaInicio;
+  e.contrato.fechaFin = fechaFin;
+  e.contrato.mesesPrueba = mesesPrueba;
+  saveDB(DB);
+  closeModal('modalEmpleado');
+  toast('Contrato generado: ' + nombreCompleto(e));
+  renderAll();
+
+  generarContratoPDF(e, tipo, { sueldoSemanal, montoImss, infonavit, fechaInicio, fechaFin, mesesPrueba });
+}
+
+function renovarContrato(id, accion){
+  const e = DB.empleados.find(x=>x.id===id);
+  if(!e) return;
+  if(accion === 'indefinido'){
+    abrirModalContrato(id, 'Indefinido');
+    return;
+  }
+  // accion es un número de meses adicionales
+  const meses = Number(accion);
+  const base = (e.contrato && e.contrato.fechaFin) ? e.contrato.fechaFin : todayISO();
+  const d = new Date(base+'T00:00:00');
+  d.setMonth(d.getMonth() + meses);
+  const nuevaFechaFin = d.toISOString().slice(0,10);
+  if(!e.contrato) e.contrato = { historial: [] };
+  if(!e.contrato.historial) e.contrato.historial = [];
+  e.contrato.historial.push({ tipo: e.contrato.tipo||'Temporal', fechaInicio: e.contrato.fechaInicio||null, fechaFin: e.contrato.fechaFin||null });
+  e.contrato.tipo = 'Temporal';
+  e.contrato.fechaFin = nuevaFechaFin;
+  saveDB(DB);
+  toast('Contrato de ' + nombreCompleto(e) + ' renovado hasta ' + fmtFecha(nuevaFechaFin));
+  renderAll();
+}
+
+const REGLAMENTO_OPERADOR_HTML = `
+<div style="page-break-before:always;"></div>
+<h2 style="text-align:center;font-family:Arial,sans-serif;">REGLAMENTO PARA OPERADORES</h2>
+<p style="font-family:Arial,sans-serif;font-size:10pt;text-align:justify;line-height:1.6;">
+¡Bienvenido a Ultra! Al pertenecer a la familia Ultra y porque nos importa tu seguridad y la calidad en el
+servicio a nuestros clientes, a continuación te compartimos el reglamento sobre el que nos regimos:</p>
+<div class="cl"><div class="cl-t">Contacto entre Operaciones Ultra y Operador</div>
+<p>Es importante mantener comunicación con el área de operaciones en todo momento y ante cualquier situación suscitada durante su jornada laboral.</p></div>
+<div class="cl"><div class="cl-t">Protocolo de inicio de ruta</div>
+<p>Tiene por objetivo el cuidado de los recursos materiales (vehículo y mercancía), por lo que el operador deberá:</p>
+<ul>
+<li>Presentarse puntual y en buenas condiciones de salud y físicas para la realización del viaje programado.</li>
+<li>Llevar siempre consigo identificación, licencia y teléfono móvil para mantener comunicación constante con el área de operaciones.</li>
+<li>Realizar la inspección de niveles de combustible.</li>
+<li>Contar con chaleco, zapatos y casco de seguridad.</li>
+<li>Contar con el soporte de viaje (documentos del flete + complemento carta porte emitido por el área de operaciones).</li>
+</ul></div>
+<div class="cl"><div class="cl-t">Seguridad</div>
+<p>Las unidades cuentan con dispositivos telemáticos (localizador GPS, sensores de velocidad, cámaras de seguridad interior y exterior), los cuales deben mantenerse despejados. Cualquier acción para afectar estos equipos será penalizada económicamente (ver Penalizaciones).</p></div>
+<div class="cl"><div class="cl-t">Uso del vehículo asignado</div>
+<p>El operador podrá hacerse acreedor a un incentivo al mantener el vehículo limpio y ordenado, y deberá reportar cualquier falla al área de operaciones. El incumplimiento de lo siguiente puede implicar penalizaciones o hasta despido:</p>
+<ul>
+<li>El vehículo deberá ser ocupado solamente por el operador (no familia, ni amigos, etc.).</li>
+<li>Uso exclusivo para las rutas asignadas.</li>
+<li>Respetar los límites de velocidad.</li>
+<li>Mantener sin obstrucción la visibilidad de las cámaras de la unidad.</li>
+<li>No desconectar dispositivos de localización GPS.</li>
+</ul></div>
+<div class="cl"><div class="cl-t">Incentivos</div>
+<p>Incentivo por puntualidad y asistencia de $500.00 (quinientos pesos 00/100 M.N.), obtenible semanalmente al momento del pago de la nómina.</p></div>
+<div class="cl"><div class="cl-t">Penalizaciones</div>
+<table style="width:100%;border-collapse:collapse;font-size:9.5pt;margin-top:4px;">
+<tr style="background:#284628;color:#fff;"><td style="padding:5px 8px;">Penalización</td><td style="padding:5px 8px;">Monto</td></tr>
+<tr><td style="padding:5px 8px;border-bottom:1px solid #ddd;">Cubrir cámaras</td><td style="padding:5px 8px;border-bottom:1px solid #ddd;">$500</td></tr>
+<tr><td style="padding:5px 8px;border-bottom:1px solid #ddd;">Desconectar GPS</td><td style="padding:5px 8px;border-bottom:1px solid #ddd;">Baja inmediata</td></tr>
+<tr><td style="padding:5px 8px;border-bottom:1px solid #ddd;">Llevar el vehículo a su domicilio</td><td style="padding:5px 8px;border-bottom:1px solid #ddd;">$1,000</td></tr>
+<tr><td style="padding:5px 8px;border-bottom:1px solid #ddd;">No tener comunicación con el área de operaciones</td><td style="padding:5px 8px;border-bottom:1px solid #ddd;">Carta administrativa</td></tr>
+<tr><td style="padding:5px 8px;">Falta de diesel ("quedarse tirado")</td><td style="padding:5px 8px;">$1,500</td></tr>
+</table></div>
+<div class="cl"><div class="cl-t">Motivos de baja</div>
+<ul>
+<li>El incumplimiento de este reglamento.</li>
+<li>Desconexión / extracción de equipos de GPS y telemáticos.</li>
+<li>Faltante de mercancía del cliente.</li>
+<li>3 días de inasistencia sin justificante.</li>
+<li>Ser sorprendido conduciendo bajo el influjo de sustancias tóxicas (drogas, alcohol, etc.).</li>
+<li>Ser sorprendido usando el vehículo para fines ajenos a Ultra.</li>
+<li>Extraer combustible, partes o daños al vehículo.</li>
+<li>Cualquier situación que ponga en riesgo la integridad del conductor y de la empresa.</li>
+</ul></div>
+<p style="text-align:center;margin-top:50px;font-family:Arial,sans-serif;font-size:9.5pt;border-top:1px solid #111;width:60%;padding-top:6px;margin-left:auto;margin-right:auto;">Nombre y Firma del Operador</p>
+`;
+
+function generarContratoPDF(e, tipo, datos){
+  const esTmp = tipo === 'Temporal';
+  const esOperador = e.puesto === 'Operador';
+  const per = periodoVigente(e);
+  const ant = calcAntiguedad(per.fechaIngreso);
+  const antTxt = ant.years===0 && ant.months===0 ? 'Reciente' : (ant.years + 'a ' + ant.months + 'm');
+  const sueldoMensual = datos.sueldoSemanal * 52 / 12;
+  const domicilioTxt = [e.domicilio, e.colonia?('Col. '+e.colonia):'', e.ciudad, e.cp?('C.P. '+e.cp):''].filter(Boolean).join(', ') || '___________________________';
+  const infP = datos.infonavit
+    ? 'Dado que "EL TRABAJADOR" cuenta con crédito INFONAVIT activo, se realizará la retención semanal del monto determinado en las emisiones oficiales del INFONAVIT. "EL TRABAJADOR" deberá notificar cualquier modificación de inmediato.'
+    : 'En caso de que "EL TRABAJADOR" adquiera un crédito INFONAVIT en el futuro, deberá notificarlo de inmediato a "EL EMPLEADOR" para aplicar las retenciones conforme a las emisiones oficiales.';
+
+  const win = window.open('', '_blank', 'width=850,height=1000');
+  win.document.write(`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
+  <title>Contrato — ${nombreCompleto(e)}</title>
+  <style>
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:Arial,sans-serif;font-size:10.5pt;color:#17231a;padding:1.8cm 2.2cm;background:#fff;}
+  h1{font-size:14pt;font-weight:bold;text-align:center;margin-bottom:3px;color:#16281a;}
+  h2{font-size:11pt;font-weight:bold;text-align:center;margin-bottom:4px;}
+  .tipo{text-align:center;margin-bottom:14px;}
+  .tipo span{display:inline-block;padding:3px 18px;border-radius:4px;font-size:9.5pt;font-weight:bold;${esTmp?'background:#fdf1de;color:#c8842a;border:1px solid #e8a33d;':'background:#e2f7ee;color:#16281a;border:1px solid #284628;'}}
+  .intro{text-align:justify;margin-bottom:12px;line-height:1.55;}
+  .datos{width:100%;border-collapse:collapse;margin:8px 0 14px;}
+  .datos td{padding:4px 8px;font-size:10pt;border-bottom:.5px solid #e2e8de;}
+  .datos td:first-child{font-weight:bold;width:36%;color:#5c6b57;}
+  .cl{margin-bottom:11px;}
+  .cl-t{font-weight:bold;text-decoration:underline;margin-bottom:3px;}
+  .cl p{text-align:justify;line-height:1.6;margin-bottom:5px;}
+  ul{margin:4px 0 5px 18px;line-height:1.7;}
+  li{margin-bottom:2px;}
+  .nota{background:#fdf1de;border-left:3px solid #e8a33d;padding:6px 10px;margin:6px 0;font-size:9.5pt;color:#5c4108;}
+  .firmas{margin-top:40px;display:flex;justify-content:space-between;}
+  .firma{width:44%;text-align:center;}
+  .firma-line{border-top:1px solid #111;padding-top:5px;margin-top:36px;font-size:9.5pt;}
+  @media print{body{padding:1.2cm 1.6cm;}@page{margin:0;size:A4;}}
+  </style></head><body>
+  <h1>LOGISTICS ULTRA</h1>
+  <h2>CONTRATO INDIVIDUAL DE TRABAJO</h2>
+  <div class="tipo"><span>${esTmp?('CONTRATO TEMPORAL — PERÍODO DE PRUEBA ('+datos.mesesPrueba+' MES'+(datos.mesesPrueba===1?'':'ES')+')'):'CONTRATO POR TIEMPO INDETERMINADO'}</span></div>
+  <p class="intro">CONTRATO QUE CELEBRAN <strong>LOGISTICS ULTRA</strong>, REPRESENTADA POR <strong>JUAN ÁNGEL VILLARREAL PÁEZ</strong> ("EL EMPLEADOR"), Y EL C. <strong>${nombreCompleto(e)}</strong> ("EL TRABAJADOR"), CONFORME A LAS SIGUIENTES CLÁUSULAS:</p>
+
+  <h2 style="text-align:left;font-size:10.5pt;margin:10px 0 6px;">DATOS DEL TRABAJADOR</h2>
+  <table class="datos">
+  <tr><td>Nombre completo</td><td><strong>${nombreCompleto(e)}</strong></td></tr>
+  <tr><td>NSS</td><td>${e.nss||'___________________________'}</td></tr>
+  <tr><td>CURP</td><td>${e.curp||'___________________________'}</td></tr>
+  <tr><td>RFC</td><td>${e.rfc||'___________________________'}</td></tr>
+  <tr><td>Domicilio</td><td>${domicilioTxt}</td></tr>
+  <tr><td>Puesto</td><td><strong>${e.puesto}</strong></td></tr>
+  <tr><td>Fecha de ingreso</td><td>${fmtFecha(per.fechaIngreso)}</td></tr>
+  <tr><td>Antigüedad</td><td><strong>${antTxt}</strong></td></tr>
+  </table>
+
+  <h2 style="text-align:left;font-size:10.5pt;margin:10px 0 6px;">CLÁUSULAS</h2>
+  <div class="cl"><div class="cl-t">PRIMERA. – OBJETO DEL CONTRATO</div>
+  <p>"EL TRABAJADOR" se obliga a prestar sus servicios personales subordinados con puntualidad y eficiencia, realizando las actividades del puesto conforme a las necesidades laborales.</p></div>
+
+  ${esTmp
+    ? `<div class="cl"><div class="cl-t">SEGUNDA. – DURACIÓN Y OBJETO DEL CONTRATO TEMPORAL</div>
+  <p>El presente contrato se celebra por período temporal de <strong>${datos.mesesPrueba} mes${datos.mesesPrueba===1?'':'es'}</strong>, iniciando el <strong>${fmtFecha(datos.fechaInicio)}</strong> y concluyendo el <strong>${fmtFecha(datos.fechaFin)}</strong>, conforme al artículo 37 LFT. Al término, "EL EMPLEADOR" podrá ofrecer contrato por tiempo indeterminado según el desempeño. Si no se acreditan los requisitos, la relación concluirá sin responsabilidad para "EL EMPLEADOR".</p></div>`
+    : `<div class="cl"><div class="cl-t">SEGUNDA. – DURACIÓN</div>
+  <p>El presente contrato se celebra por <strong>tiempo indeterminado</strong>, iniciando el <strong>${fmtFecha(datos.fechaInicio)}</strong>, una vez que "EL TRABAJADOR" concluyó satisfactoriamente su período de prueba.</p></div>
+  <div class="cl"><div class="cl-t">TERCERA. – TERMINACIÓN ANTICIPADA</div>
+  <p>Cualquiera de las partes podrá dar por terminado el contrato con al menos <strong>15 días de aviso por escrito</strong>. Sin aviso, el contrato continuará vigente.</p></div>`}
+
+  <div class="cl"><div class="cl-t">${esTmp?'TERCERA':'CUARTA'}. – SALARIO</div>
+  <p>"EL EMPLEADOR" pagará un <strong>salario semanal libre (neto, sin retención de ISR) de ${fmtDinero(datos.sueldoSemanal)} M.N.</strong>, equivalente a un <strong>salario mensual neto de ${fmtDinero(sueldoMensual)} M.N.</strong> El monto de alta ante el IMSS es de <strong>${fmtDinero(datos.montoImss)} diarios</strong>. Pago cada <strong>sábado</strong> por semana vencida.</p>
+  <p>${infP}</p>
+  <p>Para puestos de <strong>operaciones</strong>, domingos y festivos trabajados se pagan al <strong>doble del salario diario</strong> (Art. 75 LFT).</p></div>
+
+  <div class="cl"><div class="cl-t">${esTmp?'CUARTA':'QUINTA'}. – JORNADA DE TRABAJO</div>
+  <ul><li><strong>Lunes a viernes:</strong> 8:00 a.m. – 6:00 p.m., con 1 hora de descanso para alimentos.</li>
+  <li><strong>Sábados:</strong> 8:00 a.m. – 2:00 p.m.</li></ul>
+  <p style="margin-top:5px;">Descanso semanal: <strong>domingo</strong> con goce de salario (Art. 69 LFT).</p></div>
+
+  <div class="cl"><div class="cl-t">${esTmp?'QUINTA':'SEXTA'}. – DÍAS DE DESCANSO OBLIGATORIOS</div>
+  <p>Son días de descanso obligatorio con salario íntegro los del artículo 74 LFT: 1° enero, primer lunes de febrero, tercer lunes de marzo, 1° mayo, 16 septiembre, tercer lunes de noviembre, 1° octubre cada seis años y 25 diciembre.</p>
+  <div class="nota"><strong>Nota:</strong> Si por necesidades operativas "EL TRABAJADOR" labora en un día festivo, se pagará al <strong>doble del salario diario ordinario (200%)</strong>, previo acuerdo entre las partes (Art. 75 LFT).</div></div>
+
+  <div class="cl"><div class="cl-t">${esTmp?'SEXTA':'SÉPTIMA'}. – VACACIONES Y PRIMA VACACIONAL</div>
+  <p>Vacaciones con <strong>goce de sueldo íntegro</strong> conforme a la LFT. Al cumplir un año, <strong>prima vacacional del 25%</strong> sobre el salario del período (Art. 80 LFT).</p></div>
+
+  <div class="cl"><div class="cl-t">${esTmp?'SÉPTIMA':'OCTAVA'}. – AGUINALDO</div>
+  <p>Aguinaldo de <strong>15 días de salario proporcional al tiempo laborado</strong>, pagadero antes del 20 de diciembre de cada año (Art. 87 LFT).</p></div>
+
+  <div class="cl"><div class="cl-t">${esTmp?'OCTAVA':'NOVENA'}. – FALTAS ADMINISTRATIVAS</div>
+  <p>Son faltas: incumplimiento de actividades, faltas injustificadas, faltas de respeto, retardos consecutivos (3 o más en 30 días). Al acumular <strong>3 faltas</strong>: amonestación escrita, suspensión o rescisión sin responsabilidad para "EL EMPLEADOR" (Art. 47 LFT).</p></div>
+
+  ${esOperador ? `<div class="cl"><div class="cl-t">${esTmp?'NOVENA':'DÉCIMA'}. – REGLAMENTO PARA OPERADORES</div>
+  <p>"EL TRABAJADOR" se compromete a cumplir con el reglamento para operadores anexo al presente contrato.</p></div>` : ''}
+
+  <div class="cl"><div class="cl-t">${esOperador?(esTmp?'DÉCIMA':'DÉCIMA PRIMERA'):(esTmp?'NOVENA':'DÉCIMA')}. – JURISDICCIÓN</div>
+  <p>En caso de controversia, las partes se someten a los Tribunales Laborales de <strong>Monterrey, Nuevo León</strong>.</p></div>
+
+  <p style="text-align:justify;margin-top:14px;line-height:1.6;">Leído y ratificado el presente contrato en la ciudad de Monterrey, Nuevo León.</p>
+  <div class="firmas">
+  <div class="firma"><div class="firma-line"><strong>EL EMPLEADOR</strong><br>Juan Ángel Villarreal Páez<br>Logistics Ultra</div></div>
+  <div class="firma"><div class="firma-line"><strong>EL TRABAJADOR</strong><br>${nombreCompleto(e)}<br>${e.puesto}</div></div>
+  </div>
+  ${esOperador ? REGLAMENTO_OPERADOR_HTML : ''}
+  <div class="noprint" style="text-align:center;margin-top:30px;">
+    <button onclick="window.print()" style="padding:10px 20px;border-radius:8px;border:none;background:#e8a33d;font-weight:700;cursor:pointer;font-family:Arial;">Imprimir / Guardar PDF</button>
+  </div>
+  </body></html>`);
+  win.document.close();
+}
 function poblarSelectEmpleados(selectId, soloActivos){
   const sel = document.getElementById(selectId);
   const cur = sel.value;
