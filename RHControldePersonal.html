@@ -1189,6 +1189,9 @@ function abrirEmpleado(id){
       <div><label>${e.tipoPago ? TIPO_PAGO_CFG[e.tipoPago].label : 'Dato de pago'}</label><div class="mono dato-sensible">${enmascarar(e.datoPago)}</div></div>
     </div>
     <div class="divider"></div>
+    <div class="section-title" style="margin-bottom:8px;"><label style="margin:0;">Contrato</label></div>
+    ${bloqueContratoFicha(e)}
+    <div class="divider"></div>
     <label>Historial de periodos</label>
     ${historialHtml}
     <div class="divider"></div>
@@ -1197,6 +1200,64 @@ function abrirEmpleado(id){
   document.getElementById('modalEmpBody').dataset.empId = e.id;
   document.getElementById('motivoBajaSel') && document.getElementById('motivoBajaSel').addEventListener('change', function(){});
   openModal('modalEmpleado');
+}
+
+function bloqueContratoFicha(e){
+  if(!e.contrato || !e.contrato.tipo){
+    return `<p class="help">Sin contrato generado todavía. Usa los botones "Contrato 1" o "Contrato 2" desde "Empleados activos".</p>`;
+  }
+  const c = e.contrato;
+  const vigenteHtml = c.tipo === 'Indefinido'
+    ? `<div style="font-size:13px;">Indefinido · inicio ${fmtFecha(c.fechaInicio)}</div>`
+    : `<div style="font-size:13px;">Temporal · ${fmtFecha(c.fechaInicio)} → ${fmtFecha(c.fechaFin)} ${c.mesesPrueba?('('+c.mesesPrueba+' mes(es) de prueba)'):''}</div>`;
+  const historialContrato = (c.historial||[]).length ? `
+    <div style="margin-top:8px;">
+      <div class="help" style="margin-bottom:4px;">Versiones anteriores de este contrato:</div>
+      ${c.historial.map(h=>`
+        <div style="font-size:11.5px;color:var(--ink-soft);padding:3px 0;">
+          ${h.tipo} · ${fmtFecha(h.fechaInicio)}${h.fechaFin?(' → '+fmtFecha(h.fechaFin)):''}
+        </div>`).join('')}
+    </div>` : '';
+  return `
+    ${vigenteHtml}
+    ${historialContrato}
+    <button class="btn btn-outline btn-sm" style="margin-top:8px;" onclick="confirmarCorregirContrato('${e.id}')">Corregir / deshacer este contrato</button>
+  `;
+}
+
+function confirmarCorregirContrato(id){
+  const e = DB.empleados.find(x=>x.id===id);
+  if(!e || !e.contrato) return;
+  document.getElementById('modalEmpTitulo').textContent = 'Corregir contrato — ' + nombreCompleto(e);
+  document.getElementById('modalEmpBody').innerHTML = `
+    <div class="small-note" style="border-color:var(--red);background:var(--red-bg);color:var(--red);">
+      Esto quita el contrato actual (${e.contrato.tipo}, desde ${fmtFecha(e.contrato.fechaInicio)}) y regresa al anterior
+      de su historial, si tenía uno. Úsalo si el que acabas de generar tiene datos equivocados. Si el error está en el
+      documento impreso, no hay que hacer nada aquí — solo vuelve a generarlo bien y ese sí lo reemplaza.
+    </div>
+    <div style="display:flex;gap:8px;margin-top:16px;">
+      <button class="btn btn-red" onclick="deshacerContrato('${e.id}')">Sí, quitar este contrato</button>
+      <button class="btn btn-outline" onclick="abrirEmpleado('${e.id}')">Cancelar</button>
+    </div>
+  `;
+  openModal('modalEmpleado');
+}
+
+function deshacerContrato(id){
+  const e = DB.empleados.find(x=>x.id===id);
+  if(!e || !e.contrato) return;
+  const anterior = (e.contrato.historial||[]).pop();
+  if(anterior){
+    e.contrato.tipo = anterior.tipo;
+    e.contrato.fechaInicio = anterior.fechaInicio;
+    e.contrato.fechaFin = anterior.fechaFin;
+  } else {
+    e.contrato = null;
+  }
+  saveDB(DB);
+  toast('Contrato corregido: ' + nombreCompleto(e));
+  renderAll();
+  abrirEmpleado(id);
 }
 
 function abrirEdicionEmpleado(id){
