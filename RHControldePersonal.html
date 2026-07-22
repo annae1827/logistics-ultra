@@ -1730,6 +1730,17 @@ function abrirModalContrato(id, tipo){
       <label class="req">Fecha de inicio del contrato</label>
       <input type="date" id="ct_fechaInicio" value="${periodoVigente(e).fechaIngreso}">
     </div>
+    <div class="divider"></div>
+    <label style="font-size:13px;color:var(--navy-900);font-weight:700;margin-bottom:10px;">Horario de trabajo</label>
+    <div class="field-row">
+      <div class="field"><label class="req">Lunes a viernes — entrada</label><input type="time" id="ct_hLV_ini" value="08:00"></div>
+      <div class="field"><label class="req">Lunes a viernes — salida</label><input type="time" id="ct_hLV_fin" value="18:00"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Sábado — entrada</label><input type="time" id="ct_hSab_ini" value="08:00"></div>
+      <div class="field"><label>Sábado — salida</label><input type="time" id="ct_hSab_fin" value="14:00"></div>
+      <div class="field"><label style="visibility:hidden;">.</label><label style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:500;color:var(--ink);margin-top:9px;"><input type="checkbox" id="ct_sinSabado" style="width:auto;"> No trabaja sábados</label></div>
+    </div>
     <button class="btn btn-amber" onclick="generarYGuardarContrato('${e.id}','${tipo}')">Generar contrato</button>
   `;
   openModal('modalEmpleado');
@@ -1740,6 +1751,13 @@ function generarYGuardarContrato(id, tipo){
   if(!e) return;
   const infonavit = document.getElementById('ct_infonavit').value === 'si';
   const fechaInicio = document.getElementById('ct_fechaInicio').value || todayISO();
+  const horario = {
+    lvIni: document.getElementById('ct_hLV_ini').value || '08:00',
+    lvFin: document.getElementById('ct_hLV_fin').value || '18:00',
+    sinSabado: document.getElementById('ct_sinSabado').checked,
+    sabIni: document.getElementById('ct_hSab_ini').value || '08:00',
+    sabFin: document.getElementById('ct_hSab_fin').value || '14:00'
+  };
   let mesesPrueba = null, fechaFin = null;
   if(tipo === 'Temporal'){
     mesesPrueba = Number(document.getElementById('ct_meses').value || 3);
@@ -1762,7 +1780,7 @@ function generarYGuardarContrato(id, tipo){
   toast('Contrato generado: ' + nombreCompleto(e));
   renderAll();
 
-  generarContratoPDF(e, tipo, { infonavit, fechaInicio, fechaFin, mesesPrueba });
+  generarContratoPDF(e, tipo, { infonavit, fechaInicio, fechaFin, mesesPrueba, horario });
 }
 
 function renovarContrato(id, accion){
@@ -1851,6 +1869,14 @@ function generarContratoPDF(e, tipo, datos){
   const infP = datos.infonavit
     ? 'Dado que "EL TRABAJADOR" cuenta con crédito INFONAVIT activo, se realizará la retención semanal del monto determinado en las emisiones oficiales del INFONAVIT. "EL TRABAJADOR" deberá notificar cualquier modificación de inmediato.'
     : 'En caso de que "EL TRABAJADOR" adquiera un crédito INFONAVIT en el futuro, deberá notificarlo de inmediato a "EL EMPLEADOR" para aplicar las retenciones conforme a las emisiones oficiales.';
+  const fmtHora = (hhmm) => {
+    if(!hhmm) return '___________';
+    const [h, m] = hhmm.split(':').map(Number);
+    const periodo = h < 12 ? 'a.m.' : 'p.m.';
+    const h12 = h % 12 === 0 ? 12 : h % 12;
+    return h12 + ':' + String(m).padStart(2,'0') + ' ' + periodo;
+  };
+  const horario = datos.horario || {};
 
   const win = window.open('', '_blank', 'width=850,height=1000');
   win.document.write(`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
@@ -1912,8 +1938,8 @@ function generarContratoPDF(e, tipo, datos){
   <p>Para puestos de <strong>operaciones</strong>, domingos y festivos trabajados se pagan al <strong>doble del salario diario</strong> (Art. 75 LFT).</p></div>
 
   <div class="cl"><div class="cl-t">${esTmp?'CUARTA':'QUINTA'}. – JORNADA DE TRABAJO</div>
-  <ul><li><strong>Lunes a viernes:</strong> 8:00 a.m. – 6:00 p.m., con 1 hora de descanso para alimentos.</li>
-  <li><strong>Sábados:</strong> 8:00 a.m. – 2:00 p.m.</li></ul>
+  <ul><li><strong>Lunes a viernes:</strong> ${fmtHora(horario.lvIni)} – ${fmtHora(horario.lvFin)}, con 1 hora de descanso para alimentos.</li>
+  ${horario.sinSabado ? '' : `<li><strong>Sábados:</strong> ${fmtHora(horario.sabIni)} – ${fmtHora(horario.sabFin)}.</li>`}</ul>
   <p style="margin-top:5px;">Descanso semanal: <strong>domingo</strong> con goce de salario (Art. 69 LFT).</p></div>
 
   <div class="cl"><div class="cl-t">${esTmp?'QUINTA':'SEXTA'}. – DÍAS DE DESCANSO OBLIGATORIOS</div>
