@@ -402,7 +402,10 @@ tbody tr:hover{background:#f6f8f4;}
                 <label>Ciudad / Municipio</label>
                 <input id="f_ciudad" placeholder="Opcional">
               </div>
-              <div></div>
+              <div class="field">
+                <label>Celular</label>
+                <input id="f_celular" maxlength="10" placeholder="10 dígitos" class="mono">
+              </div>
             </div>
             <div class="field-row two">
               <div class="field">
@@ -1019,7 +1022,7 @@ function sugerirIniciales(){
   document.getElementById(id).addEventListener('input', sugerirIniciales);
 });
 document.getElementById('f_falta').value = todayISO();
-['f_nss','f_datoPago'].forEach(id=>{
+['f_nss','f_datoPago','f_celular'].forEach(id=>{
   document.getElementById(id).addEventListener('input', function(){
     this.value = this.value.replace(/\D/g,'');
   });
@@ -1045,6 +1048,10 @@ document.getElementById('formAlta').addEventListener('submit', function(ev){
   if(nss && !/^\d{11}$/.test(nss)){
     if(!confirm('El NSS no tiene 11 dígitos. ¿Guardar de todas formas? (puedes corregirlo después)')) return;
   }
+  const celular = document.getElementById('f_celular').value.trim();
+  if(celular && !/^\d{10}$/.test(celular)){
+    if(!confirm('El celular no tiene 10 dígitos. ¿Guardar de todas formas? (puedes corregirlo después)')) return;
+  }
   const tipoPago = document.getElementById('f_tipoPago').value;
   const datoPago = document.getElementById('f_datoPago').value.trim();
   if(tipoPago === 'CLABE' && datoPago && !/^\d{18}$/.test(datoPago)){
@@ -1066,6 +1073,7 @@ document.getElementById('formAlta').addEventListener('submit', function(ev){
     domicilio: document.getElementById('f_domicilio').value.trim(),
     colonia: document.getElementById('f_colonia').value.trim(),
     ciudad: document.getElementById('f_ciudad').value.trim(),
+    celular: document.getElementById('f_celular').value.trim(),
     fechaNacimiento: document.getElementById('f_fnac').value,
     puesto: document.getElementById('f_puesto').value.trim(),
     banco: document.getElementById('f_banco').value,
@@ -1180,6 +1188,7 @@ function abrirEmpleado(id){
       <div><label>RFC</label><div class="mono">${e.rfc || '—'}</div></div>
       <div><label>CURP</label><div class="mono">${e.curp || '—'}</div></div>
       <div><label>CP</label><div class="mono">${e.cp || '—'}</div></div>
+      <div><label>Celular</label><div class="mono">${e.celular || '—'}</div></div>
       <div><label>Fecha de nacimiento</label><div>${e.fechaNacimiento ? fmtFecha(e.fechaNacimiento)+' ('+edad+' años)' : '—'}</div></div>
       <div><label>Antigüedad (periodo vigente)</label><div>${ant.years}a ${ant.months}m ${ant.days}d</div></div>
     </div>
@@ -1295,7 +1304,7 @@ function abrirEdicionEmpleado(id){
     </div>
     <div class="field-row two">
       <div class="field"><label>Ciudad / Municipio</label><input id="ed_ciudad" value="${e.ciudad||''}"></div>
-      <div></div>
+      <div class="field"><label>Celular</label><input id="ed_celular" class="mono" maxlength="10" value="${e.celular||''}"></div>
     </div>
     <div class="field-row two">
       <div class="field">
@@ -1362,6 +1371,7 @@ function guardarEdicionEmpleado(id){
   e.domicilio = document.getElementById('ed_domicilio').value.trim();
   e.colonia = document.getElementById('ed_colonia').value.trim();
   e.ciudad = document.getElementById('ed_ciudad').value.trim();
+  e.celular = document.getElementById('ed_celular').value.trim();
   const nuevaFingreso = document.getElementById('ed_fingreso').value;
   if(nuevaFingreso) periodoVigente(e).fechaIngreso = nuevaFingreso;
   e.banco = document.getElementById('ed_banco').value;
@@ -1574,6 +1584,7 @@ function exportarBaseCompleta(){
         'Colonia': e.colonia,
         'Ciudad': e.ciudad,
         'CP': e.cp,
+        'Celular': e.celular,
         'Banco': e.banco,
         'Tipo de dato de pago': e.tipoPago,
         'Dato de pago': e.datoPago,
