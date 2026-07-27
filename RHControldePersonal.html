@@ -289,6 +289,10 @@ tbody tr:hover{background:#f6f8f4;}
     <section class="view active" id="view-resumen">
       <div class="topbar">
         <div><h2>Resumen general</h2><p>Plantilla de Logistics Ultra en tiempo real</p></div>
+        <button class="btn btn-outline" onclick="exportarBaseCompleta()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 21h16"/></svg>
+          Descargar base completa (Excel)
+        </button>
       </div>
       <div class="grid grid-4" id="kpiRow"></div>
       <div class="grid grid-2" style="margin-top:18px;">
@@ -1544,6 +1548,50 @@ function exportarActivosExcel(){
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Activos');
   XLSX.writeFile(wb, 'Ultra_RH_Empleados_Activos_' + todayISO() + '.xlsx');
+}
+
+function exportarBaseCompleta(){
+  if(!DB.empleados.length){ toast('No hay empleados en la base para exportar.', 'err'); return; }
+  const rows = DB.empleados.slice()
+    .sort((a,b)=>nombreCompleto(a).localeCompare(nombreCompleto(b)))
+    .map(e=>{
+      const per = periodoVigente(e);
+      const ant = calcAntiguedad(per.fechaIngreso);
+      const c = e.contrato;
+      return {
+        'Iniciales': e.iniciales,
+        'Nombres': e.nombres,
+        'Apellido paterno': e.apellidoP,
+        'Apellido materno': e.apellidoM,
+        'Nombre completo': nombreCompleto(e),
+        'Estatus': e.estatus,
+        'Puesto / Área': e.puesto,
+        'NSS': e.nss,
+        'RFC': e.rfc,
+        'CURP': e.curp,
+        'Fecha de nacimiento': e.fechaNacimiento,
+        'Domicilio': e.domicilio,
+        'Colonia': e.colonia,
+        'Ciudad': e.ciudad,
+        'CP': e.cp,
+        'Banco': e.banco,
+        'Tipo de dato de pago': e.tipoPago,
+        'Dato de pago': e.datoPago,
+        'Fecha de ingreso (periodo vigente)': per.fechaIngreso,
+        'Fecha de baja (periodo vigente)': per.fechaBaja || '',
+        'Motivo de baja (periodo vigente)': per.motivoBaja || '',
+        'Antigüedad': esActivo(e) ? `${ant.years}a ${ant.months}m ${ant.days}d` : '',
+        'Número de periodos (altas/reactivaciones)': e.periodos.length,
+        'Tipo de contrato vigente': c && c.tipo ? c.tipo : '',
+        'Contrato — fecha inicio': c && c.fechaInicio ? c.fechaInicio : '',
+        'Contrato — fecha fin (temporal)': c && c.fechaFin ? c.fechaFin : '',
+        'Contrato — meses de prueba': c && c.mesesPrueba ? c.mesesPrueba : ''
+      };
+    });
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Plantilla completa');
+  XLSX.writeFile(wb, 'Ultra_RH_Base_Completa_' + todayISO() + '.xlsx');
 }
 
 /* ---------- OPERADORES ---------- */
