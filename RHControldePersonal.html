@@ -766,8 +766,9 @@ function edadDe(fechaNacimiento, fechaRef){
 }
 
 // Tabla de vacaciones LFT México (reforma 2023, Art. 76)
-function diasVacacionesPorAnio(anio){ // 1 = primer año cumplido
-  if(anio <= 1) return 12;
+function diasVacacionesPorAnio(anio){ // años de servicio CUMPLIDOS (0 = aún no cumple el primer año)
+  if(anio <= 0) return 0;
+  if(anio === 1) return 12;
   if(anio === 2) return 14;
   if(anio === 3) return 16;
   if(anio === 4) return 18;
@@ -2198,13 +2199,14 @@ function generarActaPDF(actaId){
 function anioServicioActual(fechaIngreso, fromISO){
   fromISO = fromISO || todayISO();
   const ant = calcAntiguedad(fechaIngreso, fromISO);
-  const anioEnCurso = ant.years + 1; // año que está cursando (1 = primer año)
+  const anioEnCurso = ant.years + 1; // año que está cursando (1 = primer año), solo para mostrar
+  const anioCumplido = ant.years; // último aniversario ya cumplido — este es el que fija los días de ley vigentes
   // inicio del año de servicio en curso
   const ing = new Date(fechaIngreso+'T00:00:00');
   const inicioAnio = new Date(ing.getFullYear()+ant.years, ing.getMonth(), ing.getDate());
   const inicioISO = inicioAnio.toISOString().slice(0,10);
   const diasEnAnio = diffDias(inicioISO, fromISO);
-  return { anioEnCurso, inicioISO, diasEnAnio };
+  return { anioEnCurso, anioCumplido, inicioISO, diasEnAnio };
 }
 
 function diasTomadosEnAnio(empId, inicioISO){
@@ -2215,7 +2217,7 @@ function diasTomadosEnAnio(empId, inicioISO){
 function saldoVacaciones(e){
   const per = periodoVigente(e);
   const svc = anioServicioActual(per.fechaIngreso);
-  const diasLey = diasVacacionesPorAnio(svc.anioEnCurso);
+  const diasLey = diasVacacionesPorAnio(svc.anioCumplido);
   const tomados = diasTomadosEnAnio(e.id, svc.inicioISO);
   return { diasLey, tomados, disponibles: Math.max(0, diasLey - tomados), svc };
 }
@@ -2299,7 +2301,7 @@ function calcularFiniquito(e, fechaSalida, extras){
   const aguinaldoProp = (15/365) * diasAguinaldo * salario;
 
   const svc = anioServicioActual(fechaIngreso, fechaSalida);
-  const diasLey = diasVacacionesPorAnio(svc.anioEnCurso);
+  const diasLey = diasVacacionesPorAnio(svc.anioCumplido);
   const tomadosAnio = diasTomadosEnAnio(e.id, svc.inicioISO);
   const diasVacPendientesLey = Math.max(0, diasLey - tomadosAnio);
   const vacacionesProp = (diasVacPendientesLey / diasLey || 0) * (diasLey/365) * svc.diasEnAnio * salario;
