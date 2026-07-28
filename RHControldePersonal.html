@@ -766,16 +766,19 @@ function edadDe(fechaNacimiento, fechaRef){
 }
 
 // Tabla de vacaciones LFT México (reforma 2023, Art. 76)
-function diasVacacionesPorAnio(anioServicioCompletado){ // 1 = primer año cumplido
-  if(anioServicioCompletado <= 0) return 12;
-  if(anioServicioCompletado === 1) return 12;
-  if(anioServicioCompletado === 2) return 14;
-  if(anioServicioCompletado === 3) return 16;
-  if(anioServicioCompletado === 4) return 18;
-  if(anioServicioCompletado >= 5 && anioServicioCompletado <= 9) return 20;
-  // de 10 en adelante: +2 cada 5 años completos
-  const bloque = Math.floor((anioServicioCompletado - 10) / 5);
-  return 22 + bloque*2;
+function diasVacacionesPorAnio(anio){ // 1 = primer año cumplido
+  if(anio <= 1) return 12;
+  if(anio === 2) return 14;
+  if(anio === 3) return 16;
+  if(anio === 4) return 18;
+  if(anio === 5) return 20;
+  if(anio >= 6 && anio <= 10) return 22;
+  if(anio >= 11 && anio <= 15) return 24;
+  if(anio >= 16 && anio <= 20) return 26;
+  if(anio >= 21 && anio <= 25) return 28;
+  // continúa +2 cada bloque de 5 años después del año 25
+  const bloque = Math.floor((anio - 26) / 5) + 1;
+  return 28 + bloque*2;
 }
 
 function proximoCumple(fechaNacimiento, fromISO){
