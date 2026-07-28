@@ -1692,6 +1692,7 @@ function generarPrimaVacacionalPDF(empId){
   const e = DB.empleados.find(x=>x.id===empId);
   if(!e){ toast('Empleado no encontrado.', 'err'); return; }
   const per = periodoVigente(e);
+  const ant = calcAntiguedad(per.fechaIngreso);
   const s = saldoVacaciones(e);
   const salario = salarioEfectivo(e);
   const montoVacaciones = s.diasLey * salario;
@@ -1728,8 +1729,8 @@ function generarPrimaVacacionalPDF(empId){
     <h2>Recibo de Prima Vacacional</h2>
     <table>
       <tr><td class="lbl">Colaborador</td><td>${nombreCompleto(e)}</td><td class="lbl">Puesto</td><td>${e.puesto}</td></tr>
-      <tr><td class="lbl">Año de servicio en curso</td><td>Año ${s.svc.anioEnCurso}</td><td class="lbl">Ingreso (periodo vigente)</td><td>${fmtFecha(per.fechaIngreso)}</td></tr>
-      <tr><td class="lbl">Inicio del año de servicio</td><td colspan="3">${fmtFecha(s.svc.inicioISO)}</td></tr>
+      <tr><td class="lbl">Antigüedad</td><td>${ant.years}a ${ant.months}m ${ant.days}d</td><td class="lbl">Ingreso (periodo vigente)</td><td>${fmtFecha(per.fechaIngreso)}</td></tr>
+      <tr><td class="lbl">Años de servicio cumplidos (días de ley vigentes)</td><td colspan="3">${s.svc.anioCumplido} año(s) cumplido(s) — ${s.diasLey} días por ley</td></tr>
     </table>
     <table>
       <tr class="band-row"><th colspan="2">Días de vacaciones del año en curso (Art. 76 LFT)</th></tr>
@@ -2226,9 +2227,11 @@ document.getElementById('vac_empleado').addEventListener('change', function(){
   const e = DB.empleados.find(x=>x.id===this.value);
   const box = document.getElementById('vacResumenEmpleado');
   if(!e){ box.style.display='none'; return; }
+  const per = periodoVigente(e);
+  const ant = calcAntiguedad(per.fechaIngreso);
   const s = saldoVacaciones(e);
   box.style.display='block';
-  box.innerHTML = `<b>${nombreCompleto(e)}</b> — año de servicio ${s.svc.anioEnCurso} · ${s.diasLey} días por ley ·
+  box.innerHTML = `<b>${nombreCompleto(e)}</b> — antigüedad ${ant.years}a ${ant.months}m ${ant.days}d (${s.svc.anioCumplido} año(s) cumplido(s)) · ${s.diasLey} días por ley ·
     ${s.tomados} tomados · <b>${s.disponibles} disponibles</b>`;
 });
 
