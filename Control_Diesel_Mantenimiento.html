@@ -153,7 +153,7 @@
     <div class="card">
       <div class="table-wrap"><table id="tblDiesel"><thead><tr>
         <th>Fecha</th><th>Unidad</th><th>Caja</th><th>Ruta</th><th>Operador</th><th>Lugar</th><th>Litros</th>
-        <th>Odo. Ini</th><th>Odo. Fin</th><th>Km</th><th>Rend. km/l</th><th>$/L</th><th>Monto</th><th>Pago</th>
+        <th>Odo. Ini</th><th>Odo. Fin</th><th>Km</th><th>Rend. km/l</th><th>$/L</th><th>Monto</th><th>Pago</th><th>Acciones</th>
       </tr></thead><tbody></tbody></table></div>
     </div>
   </div>
@@ -179,7 +179,7 @@
     <div class="card">
       <div class="table-wrap"><table id="tblMtto"><thead><tr>
         <th>Fecha</th><th>Equipo</th><th>Unidad</th><th>Operación</th><th>Km</th><th>Tipo</th><th>Falla/Descripción</th>
-        <th>Taller</th><th>Piezas</th><th>Costo</th><th>Próx. Km</th><th>Próx. Fecha</th>
+        <th>Taller</th><th>Piezas</th><th>Costo</th><th>Próx. Km</th><th>Próx. Fecha</th><th>Acciones</th>
       </tr></thead><tbody></tbody></table></div>
     </div>
   </div>
@@ -196,7 +196,7 @@
 <!-- MODAL DIESEL -->
 <div class="modal-bg" id="modalDiesel"><div class="modal">
   <span class="close-x" onclick="cerrarModal('modalDiesel')">✕</span>
-  <h3>⛽ Registrar carga de diesel</h3>
+  <h3 id="modalDieselTitulo">⛽ Registrar carga de diesel</h3>
   <div class="formgrid">
     <div><label>Fecha</label><input type="date" id="dFecha"></div>
     <div><label>Unidad (tractor)</label><input id="dUnidad" placeholder="Ej. 11001"></div>
@@ -223,14 +223,14 @@
   </div>
   <div style="margin-top:14px;text-align:right;">
     <button class="btn secondary" onclick="cerrarModal('modalDiesel')">Cancelar</button>
-    <button class="btn" onclick="guardarDiesel()">Guardar</button>
+    <button class="btn" id="btnGuardarDiesel" onclick="guardarDiesel()">Guardar</button>
   </div>
 </div></div>
 
 <!-- MODAL MANTENIMIENTO -->
 <div class="modal-bg" id="modalMtto"><div class="modal">
   <span class="close-x" onclick="cerrarModal('modalMtto')">✕</span>
-  <h3>🔧 Registrar mantenimiento</h3>
+  <h3 id="modalMttoTitulo">🔧 Registrar mantenimiento</h3>
   <div class="formgrid">
     <div><label>Fecha</label><input type="date" id="mFecha"></div>
     <div><label>Equipo</label>
@@ -255,7 +255,7 @@
   </div>
   <div style="margin-top:14px;text-align:right;">
     <button class="btn secondary" onclick="cerrarModal('modalMtto')">Cancelar</button>
-    <button class="btn" onclick="guardarMtto()">Guardar</button>
+    <button class="btn" id="btnGuardarMtto" onclick="guardarMtto()">Guardar</button>
   </div>
 </div></div>
 
@@ -442,12 +442,14 @@ function poblarOperadores(nombres){
   document.getElementById('listaOperadores').innerHTML = nombres.map(n=>`<option value="${n.replace(/"/g,'&quot;')}">`).join('');
 }
 
-async function postAccion(action, payload){
+async function postAccion(action, payload, id){
   if(!DASHBOARD_CONFIG.API_URL){ toast('Configura API_URL primero'); return null; }
   try{
+    const body = { action, payload };
+    if(id) body.id = id;
     const res = await fetch(DASHBOARD_CONFIG.API_URL, {
       method:'POST',
-      body: JSON.stringify({ action, payload })
+      body: JSON.stringify(body)
     });
     return await res.json();
   }catch(err){
@@ -462,13 +464,102 @@ function toast(msg){
   t.textContent = msg; t.style.display='block';
   setTimeout(()=>t.style.display='none', 3000);
 }
+let editingDieselId = null;
+let editingMttoId = null;
+
 function abrirModal(id){
   document.getElementById(id).classList.add('active');
-  if(id==='modalDiesel'){ document.getElementById('dFecha').value = hoyISO(); previewDiesel(); }
-  if(id==='modalMtto'){ document.getElementById('mFecha').value = hoyISO(); }
+  if(id==='modalDiesel' && editingDieselId===null){ document.getElementById('dFecha').value = hoyISO(); previewDiesel(); }
+  if(id==='modalMtto' && editingMttoId===null){ document.getElementById('mFecha').value = hoyISO(); }
   if(id==='modalKm'){ document.getElementById('kFecha').value = hoyISO(); }
 }
-function cerrarModal(id){ document.getElementById(id).classList.remove('active'); }
+function cerrarModal(id){
+  document.getElementById(id).classList.remove('active');
+  if(id==='modalDiesel') resetModalDiesel();
+  if(id==='modalMtto') resetModalMtto();
+}
+function resetModalDiesel(){
+  editingDieselId = null;
+  document.getElementById('modalDieselTitulo').textContent = '⛽ Registrar carga de diesel';
+  document.getElementById('btnGuardarDiesel').textContent = 'Guardar';
+  ['dFecha','dUnidad','dCaja','dRuta','dOperador','dLitros','dOdoIni','dOdoFin','dFactura','dComentarios'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('dEquipo').value='Tractor';
+  document.getElementById('dLugar').value='Patio';
+  document.getElementById('dTipoPago').value='Crédito';
+  previewDiesel();
+}
+function resetModalMtto(){
+  editingMttoId = null;
+  document.getElementById('modalMttoTitulo').textContent = '🔧 Registrar mantenimiento';
+  document.getElementById('btnGuardarMtto').textContent = 'Guardar';
+  ['mFecha','mUnidad','mKm','mTallerExt','mCosto','mDescripcion','mPiezas','mComentarios'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('mEquipo').value='Tractor';
+  document.getElementById('mTipoOperacion').value='Alen IP';
+  document.getElementById('mTipoMtto').value='Preventivo';
+  document.getElementById('mTaller').value='Interno';
+  toggleTallerExterno();
+}
+
+function editarDiesel(i){
+  const d = _dieselRowsCache[i];
+  if(!d || !d['ID']) return;
+  editingDieselId = d['ID'];
+  document.getElementById('modalDieselTitulo').textContent = '✏️ Editar carga de diesel';
+  document.getElementById('btnGuardarDiesel').textContent = 'Guardar cambios';
+  document.getElementById('dFecha').value = d['Fecha']||'';
+  document.getElementById('dUnidad').value = d['Unidad']||'';
+  document.getElementById('dCaja').value = d['Caja']||'';
+  document.getElementById('dRuta').value = d['Ruta']||'';
+  document.getElementById('dOperador').value = d['Operador']||'';
+  document.getElementById('dLugar').value = d['Lugar de Carga']||'Patio';
+  document.getElementById('dLitros').value = d['Litros']||'';
+  document.getElementById('dOdoIni').value = d['Odómetro Inicial']||'';
+  document.getElementById('dOdoFin').value = d['Odómetro Final']||'';
+  document.getElementById('dTipoPago').value = d['Tipo de Pago']||'Crédito';
+  document.getElementById('dFactura').value = d['Factura/Ticket']||'';
+  document.getElementById('dComentarios').value = d['Comentarios']||'';
+  previewDiesel();
+  abrirModal('modalDiesel');
+}
+async function eliminarDiesel(i){
+  const d = _dieselRowsCache[i];
+  if(!d || !d['ID']) return;
+  if(!confirm(`¿Eliminar la carga de diesel de la unidad ${d['Unidad']} del ${d['Fecha']}?`)) return;
+  const r = await postAccion('deleteRow', {sheet:'Diesel'}, d['ID']);
+  if(r && r.ok){ toast('Registro eliminado'); setTimeout(()=>cargarDatos(true), 8000); }
+  else toast((r&&r.error)||'No se pudo eliminar');
+}
+
+function editarMtto(i){
+  const m = _mttoRowsCache[i];
+  if(!m || !m['ID']) return;
+  editingMttoId = m['ID'];
+  document.getElementById('modalMttoTitulo').textContent = '✏️ Editar mantenimiento';
+  document.getElementById('btnGuardarMtto').textContent = 'Guardar cambios';
+  document.getElementById('mFecha').value = m['Fecha']||'';
+  document.getElementById('mEquipo').value = m['Equipo']||'Tractor';
+  document.getElementById('mUnidad').value = m['Número de Unidad/Caja']||'';
+  document.getElementById('mTipoOperacion').value = m['Tipo de Operación']||'Alen IP';
+  document.getElementById('mKm').value = m['Kilometraje Actual']||'';
+  document.getElementById('mTipoMtto').value = m['Tipo de Mantenimiento']||'Preventivo';
+  document.getElementById('mTaller').value = m['Taller']||'Interno';
+  toggleTallerExterno();
+  document.getElementById('mTallerExt').value = m['Taller Externo (Nombre)']||'';
+  document.getElementById('mCosto').value = m['Costo']||'';
+  document.getElementById('mDescripcion').value = m['Descripción/Falla']||'';
+  document.getElementById('mPiezas').value = m['Piezas/Refacciones']||'';
+  document.getElementById('mComentarios').value = m['Comentarios']||'';
+  abrirModal('modalMtto');
+}
+async function eliminarMtto(i){
+  const m = _mttoRowsCache[i];
+  if(!m || !m['ID']) return;
+  if(!confirm(`¿Eliminar el mantenimiento de la unidad ${m['Número de Unidad/Caja']} del ${m['Fecha']}?`)) return;
+  const r = await postAccion('deleteRow', {sheet:'Mantenimiento'}, m['ID']);
+  if(r && r.ok){ toast('Registro eliminado'); setTimeout(()=>cargarDatos(true), 8000); }
+  else toast((r&&r.error)||'No se pudo eliminar');
+}
+
 function hoyISO(){ return new Date().toISOString().slice(0,10); }
 function fmtMoney(n){ return '$'+(Number(n)||0).toLocaleString('es-MX',{maximumFractionDigits:0}); }
 function mesKey(fechaStr){ const d = new Date(fechaStr); if(isNaN(d)) return null; return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); }
@@ -508,8 +599,11 @@ async function guardarDiesel(){
     factura: document.getElementById('dFactura').value,
     comentarios: document.getElementById('dComentarios').value
   };
-  const r = await postAccion('addDiesel', payload);
-  if(r && r.ok){ toast('Carga de diesel guardada (puede tardar ~1 min en verse reflejada)'); cerrarModal('modalDiesel'); setTimeout(()=>cargarDatos(true), 8000); }
+  const r = editingDieselId
+    ? await postAccion('updateDiesel', payload, editingDieselId)
+    : await postAccion('addDiesel', payload);
+  if(r && r.ok){ toast(editingDieselId? 'Carga de diesel actualizada (puede tardar ~1 min en verse reflejada)' : 'Carga de diesel guardada (puede tardar ~1 min en verse reflejada)'); cerrarModal('modalDiesel'); setTimeout(()=>cargarDatos(true), 8000); }
+  else if(r) toast(r.error||'No se pudo guardar');
 }
 
 function toggleTallerExterno(){
@@ -533,8 +627,11 @@ async function guardarMtto(){
     costo: document.getElementById('mCosto').value,
     comentarios: document.getElementById('mComentarios').value
   };
-  const r = await postAccion('addMantenimiento', payload);
-  if(r && r.ok){ toast('Mantenimiento guardado (puede tardar ~1 min en verse reflejado)'); cerrarModal('modalMtto'); setTimeout(()=>cargarDatos(true), 8000); }
+  const r = editingMttoId
+    ? await postAccion('updateMantenimiento', payload, editingMttoId)
+    : await postAccion('addMantenimiento', payload);
+  if(r && r.ok){ toast(editingMttoId? 'Mantenimiento actualizado (puede tardar ~1 min en verse reflejado)' : 'Mantenimiento guardado (puede tardar ~1 min en verse reflejado)'); cerrarModal('modalMtto'); setTimeout(()=>cargarDatos(true), 8000); }
+  else if(r) toast(r.error||'No se pudo guardar');
 }
 
 async function guardarKm(){
@@ -773,12 +870,14 @@ function renderAlertas(){
   `).join('');
 }
 
+let _dieselRowsCache = [];
 function renderDiesel(){
   const fu = document.getElementById('fDieselUnidad').value.toLowerCase();
   const fm = document.getElementById('fDieselMes').value;
   let rows = DATA.diesel.slice().sort((a,b)=> new Date(b['Fecha'])-new Date(a['Fecha']));
   if(fu) rows = rows.filter(d=> String(d['Unidad']||'').toLowerCase().includes(fu));
   if(fm) rows = rows.filter(d=> mesKey(d['Fecha'])===fm);
+  _dieselRowsCache = rows;
 
   const litros = rows.reduce((s,d)=>s+(Number(d['Litros'])||0),0);
   const gasto = rows.reduce((s,d)=>s+(Number(d['Monto Total'])||0),0);
@@ -788,22 +887,25 @@ function renderDiesel(){
   document.getElementById('dRendProm').textContent = rends.length? (rends.reduce((a,b)=>a+b,0)/rends.length).toFixed(2) : '0';
 
   const tbody = document.querySelector('#tblDiesel tbody');
-  if(!rows.length){ tbody.innerHTML = '<tr><td colspan="14" class="empty">Sin registros</td></tr>'; return; }
-  tbody.innerHTML = rows.map(d=>`
+  if(!rows.length){ tbody.innerHTML = '<tr><td colspan="15" class="empty">Sin registros</td></tr>'; return; }
+  tbody.innerHTML = rows.map((d,i)=>`
     <tr><td>${d['Fecha']||''}</td><td><b>${d['Unidad']||''}</b></td><td>${d['Caja']||''}</td><td>${d['Ruta']||''}</td>
     <td>${d['Operador']||''}</td><td>${d['Lugar de Carga']||''}</td><td>${d['Litros']||''}</td>
     <td>${d['Odómetro Inicial']||''}</td><td>${d['Odómetro Final']||''}</td><td>${d['Kilometraje']||''}</td>
     <td>${d['Rendimiento (km/l)']||''}</td><td>${d['Costo por Litro']||''}</td><td>${fmtMoney(d['Monto Total'])}</td>
-    <td>${d['Tipo de Pago']||''}</td></tr>
+    <td>${d['Tipo de Pago']||''}</td>
+    <td>${d['ID'] ? `<button class="btn small secondary" onclick="editarDiesel(${i})">✏️</button> <button class="btn small secondary" onclick="eliminarDiesel(${i})">🗑️</button>` : '<span style="color:var(--gris);font-size:11px;">histórico</span>'}</td></tr>
   `).join('');
 }
 
+let _mttoRowsCache = [];
 function renderMtto(){
   const fu = document.getElementById('fMttoUnidad').value.toLowerCase();
   const ft = document.getElementById('fMttoTipo').value;
   let rows = DATA.mantenimiento.slice().sort((a,b)=> new Date(b['Fecha'])-new Date(a['Fecha']));
   if(fu) rows = rows.filter(m=> String(m['Número de Unidad/Caja']||'').toLowerCase().includes(fu));
   if(ft) rows = rows.filter(m=> m['Tipo de Mantenimiento']===ft);
+  _mttoRowsCache = rows;
 
   const now = new Date();
   const mesActual = mesKey(now.toISOString());
@@ -814,14 +916,15 @@ function renderMtto(){
   document.getElementById('mVencidos').textContent = Object.keys(kmMap).filter(u=> estatusUnidad(u,kmMap,ultimoMap,primerMap).status==='vencido').length;
 
   const tbody = document.querySelector('#tblMtto tbody');
-  if(!rows.length){ tbody.innerHTML = '<tr><td colspan="12" class="empty">Sin registros</td></tr>'; return; }
-  tbody.innerHTML = rows.map(m=>`
+  if(!rows.length){ tbody.innerHTML = '<tr><td colspan="13" class="empty">Sin registros</td></tr>'; return; }
+  tbody.innerHTML = rows.map((m,i)=>`
     <tr><td>${m['Fecha']||''}</td><td>${m['Equipo']||''}</td><td><b>${m['Número de Unidad/Caja']||''}</b></td>
     <td>${m['Tipo de Operación']||''}</td><td>${(Number(m['Kilometraje Actual'])||0).toLocaleString('es-MX')}</td>
     <td>${m['Tipo de Mantenimiento']==='Correctivo'?'<span class="badge b-bad">Correctivo</span>':'<span class="badge b-ok">Preventivo</span>'}</td>
     <td>${m['Descripción/Falla']||''}</td><td>${m['Taller']||''}${m['Taller Externo (Nombre)']?(' - '+m['Taller Externo (Nombre)']):''}</td>
     <td>${m['Piezas/Refacciones']||''}</td><td>${fmtMoney(m['Costo'])}</td>
-    <td>${(Number(m['Próximo Mantenimiento (Km)'])||0).toLocaleString('es-MX')}</td><td>${m['Próximo Mantenimiento (Fecha)']||''}</td></tr>
+    <td>${(Number(m['Próximo Mantenimiento (Km)'])||0).toLocaleString('es-MX')}</td><td>${m['Próximo Mantenimiento (Fecha)']||''}</td>
+    <td>${m['ID'] ? `<button class="btn small secondary" onclick="editarMtto(${i})">✏️</button> <button class="btn small secondary" onclick="eliminarMtto(${i})">🗑️</button>` : '<span style="color:var(--gris);font-size:11px;">histórico</span>'}</td></tr>
   `).join('');
 }
 
