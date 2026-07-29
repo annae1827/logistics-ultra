@@ -205,7 +205,7 @@
       <select id="dEquipo"><option value="Tractor">Tractor</option><option value="Caja">Caja</option></select>
     </div>
     <div><label>Ruta</label><input id="dRuta" placeholder="Ej. STASTA"></div>
-    <div><label>Operador</label><input id="dOperador"></div>
+    <div><label>Operador</label><input id="dOperador" list="listaOperadores" placeholder="Escribe o elige…"><datalist id="listaOperadores"></datalist></div>
     <div><label>Lugar de carga</label>
       <select id="dLugar" onchange="previewDiesel()"><option value="Patio">Patio ($25.19/L)</option><option value="Gasolinera">Gasolinera ($27.059/L)</option></select>
     </div>
@@ -291,7 +291,11 @@ const DASHBOARD_CONFIG = {
     diesel: '1538367456',
     mantenimiento: '1513641037',
     kmDiario: '1251434416'
-  }
+  },
+  // Base de operadores (Capital Humano) para autocompletar el campo Operador
+  OPERADORES_CSV: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTwEjh5qrVcsEg6Y3sA_g4EL5GDDUf-WEse9SMYP3zC9yMWLtb3flhY7lJ4O-YO4WhJzKAS6Y9FVqXq/pub?gid=0&single=true&output=csv',
+  // Base de operadores (Capital Humano) — para autocompletar el campo Operador en Diesel
+  CSV_OPERADORES: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTwEjh5qrVcsEg6Y3sA_g4EL5GDDUf-WEse9SMYP3zC9yMWLtb3flhY7lJ4O-YO4WhJzKAS6Y9FVqXq/pub?gid=0&single=true&output=csv'
 };
 const COSTO_PATIO = 25.19;
 const COSTO_FUERA = 27.059;
@@ -303,6 +307,30 @@ let DATA = { diesel: [], mantenimiento: [], kmDiario: [] };
 
 document.getElementById('logoImg').src = "data:image/png;base64," + LOGO_B64;
 if (!DASHBOARD_CONFIG.GIDS.diesel) document.getElementById('apiWarn').style.display = 'block';
+
+/* ============ OPERADORES (Capital Humano) ============ */
+function cargarOperadores(){
+  if(!DASHBOARD_CONFIG.CSV_OPERADORES) return;
+  Papa.parse(DASHBOARD_CONFIG.CSV_OPERADORES, {
+    download:true, header:true, skipEmptyLines:true,
+    complete: (res)=>{
+      const g = (row, ...keys)=>{ for(const k of keys){ if(row[k]!==undefined && String(row[k]).trim()!=='') return row[k]; } return ''; };
+      const nombres = (res.data||[])
+        .filter(r=>{
+          const estatus = String(g(r,'Estatus')).toLowerCase();
+          const area = String(g(r,'Área','Area')).toLowerCase();
+          return estatus.includes('activo') && area.includes('operador');
+        })
+        .map(r=> g(r,'Operador'))
+        .filter(Boolean)
+        .sort((a,b)=> a.localeCompare(b,'es'));
+      const dl = document.getElementById('listaOperadores');
+      if(dl) dl.innerHTML = nombres.map(n=>`<option value="${n.replace(/"/g,'&quot;')}">`).join('');
+    },
+    error: ()=>{}
+  });
+}
+cargarOperadores();
 
 /* ============ NAV ============ */
 document.querySelectorAll('.tabBtn').forEach(btn=>{
@@ -362,10 +390,11 @@ async function cargarDatos(forzar){
   status.textContent = '● cargando…';
   const g = DASHBOARD_CONFIG.GIDS;
   try{
-    const [diesel, mantenimiento, kmDiario] = await Promise.all([
+    const [diesel, mantenimiento, kmDiario, operadoresRaw] = await Promise.all([
       parseCSV(csvUrl(g.diesel)),
       parseCSV(csvUrl(g.mantenimiento)),
-      parseCSV(csvUrl(g.kmDiario))
+      parseCSV(csvUrl(g.kmDiario)),
+      parseCSV(DASHBOARD_CONFIG.OPERADORES_CSV)
     ]);
     if(diesel===null && mantenimiento===null && kmDiario===null){
       throw new Error('no se pudo leer ningún CSV');
@@ -374,14 +403,31 @@ async function cargarDatos(forzar){
     localStorage.setItem('ultra_diesel_mtto_cache', JSON.stringify(DATA));
     localStorage.setItem('ultra_diesel_mtto_ts', new Date().toISOString());
     status.textContent = '● en vivo';
+    if(operadoresRaw){
+      const nombres = operadoresRaw
+        .filter(r => String(r['Área']||'').toLowerCase().includes('operador') && String(r['Estatus']||'').toLowerCase()==='activo')
+        .map(r => String(r['Operador']||'').trim())
+        .filter(Boolean)
+        .sort((a,b)=>a.localeCompare(b));
+      localStorage.setItem('ultra_operadores_cache', JSON.stringify(nombres));
+      poblarOperadores(nombres);
+    } else {
+      const opCache = localStorage.getItem('ultra_operadores_cache');
+      if(opCache) poblarOperadores(JSON.parse(opCache));
+    }
   }catch(err){
     status.textContent = '● sin conexión (usando caché)';
     const cached = localStorage.getItem('ultra_diesel_mtto_cache');
     if(cached) DATA = JSON.parse(cached);
+    const opCache = localStorage.getItem('ultra_operadores_cache');
+    if(opCache) poblarOperadores(JSON.parse(opCache));
   }
   const ts = localStorage.getItem('ultra_diesel_mtto_ts');
   document.getElementById('lastUpdate').textContent = ts ? ('Última actualización: '+new Date(ts).toLocaleString('es-MX')) : 'Sin conexión aún';
   renderTodo();
+}
+function poblarOperadores(nombres){
+  document.getElementById('listaOperadores').innerHTML = nombres.map(n=>`<option value="${n.replace(/"/g,'&quot;')}">`).join('');
 }
 
 async function postAccion(action, payload){
