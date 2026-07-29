@@ -247,6 +247,9 @@
     <div><label>Taller</label>
       <select id="mTaller" onchange="toggleTallerExterno()"><option>Interno</option><option>Externo</option></select>
     </div>
+    <div><label>¿Ya se realizó?</label>
+      <select id="mRealizado"><option value="Realizado">Sí, ya se hizo</option><option value="Pendiente">No, está pendiente / solo se detectó la necesidad</option></select>
+    </div>
     <div id="mTallerExtWrap" style="display:none;"><label>Nombre del taller externo</label><input id="mTallerExt"></div>
     <div><label>Costo</label><input type="number" id="mCosto"></div>
     <div class="field-span2"><label>Descripción / falla</label><input id="mDescripcion"></div>
@@ -497,6 +500,7 @@ function resetModalMtto(){
   document.getElementById('mTipoOperacion').value='Alen IP';
   document.getElementById('mTipoMtto').value='Preventivo';
   document.getElementById('mTaller').value='Interno';
+  document.getElementById('mRealizado').value='Realizado';
   toggleTallerExterno();
 }
 
@@ -542,6 +546,7 @@ function editarMtto(i){
   document.getElementById('mTipoOperacion').value = m['Tipo de Operación']||'Alen IP';
   document.getElementById('mKm').value = m['Kilometraje Actual']||'';
   document.getElementById('mTipoMtto').value = m['Tipo de Mantenimiento']||'Preventivo';
+  document.getElementById('mRealizado').value = m['Estatus']==='Pendiente' ? 'Pendiente' : 'Realizado';
   document.getElementById('mTaller').value = m['Taller']||'Interno';
   toggleTallerExterno();
   document.getElementById('mTallerExt').value = m['Taller Externo (Nombre)']||'';
@@ -620,6 +625,7 @@ async function guardarMtto(){
     tipoOperacion: document.getElementById('mTipoOperacion').value,
     kilometrajeActual: document.getElementById('mKm').value,
     tipoMantenimiento: document.getElementById('mTipoMtto').value,
+    realizado: document.getElementById('mRealizado').value,
     descripcion: document.getElementById('mDescripcion').value,
     taller: document.getElementById('mTaller').value,
     tallerExterno: document.getElementById('mTallerExt').value,
@@ -686,9 +692,25 @@ function primerRegistroPorUnidad(){
   return map;
 }
 
+function esMantenimientoPendiente(m){
+  if(!m) return false;
+  if(String(m['Estatus']||'').toLowerCase()==='pendiente') return true;
+  const texto = String(m['Descripción/Falla']||'') + ' ' + String(m['Comentarios']||'');
+  return /necesita|requiere|pendiente|falta (?:hacer|realizar)/i.test(texto);
+}
+
 function estatusUnidad(unidad, kmMap, ultimoMap, primerMap){
   const kmInfo = kmMap[unidad];
   const ultimo = ultimoMap[unidad];
+
+  // Si el último mantenimiento registrado en realidad está pendiente (aún no se
+  // hizo, solo se detectó la necesidad), la unidad se marca como requerida/vencida
+  // de inmediato, sin importar el cálculo de km/fecha.
+  if(ultimo && esMantenimientoPendiente(ultimo)){
+    const kmActualPend = kmInfo ? kmInfo.km : Number(ultimo['Kilometraje Actual']);
+    return { status:'vencido', label:'Mantenimiento requerido', proxKm: kmActualPend, proxFecha: ultimo['Fecha'], pendiente:true };
+  }
+
   let proxKm, proxFecha;
   if(ultimo){
     proxKm = Number(ultimo['Próximo Mantenimiento (Km)']);
