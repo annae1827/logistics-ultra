@@ -356,6 +356,14 @@ function normalizarDiesel(rows){
       const tipoPago = String(g('Tipo de Pago','Tipo')).toLowerCase();
       lugar = (tipoReg.includes('interno') || tipoPago.includes('interno')) ? 'Patio' : '';
     }
+    const odoIniRaw = g('Odómetro Inicial','odómetro inicial','Odometro Inicial','odometro inicial');
+    const odoFinRaw = g('Odómetro Final','odómetro final','Odometro Final','odometro final');
+    const odoIni = odoIniRaw!=='' ? Number(odoIniRaw) : '';
+    const odoFin = odoFinRaw!=='' ? Number(odoFinRaw) : '';
+    let km = Number(g('Kilometraje','km')) || '';
+    if(!km && odoIni!=='' && odoFin!=='' && odoFin>odoIni) km = odoFin-odoIni;
+    let rend = Number(g('Rendimiento (km/l)','Rendimiento')) || '';
+    if(!rend && km && litros) rend = +(km/litros).toFixed(2);
     let monto = Number(g('Monto Total','Monto')) || 0;
     if(!monto && litros){
       const costoLitro = lugar==='Patio' ? COSTO_PATIO : COSTO_FUERA;
@@ -365,6 +373,10 @@ function normalizarDiesel(rows){
     return Object.assign({}, r, {
       'Litros': litros,
       'Lugar de Carga': lugar,
+      'Odómetro Inicial': odoIni,
+      'Odómetro Final': odoFin,
+      'Kilometraje': km,
+      'Rendimiento (km/l)': rend,
       'Monto Total': monto,
       'Costo por Litro': costoLitroMostrar,
       'Tipo de Pago': g('Tipo de Pago','Tipo')
