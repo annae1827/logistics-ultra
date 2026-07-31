@@ -1,0 +1,1183 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard Soriana — Logistics Ultra (en vivo)</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<style>
+:root{
+  --verde-oscuro:#123C31;
+  --verde:#1B4D3E;
+  --verde-claro:#2E7D5B;
+  --naranja:#E8792F;
+  --naranja-suave:#F2A65A;
+  --rojo:#C0392B;
+  --rojo-suave:#FDEDEA;
+  --azul:#2A5ADB;
+  --azul-suave:#EAF0FD;
+  --gris-950:#1A1F1D;
+  --gris-700:#4B5854;
+  --gris-500:#7C8A85;
+  --gris-300:#D8E0DC;
+  --gris-100:#F4F7F5;
+  --blanco:#FFFFFF;
+  --radius:14px;
+  --sombra:0 1px 3px rgba(18,60,49,0.08), 0 1px 2px rgba(18,60,49,0.06);
+}
+*{box-sizing:border-box;}
+body{margin:0; font-family:Arial, Helvetica, sans-serif; background:var(--gris-100); color:var(--gris-950);}
+header.top{
+  background:linear-gradient(135deg, var(--verde-oscuro), var(--verde));
+  color:var(--blanco); padding:16px 28px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;
+}
+.brand{display:flex; align-items:center; gap:10px;}
+.brand .dot{width:12px; height:12px; border-radius:50%; background:var(--naranja);}
+.brand h1{font-size:20px; letter-spacing:1.5px; margin:0; font-weight:800; text-transform:uppercase;}
+.brand small{display:block; font-size:11px; font-weight:400; letter-spacing:.5px; opacity:.8; text-transform:none; margin-top:2px;}
+.live-status{font-size:11.5px; text-align:right; line-height:1.5;}
+.live-status .dotstat{display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:6px;}
+.live-status .dotstat.ok{background:#5FD98A;}
+.live-status .dotstat.bad{background:#E8574A;}
+.live-status .dotstat.loading{background:var(--naranja-suave);}
+.btn-refresh-top{
+  border:1px solid rgba(255,255,255,.4); background:rgba(255,255,255,.08); color:#fff; border-radius:9px;
+  padding:7px 14px; font-size:12px; font-weight:700; cursor:pointer; margin-left:10px;
+}
+.btn-refresh-top:hover{background:rgba(255,255,255,.18);}
+
+nav.tabs{display:flex; gap:6px; padding:14px 28px 0 28px; background:var(--blanco); border-bottom:1px solid var(--gris-300); flex-wrap:wrap;}
+.tab-btn{
+  background:none; border:2px solid transparent; padding:11px 16px; font-size:12.5px;
+  font-weight:700; letter-spacing:.5px; text-transform:uppercase; color:var(--gris-500);
+  cursor:pointer; border-radius:10px 10px 0 0; margin-bottom:-1px;
+}
+.tab-btn:hover{color:var(--verde);}
+.tab-btn.active{color:var(--verde); border-color:var(--azul); background:var(--blanco); border-bottom-color:var(--blanco);}
+
+.filters{
+  background:var(--blanco); padding:16px 28px; display:flex; gap:20px; align-items:flex-end;
+  flex-wrap:wrap; border-bottom:1px solid var(--gris-300);
+}
+.filter-group{display:flex; flex-direction:column; gap:6px;}
+.filter-group label{font-size:10.5px; font-weight:700; letter-spacing:.7px; text-transform:uppercase; color:var(--gris-500);}
+.filter-group select, .filter-group input[type=text]{
+  border:1.5px solid var(--gris-300); border-radius:9px; padding:8px 12px; font-size:13px;
+  min-width:140px; background:var(--blanco); color:var(--gris-950); font-family:inherit;
+}
+.filter-group select:focus, .filter-group input:focus{outline:2px solid var(--azul); outline-offset:1px;}
+
+main{padding:22px 28px 60px 28px; max-width:1500px; margin:0 auto;}
+.tab-panel{display:none;}
+.tab-panel.active{display:block;}
+
+.banner{border-radius:var(--radius); padding:16px 20px; margin-bottom:20px; font-size:13.5px; line-height:1.55;}
+.banner.info{background:var(--azul-suave); border:1px solid #C7D6F7; color:#1D3A82;}
+.banner.error{background:var(--rojo-suave); border:1px solid #F5CFC8; color:#5C2A22;}
+.banner b{font-weight:800;}
+
+.kpi-row{display:grid; grid-template-columns:repeat(auto-fit, minmax(190px,1fr)); gap:14px; margin-bottom:24px;}
+.kpi-card{background:var(--blanco); border-radius:var(--radius); padding:16px 18px; box-shadow:var(--sombra);}
+.kpi-card .label{font-size:10.5px; font-weight:700; letter-spacing:.6px; text-transform:uppercase; color:var(--gris-500);}
+.kpi-card .value{font-size:28px; font-weight:800; color:var(--gris-950); margin-top:6px; line-height:1;}
+.kpi-card .value.orange{color:var(--naranja);}
+.kpi-card .value.red{color:var(--rojo);}
+.kpi-card .value.green{color:var(--verde-claro);}
+.kpi-card .sub{font-size:11.5px; color:var(--gris-500); margin-top:4px;}
+
+.section-title{font-size:14px; font-weight:800; text-transform:uppercase; letter-spacing:.6px; color:var(--verde); margin:30px 0 12px 0; display:flex; align-items:center; gap:10px;}
+.section-title .toggle-group{margin-left:auto; display:flex; gap:6px;}
+.seg-btn{border:1.5px solid var(--gris-300); background:var(--blanco); color:var(--gris-700); border-radius:8px; padding:6px 12px; font-size:11.5px; font-weight:700; cursor:pointer; text-transform:none; letter-spacing:0;}
+.seg-btn.active{background:var(--verde); border-color:var(--verde); color:#fff;}
+
+.card-grid{display:grid; grid-template-columns:repeat(auto-fit, minmax(430px,1fr)); gap:16px;}
+.chart-card{background:var(--blanco); border-radius:var(--radius); padding:16px 18px 10px 18px; box-shadow:var(--sombra);}
+.chart-card h3{font-size:12.5px; font-weight:800; text-transform:uppercase; letter-spacing:.4px; color:var(--gris-700); margin:0 0 12px 0;}
+.chart-card .wrap{position:relative; height:270px;}
+.chart-card .wrap.tall{height:340px;}
+.chart-card.full{grid-column:1/-1;}
+.note{font-size:11px; color:var(--gris-500); margin-top:8px; line-height:1.5;}
+
+table.datatable{width:100%; border-collapse:collapse; font-size:12px;}
+table.datatable th{
+  text-align:left; padding:8px 9px; background:var(--gris-100); color:var(--gris-700);
+  font-size:10px; text-transform:uppercase; letter-spacing:.4px; font-weight:800; position:sticky; top:0; cursor:pointer; user-select:none;
+}
+table.datatable th:hover{color:var(--verde);}
+table.datatable td{padding:7px 9px; border-bottom:1px solid var(--gris-100);}
+table.datatable tr:hover td{background:#FAFDFC;}
+.table-wrap{max-height:420px; overflow-y:auto; border-radius:10px; border:1px solid var(--gris-300);}
+.badge{display:inline-block; padding:2px 8px; border-radius:20px; font-size:10px; font-weight:700;}
+.badge.local{background:#E3F3EB; color:#1F7A4D;}
+.badge.foraneo{background:#FDECE3; color:var(--naranja);}
+.search-box{margin-bottom:10px;}
+.search-box input{width:100%; max-width:280px; border:1.5px solid var(--gris-300); border-radius:9px; padding:8px 12px; font-size:12.5px; font-family:inherit;}
+
+.heat-table{border-collapse:collapse; font-size:10.5px; width:100%;}
+.heat-table th{background:var(--gris-100); padding:5px 6px; position:sticky; top:0; font-weight:700; color:var(--gris-700);}
+.heat-table td{padding:5px 6px; text-align:center; border:1px solid #EEF2F0; font-weight:700; color:var(--gris-950);}
+.heat-table td.rowlabel{text-align:left; font-weight:800; background:var(--gris-100); position:sticky; left:0;}
+
+.cfg-table{width:100%; border-collapse:collapse; font-size:12.5px;}
+.cfg-table th{text-align:left; padding:8px; background:var(--gris-100); font-size:10.5px; text-transform:uppercase; color:var(--gris-700);}
+.cfg-table td{padding:8px; border-bottom:1px solid var(--gris-100);}
+.cfg-table select{padding:6px 8px; border-radius:7px; border:1.5px solid var(--gris-300); font-family:inherit;}
+.pill{display:inline-block; padding:2px 9px; border-radius:20px; font-size:10.5px; font-weight:700;}
+.pill.ok{background:#E3F3EB; color:#1F7A4D;}
+.pill.warn{background:#FFF2DC; color:#A9791A;}
+.btn-primary{background:var(--verde); color:#fff; border:none; border-radius:9px; padding:9px 18px; font-size:12.5px; font-weight:700; cursor:pointer;}
+.btn-primary:hover{background:var(--verde-claro);}
+
+footer{padding:20px 28px 40px 28px; text-align:center; font-size:11px; color:var(--gris-500);}
+
+@media(max-width:720px){
+  .filters{gap:12px;}
+  .kpi-row{grid-template-columns:repeat(2,1fr);}
+  .card-grid{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="brand">
+    <span class="dot"></span>
+    <div>
+      <h1>Soriana</h1>
+      <small>Logistics Ultra — Operación de viajes (en vivo)</small>
+    </div>
+  </div>
+  <div style="display:flex; align-items:center;">
+    <div class="live-status" id="liveStatus"><span class="dotstat loading"></span>Conectando con la hoja…</div>
+    <button class="btn-refresh-top" id="btnRefreshTop">↻ Actualizar ahora</button>
+  </div>
+</header>
+
+<nav class="tabs">
+  <button class="tab-btn active" data-tab="resumen">Resumen</button>
+  <button class="tab-btn" data-tab="viajes">Viajes</button>
+  <button class="tab-btn" data-tab="tiempos">Tiempos del ciclo</button>
+  <button class="tab-btn" data-tab="rotacion">Rotación de cajas</button>
+  <button class="tab-btn" data-tab="config">Configuración / diagnóstico</button>
+</nav>
+
+<div class="filters">
+  <div class="filter-group">
+    <label>Tipo de viaje</label>
+    <select id="fTipo"><option value="todos">Todos</option></select>
+  </div>
+  <div class="filter-group">
+    <label>Año</label>
+    <select id="fAnio"><option value="todos">Todos</option></select>
+  </div>
+  <div class="filter-group">
+    <label>Mes</label>
+    <select id="fMes"><option value="todos">Todos</option></select>
+  </div>
+  <div class="filter-group">
+    <label>Tienda</label>
+    <select id="fTienda"><option value="todos">Todas</option></select>
+  </div>
+  <div class="filter-group">
+    <label>Chofer</label>
+    <select id="fChofer"><option value="todos">Todos</option></select>
+  </div>
+  <div class="filter-group">
+    <label>Camión</label>
+    <select id="fCamion"><option value="todos">Todos</option></select>
+  </div>
+</div>
+
+<main>
+
+  <!-- RESUMEN -->
+  <section class="tab-panel active" id="tab-resumen">
+    <div id="banner-resumen"></div>
+    <div class="kpi-row" id="kpi-resumen"></div>
+    <div class="card-grid">
+      <div class="chart-card full">
+        <h3>Viajes por semana (Local / Foráneo)</h3>
+        <div class="wrap tall"><canvas id="chartResumenSemana"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <h3>Top 10 tiendas por viajes</h3>
+        <div class="wrap"><canvas id="chartResumenTiendas"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <h3>Top 10 camiones por viajes</h3>
+        <div class="wrap"><canvas id="chartResumenCamiones"></canvas></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- VIAJES -->
+  <section class="tab-panel" id="tab-viajes">
+    <div id="banner-viajes"></div>
+    <div class="kpi-row" id="kpi-viajes"></div>
+
+    <div class="section-title">
+      Viajes en el tiempo
+      <div class="toggle-group" id="gVia-toggle">
+        <button class="seg-btn" data-g="dia">Diario</button>
+        <button class="seg-btn active" data-g="semana">Semanal</button>
+        <button class="seg-btn" data-g="mes">Mensual</button>
+      </div>
+    </div>
+    <div class="card-grid">
+      <div class="chart-card full">
+        <h3>Viajes totales por periodo (Local / Foráneo)</h3>
+        <div class="wrap tall"><canvas id="chartViajesPeriodo"></canvas></div>
+      </div>
+    </div>
+
+    <div class="section-title">Viajes por camión — el dato clave: cuántos viajes hace cada camión a la semana</div>
+    <div class="card-grid">
+      <div class="chart-card full">
+        <h3>Promedio de viajes por semana, por camión (ordenado de mayor a menor)</h3>
+        <div class="wrap tall"><canvas id="chartCamionSemana"></canvas></div>
+      </div>
+      <div class="chart-card full">
+        <h3>Detalle por camión</h3>
+        <div class="search-box"><input type="text" id="buscaCamion" placeholder="Buscar camión…"></div>
+        <div class="table-wrap"><table class="datatable" id="tablaCamiones">
+          <thead><tr>
+            <th data-k="u">Camión</th><th data-k="total">Viajes totales</th><th data-k="semanas">Semanas activas</th>
+            <th data-k="prom">Prom. viajes/semana</th><th data-k="max">Máx. viajes/semana</th><th data-k="choferes">Choferes distintos</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table></div>
+      </div>
+    </div>
+
+    <div class="section-title">Viajes por tienda</div>
+    <div class="card-grid">
+      <div class="chart-card full">
+        <h3>Top 20 tiendas por número de viajes</h3>
+        <div class="wrap tall"><canvas id="chartTiendasTop"></canvas></div>
+      </div>
+      <div class="chart-card full">
+        <h3>Detalle por tienda</h3>
+        <div class="search-box"><input type="text" id="buscaTienda" placeholder="Buscar tienda…"></div>
+        <div class="table-wrap"><table class="datatable" id="tablaTiendas">
+          <thead><tr><th data-k="suc">Tienda</th><th data-k="total">Viajes</th><th data-k="pct">% del total</th></tr></thead>
+          <tbody></tbody>
+        </table></div>
+      </div>
+    </div>
+
+    <div class="section-title">Viajes por chofer</div>
+    <div class="card-grid">
+      <div class="chart-card full">
+        <h3>Top 20 choferes por número de viajes</h3>
+        <div class="wrap tall"><canvas id="chartChoferesTop"></canvas></div>
+      </div>
+      <div class="chart-card full">
+        <h3>Detalle por chofer</h3>
+        <div class="search-box"><input type="text" id="buscaChofer" placeholder="Buscar chofer…"></div>
+        <div class="table-wrap"><table class="datatable" id="tablaChoferes">
+          <thead><tr><th data-k="op">Chofer</th><th data-k="total">Viajes</th><th data-k="camiones">Camiones distintos</th></tr></thead>
+          <tbody></tbody>
+        </table></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TIEMPOS -->
+  <section class="tab-panel" id="tab-tiempos">
+    <div id="banner-tiempos"></div>
+    <div class="kpi-row" id="kpi-tiempos"></div>
+
+    <div class="section-title">Distribución de cada tramo del ciclo</div>
+    <div class="card-grid">
+      <div class="chart-card">
+        <h3>CEDIS → tienda (minutos)</h3>
+        <div class="wrap"><canvas id="chartDistIda"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <h3>Tiempo en tienda (minutos)</h3>
+        <div class="wrap"><canvas id="chartDistEnTienda"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <h3>Tienda → CEDIS, regreso (minutos)</h3>
+        <div class="wrap"><canvas id="chartDistRegreso"></canvas></div>
+      </div>
+    </div>
+
+    <div class="section-title">Tendencia semanal de los tres tramos</div>
+    <div class="card-grid">
+      <div class="chart-card full">
+        <h3>Promedio semanal: CEDIS→tienda / en tienda / regreso a CEDIS</h3>
+        <div class="wrap tall"><canvas id="chartTendenciaTiempos"></canvas></div>
+      </div>
+    </div>
+
+    <div class="section-title">Detalle por tienda</div>
+    <div class="card-grid">
+      <div class="chart-card full">
+        <h3>Promedio de cada tramo por tienda (top 20 por número de viajes)</h3>
+        <div class="table-wrap"><table class="datatable" id="tablaTiemposTienda">
+          <thead><tr>
+            <th data-k="suc">Tienda</th><th data-k="n">Viajes con dato</th>
+            <th data-k="ida">Prom. CEDIS→tienda</th><th data-k="estancia">Prom. en tienda</th>
+            <th data-k="regreso">Prom. regreso</th><th data-k="total">Prom. ciclo total</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table></div>
+        <p class="note">El tramo "CEDIS→tienda" solo se calcula en la primera parada de cada viaje, y "regreso" solo en la última — son los tramos que realmente conectan con el CEDIS. El tamaño de muestra (n) de cada fila indica cuántos viajes tienen ese dato completo; algunos promedios se calculan con pocos casos cuando faltan horas en el reporte.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ROTACIÓN DE CAJAS -->
+  <section class="tab-panel" id="tab-rotacion">
+    <div id="banner-rotacion"></div>
+    <div class="kpi-row" id="kpi-rotacion"></div>
+
+    <div class="section-title">Distribución: viajes por caja, por semana</div>
+    <div class="card-grid">
+      <div class="chart-card full">
+        <h3>¿Cuántas veces sale una caja en la misma semana? (distribución de caja-semanas)</h3>
+        <div class="wrap tall"><canvas id="chartRotacionDist"></canvas></div>
+        <p class="note">Cada barra representa el número de combinaciones caja+semana que tuvieron esa cantidad de viajes. Una caja que hizo 1 viaje en una semana y 2 en otra aporta un caso a la barra "1" y un caso a la barra "2".</p>
+      </div>
+    </div>
+
+    <div class="section-title">Top cajas por rotación</div>
+    <div class="card-grid">
+      <div class="chart-card full">
+        <h3>Top 20 cajas por promedio de viajes/semana</h3>
+        <div class="wrap tall"><canvas id="chartRotacionTop"></canvas></div>
+      </div>
+      <div class="chart-card full">
+        <h3>Detalle por caja</h3>
+        <div class="search-box"><input type="text" id="buscaCaja" placeholder="Buscar caja…"></div>
+        <div class="table-wrap"><table class="datatable" id="tablaCajas">
+          <thead><tr>
+            <th data-k="cj">Caja</th><th data-k="total">Viajes totales</th><th data-k="semanas">Semanas activas</th>
+            <th data-k="prom">Prom. viajes/semana</th><th data-k="max">Máx. viajes/semana</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table></div>
+      </div>
+    </div>
+
+    <div class="section-title">Mapa caja × semana (top 20 cajas por viajes totales)</div>
+    <div class="card-grid">
+      <div class="chart-card full">
+        <h3>Viajes por caja en cada semana</h3>
+        <div class="table-wrap" style="max-height:520px;"><div id="heatCajas"></div></div>
+        <p class="note">Más verde = más viajes esa semana. Semanas ordenadas de más antigua a más reciente, dentro del filtro activo.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- CONFIG -->
+  <section class="tab-panel" id="tab-config">
+    <div class="banner info">
+      Esta pestaña sirve para verificar que la hoja de Google Sheets se está leyendo correctamente. Si alguna columna se detectó mal, puedes corregirla aquí manualmente — la corrección se guarda en este navegador y se vuelve a aplicar cada vez que abras este archivo.
+    </div>
+    <div class="kpi-row" id="kpi-config"></div>
+    <div class="section-title">Fuente de datos</div>
+    <table class="cfg-table">
+      <tr><th>Liga (CSV publicado)</th><td id="cfgUrl" style="word-break:break-all;"></td></tr>
+      <tr><th>Última actualización</th><td id="cfgUltima">—</td></tr>
+      <tr><th>Filas leídas</th><td id="cfgFilas">—</td></tr>
+      <tr><th>Encabezados encontrados</th><td id="cfgHeaders">—</td></tr>
+    </table>
+
+    <div class="section-title">Mapeo de columnas detectado</div>
+    <table class="cfg-table" id="tablaMapeo">
+      <thead><tr><th>Campo</th><th>Descripción</th><th>Columna detectada</th><th>Estado</th></tr></thead>
+      <tbody></tbody>
+    </table>
+    <div style="margin-top:16px;"><button class="btn-primary" id="btnGuardarMapeo">Guardar mapeo manual</button></div>
+
+    <div class="section-title">Vista previa (primeras 5 filas leídas)</div>
+    <div class="table-wrap"><table class="datatable" id="tablaPreview"><thead></thead><tbody></tbody></table></div>
+  </section>
+
+</main>
+
+<footer>
+  Datos leídos en vivo desde la hoja de Google Sheets de operación Soriana–Ultra · Un viaje = un embarque (folio único) · Clasificación Local/Foráneo tomada tal cual del reporte.
+</footer>
+
+<script>
+// =======================================================================
+// CONFIGURACIÓN
+// =======================================================================
+const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTfcqjmk30bqYJB2260WnYl6Wqq-0f5OYe3tqrygPgoViA7p4lXmmePuaL-QBDVGk8_FIegNZDlRnTJ/pub?gid=1054283945&single=true&output=csv";
+const AUTO_REFRESH_MIN = 15; // minutos entre refrescos automáticos
+const LS_KEY = "soriana_col_map_v1";
+
+// Campos que buscamos, con su descripción y alias posibles en el encabezado.
+// Ajustado a los encabezados reales de la hoja "Embarques_Soriana_OPS":
+// No. Embarque | Sucursal | Caja | Unidad | Operador | Cedis Salida | Fecha Cedis Salida |
+// Cedis Llegada | Cedis Fecha Llegada | Suc Llegada | Suc Fecha Legada | Suc Salida | Suc Fecha Salida
+const FIELD_DEFS = [
+  { key:"e",    label:"No. Embarque (identifica el viaje único)", alias:["noembarque","embarque","idembarque","folio","numeroembarque","numerodetransporte","id"] },
+  { key:"suc",  label:"Sucursal",                    alias:["sucursal","sucursales","tienda","tiendas"] },
+  { key:"cj",   label:"Caja",                        alias:["caja","numcaja","nocaja","numerocaja"] },
+  { key:"u",    label:"Unidad (camión)",              alias:["unidad","camion","numunidad","economico","numeroeconomico"] },
+  { key:"op",   label:"Operador (chofer)",            alias:["operador","chofer","conductor","nombreoperador"] },
+  { key:"tv",   label:"Tipo de viaje",                alias:["tipoviaje","tipo","tipodeviaje"] },
+  { key:"hsc",       label:"Cedis Salida (hora)",       alias:["cedissalida","horasalidacedis","salidacedis"] },
+  { key:"hscFecha",  label:"Fecha Cedis Salida",        alias:["fechacedissalida","cedisfechasalida"] },
+  { key:"hrc",       label:"Cedis Llegada / regreso (hora)", alias:["cedisllegada","horaregresocedis","regresocedis"] },
+  { key:"hrcFecha",  label:"Cedis Fecha Llegada",       alias:["cedisfechallegada","fechacedisllegada"] },
+  { key:"hlls",      label:"Suc Llegada (hora)",        alias:["sucllegada","horallegadasucursal","llegadasucursal"] },
+  { key:"hllsFecha", label:"Suc Fecha Llegada",         alias:["sucfechalegada","sucfechallegada","fechasucllegada"] },
+  { key:"huls",      label:"Suc Salida (hora)",         alias:["sucsalida","horasalidasucursal","finalizadosucursal"] },
+  { key:"hulsFecha", label:"Suc Fecha Salida",          alias:["sucfechasalida","fechasucsalida"] },
+  { key:"fmensaje",  label:"Fecha Mensaje (respaldo)",  alias:["fechamensaje"] }
+];
+
+// =======================================================================
+// ESTADO GLOBAL
+// =======================================================================
+let RAW_ROWS = [];        // filas crudas del CSV (array de arrays)
+let HEADERS = [];         // encabezados crudos
+let COL_MAP = {};         // field key -> índice de columna
+let RECORDS = [];         // viajes ya agrupados por No. Embarque
+let LAST_FETCH = null;
+const state = { tipo:"todos", anio:"todos", mes:"todos", tienda:"todos", chofer:"todos", camion:"todos" };
+const charts = {};
+const sortState = {};
+
+function destroyChart(id){ if(charts[id]){ charts[id].destroy(); delete charts[id]; } }
+
+// =======================================================================
+// UTILIDADES
+// =======================================================================
+const MES_LABELS = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+const COLOR_LOCAL = '#2E7D5B';
+const COLOR_FORANEO = '#E8792F';
+const COLOR_OTROS = '#A9B4AF';
+const COLOR_VERDE_OSC = '#123C31';
+const COLOR_AZUL = '#2A5ADB';
+const COLOR_ROJO = '#C0392B';
+
+function normalizeHeader(s){
+  if(s===null||s===undefined) return "";
+  return s.toString().normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]/g,"");
+}
+function toNum(v){
+  if(v===null||v===undefined||v==="") return null;
+  const n = typeof v==="number" ? v : parseFloat(String(v).replace(",","."));
+  return isNaN(n) ? null : n;
+}
+function mean(arr){ const a=arr.filter(x=>x!==null&&x!==undefined&&!isNaN(x)); if(!a.length) return null; return a.reduce((x,y)=>x+y,0)/a.length; }
+function median(arr){ const a=arr.filter(x=>x!==null&&x!==undefined&&!isNaN(x)).sort((x,y)=>x-y); if(!a.length) return null; const mid=Math.floor(a.length/2); return a.length%2 ? a[mid] : (a[mid-1]+a[mid])/2; }
+function fmtMin(m){ if(m===null||m===undefined||isNaN(m)) return '—'; const h=Math.floor(m/60), mm=Math.round(m%60); return h>0?`${h}h ${mm}m`:`${mm}m`; }
+function fmtNum(n){ if(n===null||n===undefined||isNaN(n)) return '—'; return n.toLocaleString('es-MX', {maximumFractionDigits:1}); }
+
+// La hoja trae las fechas en formato DD/MM/YYYY (p. ej. "13/06/2026")
+function parseFechaSlash(s){
+  if(!s) return null;
+  const m = String(s).match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if(!m) return null;
+  const d = m[1].padStart(2,'0'), mo = m[2].padStart(2,'0'), y = m[3];
+  return `${y}-${mo}-${d}`;
+}
+function toMin(hhmm){ if(!hhmm) return null; const m = String(hhmm).match(/(\d{1,2}):(\d{2})/); if(!m) return null; return parseInt(m[1],10)*60+parseInt(m[2],10); }
+// Combina una fecha ISO (YYYY-MM-DD) y una hora (HH:MM) en un timestamp absoluto (ms), para poder
+// restar horas que cruzan de un día a otro sin ambigüedad.
+function combineDT(iso, hhmm){
+  if(!iso) return null;
+  const t = toMin(hhmm);
+  if(t===null) return null;
+  const [y,m,d] = iso.split('-').map(Number);
+  return Date.UTC(y, m-1, d, 0, 0, 0) + t*60000;
+}
+// Diferencia en minutos entre dos timestamps (ms); null si falta alguno o el resultado es negativo
+// (lo que indicaría un emparejamiento de datos incorrecto, no un viaje real).
+function diffMin(tsA, tsB){
+  if(tsA===null || tsB===null) return null;
+  const d = (tsB - tsA) / 60000;
+  return d < 0 ? null : d;
+}
+function mondayOf(iso){
+  if(!iso) return null;
+  const [y,m,d] = iso.split('-').map(Number);
+  const dt = new Date(Date.UTC(y, m-1, d));
+  const js = dt.getUTCDay(); // 0=Dom
+  const diff = (js===0? -6 : 1-js); // lunes de esa semana
+  dt.setUTCDate(dt.getUTCDate()+diff);
+  return dt.toISOString().slice(0,10);
+}
+
+// =======================================================================
+// CARGA Y PARSEO DEL CSV EN VIVO
+// =======================================================================
+function setLiveStatus(mode, text){
+  const el = document.getElementById('liveStatus');
+  const cls = mode==='ok' ? 'ok' : (mode==='bad' ? 'bad' : 'loading');
+  el.innerHTML = `<span class="dotstat ${cls}"></span>${text}`;
+}
+
+async function fetchCSV(){
+  setLiveStatus('loading', 'Actualizando desde la hoja…');
+  const url = CSV_URL + (CSV_URL.includes('?') ? '&' : '?') + 'cachebust=' + Date.now();
+  const res = await fetch(url, { cache: 'no-store' });
+  if(!res.ok) throw new Error('HTTP ' + res.status);
+  const text = await res.text();
+  const parsed = Papa.parse(text, { skipEmptyLines: true });
+  if(!parsed.data || parsed.data.length < 2) throw new Error('La hoja no devolvió filas de datos.');
+  return parsed.data;
+}
+
+function loadManualMap(){
+  try{ return JSON.parse(localStorage.getItem(LS_KEY) || '{}'); }catch(e){ return {}; }
+}
+function saveManualMap(map){
+  try{ localStorage.setItem(LS_KEY, JSON.stringify(map)); }catch(e){}
+}
+
+function detectColumns(headers){
+  const norm = headers.map(normalizeHeader);
+  const manual = loadManualMap();
+  const map = {};
+  const confidence = {};
+  FIELD_DEFS.forEach(fd=>{
+    if(manual[fd.key] !== undefined && manual[fd.key] !== "" && Number(manual[fd.key]) < headers.length){
+      map[fd.key] = Number(manual[fd.key]);
+      confidence[fd.key] = 'manual';
+      return;
+    }
+    let idx = norm.findIndex(h => fd.alias.includes(h));
+    if(idx === -1) idx = norm.findIndex(h => fd.alias.some(a => h.includes(a) || a.includes(h)) && h.length>2);
+    if(idx !== -1){ map[fd.key]=idx; confidence[fd.key]='auto'; }
+  });
+  return { map, confidence };
+}
+
+// Cada fila de la hoja es una PARADA (una sucursal visitada). Un mismo "No. Embarque" puede
+// repetirse en varias filas cuando el viaje tuvo varias tiendas. Aquí se agrupan las filas por
+// No. Embarque para que cada VIAJE ÚNICO sea un solo registro, sin importar cuántas tiendas visitó.
+function buildRecords(rows, map){
+  const body = rows.slice(1);
+  const get = (r,k) => map[k]!==undefined ? (r[map[k]] !== undefined ? r[map[k]] : null) : null;
+  const viajes = new Map(); // e -> objeto viaje en construcción
+
+  body.forEach(r=>{
+    const e = (get(r,'e')||'').toString().trim();
+    if(!e) return;
+
+    const hscFecha = parseFechaSlash(get(r,'hscFecha'));
+    const hrcFecha = parseFechaSlash(get(r,'hrcFecha'));
+    const hllsFecha = parseFechaSlash(get(r,'hllsFecha'));
+    const hulsFecha = parseFechaSlash(get(r,'hulsFecha'));
+    const fmensajeFecha = parseFechaSlash(get(r,'fmensaje'));
+
+    if(!viajes.has(e)){
+      viajes.set(e, {
+        e,
+        u:'', op:'', cj:'', tv:'', suc:'',
+        hscTs:null, hrcTs:null,
+        stops: [] // {suc, hllsTs, hulsTs}
+      });
+    }
+    const v = viajes.get(e);
+    if(!v.u && get(r,'u')) v.u = get(r,'u').toString().trim();
+    if(!v.op && get(r,'op')) v.op = get(r,'op').toString().trim();
+    if(!v.cj && get(r,'cj')) v.cj = get(r,'cj').toString().trim();
+    if(!v.tv && get(r,'tv')) v.tv = get(r,'tv').toString().trim();
+    if(v.hscTs===null){ const ts = combineDT(hscFecha, get(r,'hsc')); if(ts!==null) v.hscTs = ts; }
+    if(v.hrcTs===null){ const ts = combineDT(hrcFecha, get(r,'hrc')); if(ts!==null) v.hrcTs = ts; }
+    if(v.dateFallback===undefined) v.dateFallback = hscFecha || hllsFecha || fmensajeFecha || hrcFecha || hulsFecha || null;
+
+    const sucNombre = (get(r,'suc')||'').toString().trim();
+    if(sucNombre){
+      v.stops.push({
+        suc: sucNombre,
+        hllsTs: combineDT(hllsFecha, get(r,'hlls')),
+        hulsTs: combineDT(hulsFecha, get(r,'huls'))
+      });
+    }
+  });
+
+  const recs = [];
+  viajes.forEach(v=>{
+    const date = v.dateFallback || (v.stops[0] && (v.stops[0].hllsTs ? new Date(v.stops[0].hllsTs).toISOString().slice(0,10) : null));
+    if(!date) return; // sin ninguna fecha utilizable, se descarta
+
+    const firstStop = v.stops[0] || null;
+    const lastStop = v.stops.length ? v.stops[v.stops.length-1] : null;
+
+    const tti = firstStop ? diffMin(v.hscTs, firstStop.hllsTs) : null;
+    const ttr = lastStop ? diffMin(lastStop.hulsTs, v.hrcTs) : null;
+    const trt = diffMin(v.hscTs, v.hrcTs);
+
+    const stopDetails = v.stops.map((s,idx)=>({
+      suc: s.suc,
+      ttes: diffMin(s.hllsTs, s.hulsTs),
+      esPrimera: idx===0,
+      esUltima: idx===v.stops.length-1
+    }));
+    const ttesValidos = stopDetails.map(s=>s.ttes).filter(v=>v!==null);
+    const ttesTotal = ttesValidos.length ? ttesValidos.reduce((a,b)=>a+b,0) : null;
+
+    const rec = {
+      e: v.e, u: v.u, op: v.op, cj: v.cj,
+      tv: v.tv || 'Sin clasificar',
+      stops: [...new Set(v.stops.map(s=>s.suc))],
+      stopDetails,
+      date, week: mondayOf(date), month: date.slice(0,7), year: date.slice(0,4),
+      tti, ttes: ttesTotal, ttr, trt
+    };
+    recs.push(rec);
+  });
+  return recs;
+}
+
+// =======================================================================
+// FILTROS
+// =======================================================================
+function populateFilters(){
+  const sel = (id, values, current) => {
+    const el = document.getElementById(id);
+    const prev = el.value || 'todos';
+    el.innerHTML = '<option value="todos">Todos</option>';
+    values.forEach(v=>{ const o=document.createElement('option'); o.value=v; o.textContent=v; el.appendChild(o); });
+    el.value = values.includes(prev) ? prev : 'todos';
+  };
+  const tipos = [...new Set(RECORDS.map(r=>r.tv).filter(Boolean))].sort();
+  const anios = [...new Set(RECORDS.map(r=>r.year).filter(Boolean))].sort();
+  const tiendas = [...new Set(RECORDS.flatMap(r=>r.stops))].sort();
+  const choferes = [...new Set(RECORDS.map(r=>r.op).filter(Boolean))].sort();
+  const camiones = [...new Set(RECORDS.map(r=>r.u).filter(Boolean))].sort();
+  sel('fTipo', tipos);
+  sel('fAnio', anios);
+  const selMes = document.getElementById('fMes');
+  const prevMes = selMes.value || 'todos';
+  selMes.innerHTML = '<option value="todos">Todos</option>';
+  MES_LABELS.forEach((m,i)=>{ const o=document.createElement('option'); o.value=String(i+1); o.textContent=m; selMes.appendChild(o); });
+  selMes.value = prevMes;
+  sel('fTienda', tiendas);
+  sel('fChofer', choferes);
+  sel('fCamion', camiones);
+}
+
+function filterRecords(){
+  return RECORDS.filter(r=>{
+    if(state.tipo!=='todos' && r.tv!==state.tipo) return false;
+    if(state.anio!=='todos' && r.year!==state.anio) return false;
+    if(state.mes!=='todos' && parseInt(r.date.slice(5,7),10)!==parseInt(state.mes,10)) return false;
+    if(state.tienda!=='todos' && !r.stops.includes(state.tienda)) return false;
+    if(state.chofer!=='todos' && r.op!==state.chofer) return false;
+    if(state.camion!=='todos' && r.u!==state.camion) return false;
+    return true;
+  });
+}
+
+// =======================================================================
+// AGREGACIONES
+// =======================================================================
+let gViaGranularidad = 'semana';
+
+function groupCount(recs, keyFn){
+  const m = new Map();
+  recs.forEach(r=>{
+    const k = keyFn(r);
+    if(k===null||k===undefined||k==='') return;
+    if(!m.has(k)) m.set(k, {total:0, local:0, foraneo:0, otros:0});
+    const o = m.get(k);
+    o.total++;
+    if(/local/i.test(r.tv)) o.local++;
+    else if(/for[aá]neo/i.test(r.tv)) o.foraneo++;
+    else o.otros++;
+  });
+  return m;
+}
+
+function porPeriodo(recs, gran){
+  const keyFn = gran==='dia' ? r=>r.date : (gran==='mes' ? r=>r.month : r=>r.week);
+  const m = groupCount(recs, keyFn);
+  return [...m.entries()].sort((a,b)=> a[0]<b[0]?-1:1);
+}
+
+function porCamionSemana(recs){
+  // Map camion -> Map semana -> count
+  const byCamion = new Map();
+  recs.forEach(r=>{
+    if(!r.u) return;
+    if(!byCamion.has(r.u)) byCamion.set(r.u, new Map());
+    const wm = byCamion.get(r.u);
+    wm.set(r.week, (wm.get(r.week)||0)+1);
+  });
+  const out = [];
+  byCamion.forEach((wm, u)=>{
+    const counts = [...wm.values()];
+    const total = counts.reduce((a,b)=>a+b,0);
+    const semanas = counts.length;
+    const choferesSet = new Set(recs.filter(r=>r.u===u && r.op).map(r=>r.op));
+    out.push({ u, total, semanas, prom: semanas? total/semanas : 0, max: Math.max(...counts,0), choferes: choferesSet.size, weekMap: wm });
+  });
+  return out.sort((a,b)=>b.prom-a.prom);
+}
+
+function porCajaSemana(recs){
+  const byCaja = new Map();
+  recs.forEach(r=>{
+    if(!r.cj) return;
+    if(!byCaja.has(r.cj)) byCaja.set(r.cj, new Map());
+    const wm = byCaja.get(r.cj);
+    wm.set(r.week, (wm.get(r.week)||0)+1);
+  });
+  const out = [];
+  byCaja.forEach((wm, cj)=>{
+    const counts = [...wm.values()];
+    const total = counts.reduce((a,b)=>a+b,0);
+    const semanas = counts.length;
+    out.push({ cj, total, semanas, prom: semanas? total/semanas : 0, max: Math.max(...counts,0), weekMap: wm });
+  });
+  return out.sort((a,b)=>b.total-a.total);
+}
+
+function porTienda(recs){
+  const m = new Map();
+  recs.forEach(r=>{
+    r.stops.forEach(s=>{ m.set(s, (m.get(s)||0)+1); });
+  });
+  const total = [...m.values()].reduce((a,b)=>a+b,0) || 1;
+  return [...m.entries()].map(([suc,total_])=>({suc, total:total_, pct: total_/total*100})).sort((a,b)=>b.total-a.total);
+}
+
+function porChofer(recs){
+  const m = new Map();
+  recs.forEach(r=>{
+    if(!r.op) return;
+    if(!m.has(r.op)) m.set(r.op, {total:0, camiones:new Set()});
+    const o = m.get(r.op);
+    o.total++;
+    if(r.u) o.camiones.add(r.u);
+  });
+  return [...m.entries()].map(([op,o])=>({op, total:o.total, camiones:o.camiones.size})).sort((a,b)=>b.total-a.total);
+}
+
+function tiemposPorTienda(recs){
+  const m = new Map();
+  recs.forEach(r=>{
+    (r.stopDetails||[]).forEach(sd=>{
+      if(!m.has(sd.suc)) m.set(sd.suc, {n:0, ida:[], estancia:[], regreso:[], total:[]});
+      const o = m.get(sd.suc);
+      o.n++;
+      if(sd.esPrimera && r.tti!==null) o.ida.push(r.tti);
+      if(sd.ttes!==null) o.estancia.push(sd.ttes);
+      if(sd.esUltima && r.ttr!==null) o.regreso.push(r.ttr);
+      if(sd.esPrimera && sd.esUltima && r.trt!==null) o.total.push(r.trt);
+    });
+  });
+  return [...m.entries()].map(([suc,o])=>({
+    suc, n:o.n,
+    ida: mean(o.ida), estancia: mean(o.estancia), regreso: mean(o.regreso), total: mean(o.total)
+  })).sort((a,b)=>b.n-a.n);
+}
+
+function histograma(values, binSize, maxVal){
+  const vals = values.filter(v=>v!==null && v!==undefined && !isNaN(v) && v>=0);
+  const cap = maxVal || Math.ceil((median(vals)||60)*4 / binSize) * binSize;
+  const bins = [];
+  for(let b=0; b<cap; b+=binSize) bins.push({label:`${b}-${b+binSize}`, count:0});
+  bins.push({label:`${cap}+`, count:0});
+  vals.forEach(v=>{
+    const idx = v>=cap ? bins.length-1 : Math.floor(v/binSize);
+    bins[idx].count++;
+  });
+  return bins;
+}
+
+// =======================================================================
+// RENDER: helpers UI
+// =======================================================================
+function kpiCard(label, value, sub, colorClass){
+  return `<div class="kpi-card"><div class="label">${label}</div><div class="value ${colorClass||''}">${value}</div><div class="sub">${sub||''}</div></div>`;
+}
+function makeBar(id, labels, datasets, opts){
+  destroyChart(id);
+  const ctx = document.getElementById(id);
+  if(!ctx) return;
+  charts[id] = new Chart(ctx, {
+    type: (opts && opts.horizontal) ? 'bar' : 'bar',
+    data: { labels, datasets },
+    options: Object.assign({
+      indexAxis: (opts && opts.horizontal) ? 'y' : 'x',
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ display: datasets.length>1, position:'bottom', labels:{boxWidth:12, font:{size:11}} } },
+      scales:{ x:{ stacked: !!(opts&&opts.stacked), grid:{display:false} }, y:{ stacked: !!(opts&&opts.stacked), beginAtZero:true } }
+    }, opts && opts.override || {})
+  });
+}
+function makeLine(id, labels, datasets){
+  destroyChart(id);
+  const ctx = document.getElementById(id);
+  if(!ctx) return;
+  charts[id] = new Chart(ctx, {
+    type:'line',
+    data:{ labels, datasets },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom', labels:{boxWidth:12,font:{size:11}}}}, scales:{ y:{beginAtZero:true} } }
+  });
+}
+function sortableTable(tableId, dataArr, colDefs, currentSortKey){
+  const table = document.getElementById(tableId);
+  if(!sortState[tableId]) sortState[tableId] = { key: currentSortKey, dir:-1 };
+  table.querySelectorAll('th').forEach(th=>{
+    th.onclick = ()=>{
+      const k = th.dataset.k;
+      if(sortState[tableId].key===k) sortState[tableId].dir *= -1; else { sortState[tableId].key=k; sortState[tableId].dir=-1; }
+      renderTableBody();
+    };
+  });
+  function renderTableBody(){
+    const { key, dir } = sortState[tableId];
+    const sorted = [...dataArr].sort((a,b)=>{
+      const av=a[key], bv=b[key];
+      if(typeof av==='number') return (av-bv)*dir;
+      return String(av).localeCompare(String(bv))*dir;
+    });
+    const tbody = table.querySelector('tbody');
+    tbody.innerHTML = sorted.map(row=>'<tr>'+colDefs.map(c=>`<td>${c.render(row)}</td>`).join('')+'</tr>').join('');
+  }
+  renderTableBody();
+}
+
+// =======================================================================
+// RENDER: RESUMEN
+// =======================================================================
+function renderResumen(recs){
+  const total = recs.length;
+  const camiones = new Set(recs.map(r=>r.u).filter(Boolean)).size;
+  const choferes = new Set(recs.map(r=>r.op).filter(Boolean)).size;
+  const tiendas = new Set(recs.flatMap(r=>r.stops)).size;
+  const cSemana = porCamionSemana(recs);
+  const promCamionSemana = mean(cSemana.map(c=>c.prom));
+
+  document.getElementById('kpi-resumen').innerHTML = [
+    kpiCard('Viajes totales', fmtNum(total), 'en el filtro activo'),
+    kpiCard('Camiones activos', camiones, ''),
+    kpiCard('Choferes activos', choferes, ''),
+    kpiCard('Tiendas visitadas', tiendas, ''),
+    kpiCard('Prom. viajes/camión/semana', fmtNum(promCamionSemana), '', 'green')
+  ].join('');
+
+  const fechas = recs.map(r=>r.date).filter(Boolean).sort();
+  document.getElementById('banner-resumen').innerHTML = fechas.length
+    ? `<div class="banner info">Periodo con datos: <b>${fechas[0]}</b> a <b>${fechas[fechas.length-1]}</b> · ${fmtNum(total)} viajes en el filtro activo.</div>` : '';
+
+  const porSemana = porPeriodo(recs, 'semana');
+  makeBar('chartResumenSemana', porSemana.map(x=>x[0]), [
+    { label:'Local', data: porSemana.map(x=>x[1].local), backgroundColor: COLOR_LOCAL },
+    { label:'Foráneo', data: porSemana.map(x=>x[1].foraneo), backgroundColor: COLOR_FORANEO },
+    { label:'Sin clasificar', data: porSemana.map(x=>x[1].otros), backgroundColor: COLOR_OTROS }
+  ], { stacked:true });
+
+  const topT = porTienda(recs).slice(0,10);
+  makeBar('chartResumenTiendas', topT.map(x=>x.suc), [{ label:'Viajes', data: topT.map(x=>x.total), backgroundColor: COLOR_VERDE_OSC }], { horizontal:true });
+
+  const topC = cSemana.slice().sort((a,b)=>b.total-a.total).slice(0,10);
+  makeBar('chartResumenCamiones', topC.map(x=>x.u), [{ label:'Viajes', data: topC.map(x=>x.total), backgroundColor: COLOR_AZUL }], { horizontal:true });
+}
+
+// =======================================================================
+// RENDER: VIAJES
+// =======================================================================
+function renderViajes(recs){
+  const total = recs.length;
+  const cSemana = porCamionSemana(recs);
+  const promCamionSemana = mean(cSemana.map(c=>c.prom));
+  const maxCamionSemana = Math.max(...cSemana.map(c=>c.max), 0);
+  const tiendas = porTienda(recs);
+  const choferes = porChofer(recs);
+
+  document.getElementById('kpi-viajes').innerHTML = [
+    kpiCard('Viajes totales', fmtNum(total), ''),
+    kpiCard('Prom. viajes/camión/semana', fmtNum(promCamionSemana), 'promedio de todos los camiones', 'green'),
+    kpiCard('Máx. viajes/camión en una semana', fmtNum(maxCamionSemana), '', 'orange'),
+    kpiCard('Camiones distintos', cSemana.length, ''),
+    kpiCard('Tiendas distintas', tiendas.length, ''),
+    kpiCard('Choferes distintos', choferes.length, '')
+  ].join('');
+
+  document.getElementById('banner-viajes').innerHTML = `<div class="banner info">
+    "Viajes por camión a la semana" = para cada camión, se cuentan sus viajes (uno por cada No. Embarque único) agrupados por semana (lunes a domingo, según la fecha de salida de CEDIS del viaje) y luego se promedia entre las semanas en las que ese camión trabajó.
+  </div>`;
+
+  const porP = porPeriodo(recs, gViaGranularidad);
+  makeBar('chartViajesPeriodo', porP.map(x=>x[0]), [
+    { label:'Local', data: porP.map(x=>x[1].local), backgroundColor: COLOR_LOCAL },
+    { label:'Foráneo', data: porP.map(x=>x[1].foraneo), backgroundColor: COLOR_FORANEO },
+    { label:'Sin clasificar', data: porP.map(x=>x[1].otros), backgroundColor: COLOR_OTROS }
+  ], { stacked:true });
+
+  const camTop = cSemana.slice(0,25);
+  makeBar('chartCamionSemana', camTop.map(x=>x.u), [{ label:'Prom. viajes/semana', data: camTop.map(x=>Number(x.prom.toFixed(2))), backgroundColor: COLOR_AZUL }], { horizontal: camTop.length>10 });
+
+  sortableTable('tablaCamiones', cSemana, [
+    { key:'u', render:r=>r.u }, { key:'total', render:r=>fmtNum(r.total) },
+    { key:'semanas', render:r=>r.semanas }, { key:'prom', render:r=>fmtNum(r.prom) },
+    { key:'max', render:r=>r.max }, { key:'choferes', render:r=>r.choferes }
+  ], 'total');
+
+  const tiendasTop = tiendas.slice(0,20);
+  makeBar('chartTiendasTop', tiendasTop.map(x=>x.suc), [{ label:'Viajes', data: tiendasTop.map(x=>x.total), backgroundColor: COLOR_VERDE_OSC }], { horizontal:true, override:{ scales:{ y:{ ticks:{ font:{size:10} } } } } });
+  sortableTable('tablaTiendas', tiendas, [
+    { key:'suc', render:r=>r.suc }, { key:'total', render:r=>fmtNum(r.total) }, { key:'pct', render:r=>fmtNum(r.pct)+'%' }
+  ], 'total');
+
+  const choferesTop = choferes.slice(0,20);
+  makeBar('chartChoferesTop', choferesTop.map(x=>x.op), [{ label:'Viajes', data: choferesTop.map(x=>x.total), backgroundColor: COLOR_AZUL }], { horizontal:true, override:{ scales:{ y:{ ticks:{ font:{size:10} } } } } });
+  sortableTable('tablaChoferes', choferes, [
+    { key:'op', render:r=>r.op }, { key:'total', render:r=>fmtNum(r.total) }, { key:'camiones', render:r=>r.camiones }
+  ], 'total');
+
+  // buscadores
+  wireSearch('buscaCamion', 'tablaCamiones');
+  wireSearch('buscaTienda', 'tablaTiendas');
+  wireSearch('buscaChofer', 'tablaChoferes');
+}
+function wireSearch(inputId, tableId){
+  const input = document.getElementById(inputId);
+  if(input._wired) return;
+  input._wired = true;
+  input.addEventListener('input', ()=>{
+    const q = input.value.toLowerCase();
+    document.querySelectorAll(`#${tableId} tbody tr`).forEach(tr=>{
+      tr.style.display = tr.textContent.toLowerCase().includes(q) ? '' : 'none';
+    });
+  });
+}
+
+// =======================================================================
+// RENDER: TIEMPOS DEL CICLO
+// =======================================================================
+function renderTiempos(recs){
+  const idaVals = recs.map(r=>r.tti).filter(v=>v!==null);
+  const estVals = recs.map(r=>r.ttes).filter(v=>v!==null);
+  const regVals = recs.map(r=>r.ttr).filter(v=>v!==null);
+  const totVals = recs.map(r=>r.trt).filter(v=>v!==null);
+
+  document.getElementById('kpi-tiempos').innerHTML = [
+    kpiCard('Prom. CEDIS→tienda', fmtMin(mean(idaVals)), `n=${idaVals.length}`),
+    kpiCard('Prom. en tienda', fmtMin(mean(estVals)), `n=${estVals.length}`, 'orange'),
+    kpiCard('Prom. regreso a CEDIS', fmtMin(mean(regVals)), `n=${regVals.length}`),
+    kpiCard('Prom. ciclo total', fmtMin(mean(totVals)), `n=${totVals.length}`, 'green')
+  ].join('');
+
+  document.getElementById('banner-tiempos').innerHTML = `<div class="banner info">
+    Los tres tramos se calculan cruzando hora + fecha de cada evento (Cedis Salida, Suc Llegada, Suc Salida, Cedis Llegada), así que sí cruzan de un día a otro correctamente. Cuando falta alguna hora en el reporte de un viaje, ese tramo simplemente no se cuenta — por eso el tamaño de muestra (n) varía entre tramos.
+  </div>`;
+
+  const hIda = histograma(idaVals, 30, 240);
+  makeBar('chartDistIda', hIda.map(b=>b.label), [{ label:'Viajes', data: hIda.map(b=>b.count), backgroundColor: COLOR_AZUL }], {});
+  const hEst = histograma(estVals, 60, 600);
+  makeBar('chartDistEnTienda', hEst.map(b=>b.label), [{ label:'Viajes', data: hEst.map(b=>b.count), backgroundColor: COLOR_NARANJA_SAFE() }], {});
+  const hReg = histograma(regVals, 30, 240);
+  makeBar('chartDistRegreso', hReg.map(b=>b.label), [{ label:'Viajes', data: hReg.map(b=>b.count), backgroundColor: COLOR_VERDE_OSC }], {});
+
+  const porSem = porPeriodoTiempos(recs);
+  makeLine('chartTendenciaTiempos', porSem.map(x=>x.week), [
+    { label:'CEDIS→tienda', data: porSem.map(x=>x.ida), borderColor: COLOR_AZUL, backgroundColor: COLOR_AZUL, tension:.25 },
+    { label:'En tienda', data: porSem.map(x=>x.estancia), borderColor: COLOR_FORANEO, backgroundColor: COLOR_FORANEO, tension:.25 },
+    { label:'Regreso a CEDIS', data: porSem.map(x=>x.regreso), borderColor: COLOR_VERDE_OSC, backgroundColor: COLOR_VERDE_OSC, tension:.25 }
+  ]);
+
+  const tt = tiemposPorTienda(recs).slice(0,20);
+  const tbody = document.querySelector('#tablaTiemposTienda tbody');
+  tbody.innerHTML = tt.map(r=>`<tr><td>${r.suc}</td><td>${r.n}</td><td>${fmtMin(r.ida)}</td><td>${fmtMin(r.estancia)}</td><td>${fmtMin(r.regreso)}</td><td>${fmtMin(r.total)}</td></tr>`).join('');
+}
+function COLOR_NARANJA_SAFE(){ return '#E8792F'; }
+function porPeriodoTiempos(recs){
+  const m = new Map();
+  recs.forEach(r=>{
+    if(!m.has(r.week)) m.set(r.week, {ida:[], estancia:[], regreso:[]});
+    const o = m.get(r.week);
+    if(r.tti!==null) o.ida.push(r.tti);
+    if(r.ttes!==null) o.estancia.push(r.ttes);
+    if(r.ttr!==null) o.regreso.push(r.ttr);
+  });
+  return [...m.entries()].sort((a,b)=>a[0]<b[0]?-1:1).map(([week,o])=>({week, ida:mean(o.ida), estancia:mean(o.estancia), regreso:mean(o.regreso)}));
+}
+
+// =======================================================================
+// RENDER: ROTACIÓN DE CAJAS
+// =======================================================================
+function renderRotacion(recs){
+  const cajas = porCajaSemana(recs);
+  const allWeeklyCounts = [];
+  cajas.forEach(c=>{ c.weekMap.forEach(v=>allWeeklyCounts.push(v)); });
+  const promGlobal = mean(allWeeklyCounts);
+  const maxCaja = cajas.slice().sort((a,b)=>b.max-a.max)[0];
+
+  document.getElementById('kpi-rotacion').innerHTML = [
+    kpiCard('Cajas distintas', cajas.length, ''),
+    kpiCard('Prom. viajes/caja/semana (global)', fmtNum(promGlobal), 'entre todas las cajas y semanas activas', 'green'),
+    kpiCard('Mayor rotación en una semana', maxCaja ? `${maxCaja.max} viajes` : '—', maxCaja ? `caja ${maxCaja.cj}` : '', 'orange'),
+    kpiCard('Combinaciones caja-semana', fmtNum(allWeeklyCounts.length), '')
+  ].join('');
+
+  document.getElementById('banner-rotacion').innerHTML = `<div class="banner info">
+    Rotación = número de viajes que hizo una misma caja dentro de la misma semana (lunes a domingo). Si una caja salió una vez en la semana, su rotación esa semana es 1; si salió tres veces, es 3.
+  </div>`;
+
+  const dist = new Map();
+  allWeeklyCounts.forEach(v=>{ dist.set(v, (dist.get(v)||0)+1); });
+  const distSorted = [...dist.entries()].sort((a,b)=>a[0]-b[0]);
+  makeBar('chartRotacionDist', distSorted.map(x=>`${x[0]} viaje(s)/semana`), [{ label:'Casos caja-semana', data: distSorted.map(x=>x[1]), backgroundColor: COLOR_AZUL }], {});
+
+  const topRot = cajas.slice().sort((a,b)=>b.prom-a.prom).filter(c=>c.semanas>=2).slice(0,20);
+  makeBar('chartRotacionTop', topRot.map(x=>x.cj), [{ label:'Prom. viajes/semana', data: topRot.map(x=>Number(x.prom.toFixed(2))), backgroundColor: COLOR_VERDE_OSC }], { horizontal:true });
+
+  sortableTable('tablaCajas', cajas, [
+    { key:'cj', render:r=>r.cj }, { key:'total', render:r=>fmtNum(r.total) },
+    { key:'semanas', render:r=>r.semanas }, { key:'prom', render:r=>fmtNum(r.prom) }, { key:'max', render:r=>r.max }
+  ], 'total');
+  wireSearch('buscaCaja', 'tablaCajas');
+
+  renderHeatCajas(cajas.slice(0,20));
+}
+
+function renderHeatCajas(cajasTop){
+  const weeksSet = new Set();
+  cajasTop.forEach(c=>{ c.weekMap.forEach((v,k)=>weeksSet.add(k)); });
+  const weeks = [...weeksSet].sort();
+  if(!weeks.length){ document.getElementById('heatCajas').innerHTML = '<p class="note">Sin datos suficientes para el mapa.</p>'; return; }
+  const maxVal = Math.max(1, ...cajasTop.flatMap(c=>[...c.weekMap.values()]));
+  let html = '<table class="heat-table"><thead><tr><th>Caja</th>' + weeks.map(w=>`<th>${w.slice(5)}</th>`).join('') + '</tr></thead><tbody>';
+  cajasTop.forEach(c=>{
+    html += `<tr><td class="rowlabel">${c.cj}</td>`;
+    weeks.forEach(w=>{
+      const v = c.weekMap.get(w) || 0;
+      const alpha = v ? 0.15 + 0.75*(v/maxVal) : 0;
+      const bg = v ? `rgba(46,125,91,${alpha.toFixed(2)})` : 'transparent';
+      html += `<td style="background:${bg}">${v||''}</td>`;
+    });
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  document.getElementById('heatCajas').innerHTML = html;
+}
+
+// =======================================================================
+// RENDER: CONFIGURACIÓN / DIAGNÓSTICO
+// =======================================================================
+let CURRENT_CONFIDENCE = {};
+function renderConfig(){
+  document.getElementById('cfgUrl').textContent = CSV_URL;
+  document.getElementById('cfgUltima').textContent = LAST_FETCH ? LAST_FETCH.toLocaleString('es-MX') : '—';
+  document.getElementById('cfgFilas').textContent = fmtNum(RECORDS.length) + ' registros de viaje construidos (de ' + fmtNum(Math.max(RAW_ROWS.length-1,0)) + ' filas leídas)';
+  document.getElementById('cfgHeaders').textContent = HEADERS.length ? HEADERS.join(' · ') : '—';
+
+  document.getElementById('kpi-config').innerHTML = [
+    kpiCard('Campos detectados', Object.keys(COL_MAP).length + ' / ' + FIELD_DEFS.length, ''),
+    kpiCard('Registros construidos', fmtNum(RECORDS.length), '')
+  ].join('');
+
+  const tbody = document.querySelector('#tablaMapeo tbody');
+  tbody.innerHTML = FIELD_DEFS.map(fd=>{
+    const idx = COL_MAP[fd.key];
+    const conf = CURRENT_CONFIDENCE[fd.key] || 'sin detectar';
+    const pillClass = conf==='sin detectar' ? 'warn' : 'ok';
+    const options = ['<option value="">— sin columna —</option>'].concat(
+      HEADERS.map((h,i)=>`<option value="${i}" ${i===idx?'selected':''}>${h || '(columna '+i+')'}</option>`)
+    ).join('');
+    return `<tr>
+      <td><b>${fd.label}</b><br><span style="color:var(--gris-500); font-size:11px;">${fd.key}</span></td>
+      <td style="color:var(--gris-500); font-size:11.5px;">${fd.alias.slice(0,3).join(', ')}…</td>
+      <td><select data-field="${fd.key}">${options}</select></td>
+      <td><span class="pill ${pillClass}">${conf}</span></td>
+    </tr>`;
+  }).join('');
+
+  const thead = document.querySelector('#tablaPreview thead');
+  const pbody = document.querySelector('#tablaPreview tbody');
+  thead.innerHTML = '<tr>' + HEADERS.map(h=>`<th>${h}</th>`).join('') + '</tr>';
+  pbody.innerHTML = RAW_ROWS.slice(1,6).map(r=>'<tr>'+HEADERS.map((_,i)=>`<td>${r[i]!==undefined?r[i]:''}</td>`).join('')+'</tr>').join('');
+
+  document.getElementById('btnGuardarMapeo').onclick = ()=>{
+    const manual = {};
+    document.querySelectorAll('#tablaMapeo select').forEach(sel=>{
+      if(sel.value!=='') manual[sel.dataset.field] = sel.value;
+    });
+    saveManualMap(manual);
+    rebuildFromRaw();
+  };
+}
+
+// =======================================================================
+// ORQUESTADOR
+// =======================================================================
+function renderAll(){
+  const recs = filterRecords();
+  renderResumen(recs);
+  renderViajes(recs);
+  renderTiempos(recs);
+  renderRotacion(recs);
+  renderConfig();
+}
+
+function rebuildFromRaw(){
+  const { map, confidence } = detectColumns(HEADERS);
+  COL_MAP = map;
+  CURRENT_CONFIDENCE = confidence;
+  RECORDS = buildRecords(RAW_ROWS, COL_MAP);
+  populateFilters();
+  renderAll();
+}
+
+async function loadData(){
+  try{
+    const rows = await fetchCSV();
+    RAW_ROWS = rows;
+    HEADERS = rows[0].map(h => (h||'').toString().trim());
+    LAST_FETCH = new Date();
+    rebuildFromRaw();
+    setLiveStatus('ok', 'Conectado — actualizado ' + LAST_FETCH.toLocaleTimeString('es-MX'));
+  }catch(err){
+    console.error(err);
+    setLiveStatus('bad', 'No se pudo conectar con la hoja');
+    if(!RECORDS.length){
+      document.getElementById('banner-resumen').innerHTML = `<div class="banner error">
+        <b>No se pudo leer la hoja de Google Sheets en este momento.</b><br>
+        Detalle: ${err.message}. Verifica que la hoja siga publicada en la Web (Archivo → Compartir → Publicar en la Web) con el mismo gid, y que este archivo tenga conexión a internet. Puedes reintentar con "Actualizar ahora".
+      </div>`;
+    }
+  }
+}
+
+// =======================================================================
+// INIT
+// =======================================================================
+function initUI(){
+  document.querySelectorAll('.tab-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('tab-'+btn.dataset.tab).classList.add('active');
+    });
+  });
+  ['fTipo','fAnio','fMes','fTienda','fChofer','fCamion'].forEach(id=>{
+    document.getElementById(id).addEventListener('change', e=>{
+      const key = id.slice(1).toLowerCase(); // fTipo -> tipo, fAnio -> anio, etc.
+      state[key] = e.target.value;
+      renderAll();
+    });
+  });
+  document.getElementById('btnRefreshTop').addEventListener('click', loadData);
+  document.querySelectorAll('#gVia-toggle .seg-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      document.querySelectorAll('#gVia-toggle .seg-btn').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      gViaGranularidad = btn.dataset.g;
+      renderViajes(filterRecords());
+    });
+  });
+}
+
+initUI();
+loadData();
+setInterval(loadData, AUTO_REFRESH_MIN*60*1000);
+</script>
+</body>
+</html>
