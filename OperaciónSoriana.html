@@ -5,7 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Dashboard Soriana — Logistics Ultra (en vivo)</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script>if (typeof Papa === 'undefined') { document.write('<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"><\/script>'); }</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<script>if (typeof Chart === 'undefined') { document.write('<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"><\/script>'); }</script>
 <style>
 :root{
   --verde-oscuro:#123C31;
@@ -186,6 +188,14 @@ footer{padding:20px 28px 40px 28px; text-align:center; font-size:11px; color:var
   <div class="filter-group">
     <label>Camión</label>
     <select id="fCamion"><option value="todos">Todos</option></select>
+  </div>
+  <div class="filter-group">
+    <label>Estado</label>
+    <select id="fEstado"><option value="todos">Todos</option></select>
+  </div>
+  <div class="filter-group">
+    <label>Municipio</label>
+    <select id="fMunicipio"><option value="todos">Todos</option></select>
   </div>
 </div>
 
@@ -411,27 +421,34 @@ const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTfcqjmk30bqYJB
 const AUTO_REFRESH_MIN = 15; // minutos entre refrescos automáticos
 const LS_KEY = "soriana_col_map_v1";
 
-// Campos que buscamos, con su descripción y alias posibles en el encabezado.
-// Ajustado a los encabezados reales de la hoja "Embarques_Soriana_OPS":
-// No. Embarque | Sucursal | Caja | Unidad | Operador | Cedis Salida | Fecha Cedis Salida |
-// Cedis Llegada | Cedis Fecha Llegada | Suc Llegada | Suc Fecha Legada | Suc Salida | Suc Fecha Salida
+// Campos que buscamos. Ana confirmó las columnas por LETRA directamente en su hoja
+// "Embarques_Soriana_OPS", así que esa letra es la fuente de verdad (defaultCol). Si el
+// nombre del encabezado también coincide con alguno de los alias, sirve como respaldo/verificación.
 const FIELD_DEFS = [
-  { key:"e",    label:"No. Embarque (identifica el viaje único)", alias:["noembarque","embarque","idembarque","folio","numeroembarque","numerodetransporte","id"] },
-  { key:"suc",  label:"Sucursal",                    alias:["sucursal","sucursales","tienda","tiendas"] },
-  { key:"cj",   label:"Caja",                        alias:["caja","numcaja","nocaja","numerocaja"] },
-  { key:"u",    label:"Unidad (camión)",              alias:["unidad","camion","numunidad","economico","numeroeconomico"] },
-  { key:"op",   label:"Operador (chofer)",            alias:["operador","chofer","conductor","nombreoperador"] },
-  { key:"tv",   label:"Tipo de viaje",                alias:["tipoviaje","tipo","tipodeviaje"] },
-  { key:"hsc",       label:"Cedis Salida (hora)",       alias:["cedissalida","horasalidacedis","salidacedis"] },
-  { key:"hscFecha",  label:"Fecha Cedis Salida",        alias:["fechacedissalida","cedisfechasalida"] },
-  { key:"hrc",       label:"Cedis Llegada / regreso (hora)", alias:["cedisllegada","horaregresocedis","regresocedis"] },
-  { key:"hrcFecha",  label:"Cedis Fecha Llegada",       alias:["cedisfechallegada","fechacedisllegada"] },
-  { key:"hlls",      label:"Suc Llegada (hora)",        alias:["sucllegada","horallegadasucursal","llegadasucursal"] },
-  { key:"hllsFecha", label:"Suc Fecha Llegada",         alias:["sucfechalegada","sucfechallegada","fechasucllegada"] },
-  { key:"huls",      label:"Suc Salida (hora)",         alias:["sucsalida","horasalidasucursal","finalizadosucursal"] },
-  { key:"hulsFecha", label:"Suc Fecha Salida",          alias:["sucfechasalida","fechasucsalida"] },
-  { key:"fmensaje",  label:"Fecha Mensaje (respaldo)",  alias:["fechamensaje"] }
+  { key:"e",          label:"No. Embarque (identifica el viaje único)", defaultCol:"F", alias:["noembarque","embarque","idembarque","folio","numeroembarque","id"] },
+  { key:"suc",        label:"Sucursal (nombre estandarizado)", defaultCol:"V", alias:["sucursal","sucursales","tienda","tiendas"] },
+  { key:"cj",         label:"Caja",                        defaultCol:"H", alias:["caja","numcaja","nocaja","numerocaja"] },
+  { key:"u",          label:"Unidad (camión)",             defaultCol:"I", alias:["unidad","camion","numunidad","economico"] },
+  { key:"op",         label:"Operador (nombre estandarizado, columna OP)", defaultCol:"Z", alias:["op"] },
+  { key:"hsc",        label:"Cedis Salida (hora)",         defaultCol:"K", alias:["cedissalida"] },
+  { key:"hscFecha",   label:"Fecha Cedis Salida",          defaultCol:"L", alias:["fechacedissalida"] },
+  { key:"hrc",        label:"Cedis Llegada / regreso (hora)", defaultCol:"M", alias:["cedisllegada"] },
+  { key:"hrcFecha",   label:"Cedis Fecha Llegada",         defaultCol:"N", alias:["cedisfechallegada"] },
+  { key:"hlls",       label:"Suc Llegada (hora)",          defaultCol:"O", alias:["sucllegada"] },
+  { key:"hllsFecha",  label:"Suc Fecha Llegada",           defaultCol:"P", alias:["sucfechalegada","sucfechallegada"] },
+  { key:"huls",       label:"Suc Salida (hora)",           defaultCol:"R", alias:["sucsalida"] },
+  { key:"tv",         label:"Tipo de viaje",               defaultCol:"W", alias:["tipoviaje","tipo","tipodeviaje"] },
+  { key:"estado",     label:"Estado",                      defaultCol:"X", alias:["estado"] },
+  { key:"municipio",  label:"Municipio",                   defaultCol:"Y", alias:["municipio"] },
+  { key:"fmensaje",   label:"Fecha Mensaje (respaldo para agrupar por día/semana)", defaultCol:"D", alias:["fechamensaje","fecha"] }
 ];
+// Columnas letra->índice de respaldo (base 0). Convierte "F" -> 5, "AA" -> 26, etc.
+function colLetterToIndex(letter){
+  if(!letter) return null;
+  let n = 0;
+  for(const ch of letter.toUpperCase()){ n = n*26 + (ch.charCodeAt(0) - 64); }
+  return n - 1;
+}
 
 // =======================================================================
 // ESTADO GLOBAL
@@ -441,7 +458,7 @@ let HEADERS = [];         // encabezados crudos
 let COL_MAP = {};         // field key -> índice de columna
 let RECORDS = [];         // viajes ya agrupados por No. Embarque
 let LAST_FETCH = null;
-const state = { tipo:"todos", anio:"todos", mes:"todos", tienda:"todos", chofer:"todos", camion:"todos" };
+const state = { tipo:"todos", anio:"todos", mes:"todos", tienda:"todos", chofer:"todos", camion:"todos", estado:"todos", municipio:"todos" };
 const charts = {};
 const sortState = {};
 
@@ -471,18 +488,31 @@ function mean(arr){ const a=arr.filter(x=>x!==null&&x!==undefined&&!isNaN(x)); i
 function median(arr){ const a=arr.filter(x=>x!==null&&x!==undefined&&!isNaN(x)).sort((x,y)=>x-y); if(!a.length) return null; const mid=Math.floor(a.length/2); return a.length%2 ? a[mid] : (a[mid-1]+a[mid])/2; }
 function fmtMin(m){ if(m===null||m===undefined||isNaN(m)) return '—'; const h=Math.floor(m/60), mm=Math.round(m%60); return h>0?`${h}h ${mm}m`:`${mm}m`; }
 function fmtNum(n){ if(n===null||n===undefined||isNaN(n)) return '—'; return n.toLocaleString('es-MX', {maximumFractionDigits:1}); }
-
-// La hoja trae las fechas en formato DD/MM/YYYY (p. ej. "13/06/2026")
-function parseFechaSlash(s){
+// La hoja SÍ trae una fecha por cada evento (Fecha Cedis Salida, Cedis Fecha Llegada, Suc Fecha
+// Llegada, Suc Fecha Salida), así que las duraciones se calculan cruzando fecha+hora cuando ambas
+// están disponibles — así un viaje que cruza de un día a otro se calcula bien. Si a algún evento le
+// falta la fecha, se usa como respaldo la diferencia por hora del día (asumiendo que cruzó
+// medianoche si el resultado da negativo).
+function parseFechaFlexible(s){
   if(!s) return null;
-  const m = String(s).match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
-  if(!m) return null;
-  const d = m[1].padStart(2,'0'), mo = m[2].padStart(2,'0'), y = m[3];
-  return `${y}-${mo}-${d}`;
+  const str = String(s);
+  let m = str.match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if(m) return `${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}`;
+  m = str.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if(m) return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+  return null;
 }
 function toMin(hhmm){ if(!hhmm) return null; const m = String(hhmm).match(/(\d{1,2}):(\d{2})/); if(!m) return null; return parseInt(m[1],10)*60+parseInt(m[2],10); }
-// Combina una fecha ISO (YYYY-MM-DD) y una hora (HH:MM) en un timestamp absoluto (ms), para poder
-// restar horas que cruzan de un día a otro sin ambigüedad.
+// Diferencia en minutos entre dos horas del día (HH:MM); si da negativo se asume que cruzó
+// medianoche y se le suma un día completo. Se usa solo cuando falta la fecha de alguno de los dos eventos.
+function diffMinutos(hIni, hFin){
+  const a = toMin(hIni), b = toMin(hFin);
+  if(a===null || b===null) return null;
+  let d = b - a;
+  if(d < 0) d += 1440;
+  return d;
+}
+// Combina una fecha ISO (YYYY-MM-DD) y una hora (HH:MM) en un timestamp absoluto (ms).
 function combineDT(iso, hhmm){
   if(!iso) return null;
   const t = toMin(hhmm);
@@ -490,12 +520,17 @@ function combineDT(iso, hhmm){
   const [y,m,d] = iso.split('-').map(Number);
   return Date.UTC(y, m-1, d, 0, 0, 0) + t*60000;
 }
-// Diferencia en minutos entre dos timestamps (ms); null si falta alguno o el resultado es negativo
-// (lo que indicaría un emparejamiento de datos incorrecto, no un viaje real).
-function diffMin(tsA, tsB){
-  if(tsA===null || tsB===null) return null;
-  const d = (tsB - tsA) / 60000;
-  return d < 0 ? null : d;
+// Diferencia en minutos entre el evento 1 (fecha1+hora1) y el evento 2 (fecha2+hora2). Usa fecha+hora
+// exactas cuando ambas fechas están disponibles; si falta alguna, cae al cálculo por hora del día.
+function eventDiff(fecha1, hora1, fecha2, hora2){
+  if(fecha1 && fecha2){
+    const ts1 = combineDT(fecha1, hora1), ts2 = combineDT(fecha2, hora2);
+    if(ts1!==null && ts2!==null){
+      const d = (ts2 - ts1) / 60000;
+      if(d >= 0) return d;
+    }
+  }
+  return diffMinutos(hora1, hora2);
 }
 function mondayOf(iso){
   if(!iso) return null;
@@ -534,6 +569,8 @@ function saveManualMap(map){
   try{ localStorage.setItem(LS_KEY, JSON.stringify(map)); }catch(e){}
 }
 
+// Prioridad para resolver cada columna: 1) corrección manual guardada en este navegador,
+// 2) la letra de columna fija que Ana confirmó, 3) coincidencia por nombre de encabezado.
 function detectColumns(headers){
   const norm = headers.map(normalizeHeader);
   const manual = loadManualMap();
@@ -543,6 +580,12 @@ function detectColumns(headers){
     if(manual[fd.key] !== undefined && manual[fd.key] !== "" && Number(manual[fd.key]) < headers.length){
       map[fd.key] = Number(manual[fd.key]);
       confidence[fd.key] = 'manual';
+      return;
+    }
+    const fixedIdx = colLetterToIndex(fd.defaultCol);
+    if(fixedIdx !== null && fixedIdx < headers.length){
+      map[fd.key] = fixedIdx;
+      confidence[fd.key] = 'columna ' + fd.defaultCol;
       return;
     }
     let idx = norm.findIndex(h => fd.alias.includes(h));
@@ -564,18 +607,16 @@ function buildRecords(rows, map){
     const e = (get(r,'e')||'').toString().trim();
     if(!e) return;
 
-    const hscFecha = parseFechaSlash(get(r,'hscFecha'));
-    const hrcFecha = parseFechaSlash(get(r,'hrcFecha'));
-    const hllsFecha = parseFechaSlash(get(r,'hllsFecha'));
-    const hulsFecha = parseFechaSlash(get(r,'hulsFecha'));
-    const fmensajeFecha = parseFechaSlash(get(r,'fmensaje'));
+    const hscFecha = parseFechaFlexible(get(r,'hscFecha'));
+    const hrcFecha = parseFechaFlexible(get(r,'hrcFecha'));
+    const hllsFecha = parseFechaFlexible(get(r,'hllsFecha'));
+    const hulsFecha = parseFechaFlexible(get(r,'hulsFecha'));
 
     if(!viajes.has(e)){
       viajes.set(e, {
-        e,
-        u:'', op:'', cj:'', tv:'', suc:'',
-        hscTs:null, hrcTs:null,
-        stops: [] // {suc, hllsTs, hulsTs}
+        e, u:'', op:'', cj:'', tv:'', estado:'', municipio:'', fecha:null,
+        hsc:null, hscFecha:null, hrc:null, hrcFecha:null,
+        stops: [] // {suc, hlls, hllsFecha, huls, hulsFecha}
       });
     }
     const v = viajes.get(e);
@@ -583,47 +624,50 @@ function buildRecords(rows, map){
     if(!v.op && get(r,'op')) v.op = get(r,'op').toString().trim();
     if(!v.cj && get(r,'cj')) v.cj = get(r,'cj').toString().trim();
     if(!v.tv && get(r,'tv')) v.tv = get(r,'tv').toString().trim();
-    if(v.hscTs===null){ const ts = combineDT(hscFecha, get(r,'hsc')); if(ts!==null) v.hscTs = ts; }
-    if(v.hrcTs===null){ const ts = combineDT(hrcFecha, get(r,'hrc')); if(ts!==null) v.hrcTs = ts; }
-    if(v.dateFallback===undefined) v.dateFallback = hscFecha || hllsFecha || fmensajeFecha || hrcFecha || hulsFecha || null;
+    if(!v.estado && get(r,'estado')) v.estado = get(r,'estado').toString().trim();
+    if(!v.municipio && get(r,'municipio')) v.municipio = get(r,'municipio').toString().trim();
+    if(!v.hsc && get(r,'hsc')){ v.hsc = get(r,'hsc'); v.hscFecha = hscFecha; }
+    if(!v.hrc && get(r,'hrc')){ v.hrc = get(r,'hrc'); v.hrcFecha = hrcFecha; }
+    if(!v.fecha) v.fecha = hscFecha || hllsFecha || parseFechaFlexible(get(r,'fmensaje')) || hrcFecha || hulsFecha || null;
 
     const sucNombre = (get(r,'suc')||'').toString().trim();
     if(sucNombre){
       v.stops.push({
         suc: sucNombre,
-        hllsTs: combineDT(hllsFecha, get(r,'hlls')),
-        hulsTs: combineDT(hulsFecha, get(r,'huls'))
+        hlls: get(r,'hlls'), hllsFecha,
+        huls: get(r,'huls'), hulsFecha
       });
     }
   });
 
   const recs = [];
   viajes.forEach(v=>{
-    const date = v.dateFallback || (v.stops[0] && (v.stops[0].hllsTs ? new Date(v.stops[0].hllsTs).toISOString().slice(0,10) : null));
-    if(!date) return; // sin ninguna fecha utilizable, se descarta
+    if(!v.fecha) return; // sin fecha utilizable, se descarta
 
     const firstStop = v.stops[0] || null;
     const lastStop = v.stops.length ? v.stops[v.stops.length-1] : null;
 
-    const tti = firstStop ? diffMin(v.hscTs, firstStop.hllsTs) : null;
-    const ttr = lastStop ? diffMin(lastStop.hulsTs, v.hrcTs) : null;
-    const trt = diffMin(v.hscTs, v.hrcTs);
+    const tti = firstStop ? eventDiff(v.hscFecha, v.hsc, firstStop.hllsFecha, firstStop.hlls) : null;
+    const ttr = lastStop ? eventDiff(lastStop.hulsFecha, lastStop.huls, v.hrcFecha, v.hrc) : null;
+    const trt = eventDiff(v.hscFecha, v.hsc, v.hrcFecha, v.hrc);
 
     const stopDetails = v.stops.map((s,idx)=>({
       suc: s.suc,
-      ttes: diffMin(s.hllsTs, s.hulsTs),
+      ttes: eventDiff(s.hllsFecha, s.hlls, s.hulsFecha, s.huls),
       esPrimera: idx===0,
       esUltima: idx===v.stops.length-1
     }));
-    const ttesValidos = stopDetails.map(s=>s.ttes).filter(v=>v!==null);
+    const ttesValidos = stopDetails.map(s=>s.ttes).filter(x=>x!==null);
     const ttesTotal = ttesValidos.length ? ttesValidos.reduce((a,b)=>a+b,0) : null;
 
     const rec = {
       e: v.e, u: v.u, op: v.op, cj: v.cj,
       tv: v.tv || 'Sin clasificar',
+      estado: v.estado || 'Sin dato',
+      municipio: v.municipio || 'Sin dato',
       stops: [...new Set(v.stops.map(s=>s.suc))],
       stopDetails,
-      date, week: mondayOf(date), month: date.slice(0,7), year: date.slice(0,4),
+      date: v.fecha, week: mondayOf(v.fecha), month: v.fecha.slice(0,7), year: v.fecha.slice(0,4),
       tti, ttes: ttesTotal, ttr, trt
     };
     recs.push(rec);
@@ -647,6 +691,8 @@ function populateFilters(){
   const tiendas = [...new Set(RECORDS.flatMap(r=>r.stops))].sort();
   const choferes = [...new Set(RECORDS.map(r=>r.op).filter(Boolean))].sort();
   const camiones = [...new Set(RECORDS.map(r=>r.u).filter(Boolean))].sort();
+  const estados = [...new Set(RECORDS.map(r=>r.estado).filter(Boolean))].sort();
+  const municipios = [...new Set(RECORDS.map(r=>r.municipio).filter(Boolean))].sort();
   sel('fTipo', tipos);
   sel('fAnio', anios);
   const selMes = document.getElementById('fMes');
@@ -657,6 +703,8 @@ function populateFilters(){
   sel('fTienda', tiendas);
   sel('fChofer', choferes);
   sel('fCamion', camiones);
+  sel('fEstado', estados);
+  sel('fMunicipio', municipios);
 }
 
 function filterRecords(){
@@ -667,6 +715,8 @@ function filterRecords(){
     if(state.tienda!=='todos' && !r.stops.includes(state.tienda)) return false;
     if(state.chofer!=='todos' && r.op!==state.chofer) return false;
     if(state.camion!=='todos' && r.u!==state.camion) return false;
+    if(state.estado!=='todos' && r.estado!==state.estado) return false;
+    if(state.municipio!=='todos' && r.municipio!==state.municipio) return false;
     return true;
   });
 }
@@ -794,10 +844,16 @@ function histograma(values, binSize, maxVal){
 function kpiCard(label, value, sub, colorClass){
   return `<div class="kpi-card"><div class="label">${label}</div><div class="value ${colorClass||''}">${value}</div><div class="sub">${sub||''}</div></div>`;
 }
+function chartsReady(){ return typeof Chart !== 'undefined'; }
+function chartFallback(id){
+  const el = document.getElementById(id);
+  if(el && el.parentElement) el.parentElement.insertAdjacentHTML('beforeend', '<p class="note" style="color:var(--rojo);">No se pudo dibujar esta gráfica (la librería de gráficas no cargó). Los datos siguen disponibles en las tablas.</p>');
+}
 function makeBar(id, labels, datasets, opts){
   destroyChart(id);
   const ctx = document.getElementById(id);
   if(!ctx) return;
+  if(!chartsReady()){ chartFallback(id); return; }
   charts[id] = new Chart(ctx, {
     type: (opts && opts.horizontal) ? 'bar' : 'bar',
     data: { labels, datasets },
@@ -813,6 +869,7 @@ function makeLine(id, labels, datasets){
   destroyChart(id);
   const ctx = document.getElementById(id);
   if(!ctx) return;
+  if(!chartsReady()){ chartFallback(id); return; }
   charts[id] = new Chart(ctx, {
     type:'line',
     data:{ labels, datasets },
@@ -1109,11 +1166,23 @@ function renderConfig(){
 // =======================================================================
 function renderAll(){
   const recs = filterRecords();
-  renderResumen(recs);
-  renderViajes(recs);
-  renderTiempos(recs);
-  renderRotacion(recs);
-  renderConfig();
+  const secciones = [
+    ['resumen', renderResumen], ['viajes', renderViajes],
+    ['tiempos', renderTiempos], ['rotacion', renderRotacion]
+  ];
+  secciones.forEach(([nombre, fn])=>{
+    try{ fn(recs); }
+    catch(err){
+      console.error('Error en sección ' + nombre, err);
+      const b = document.getElementById('banner-'+nombre);
+      if(b) b.innerHTML = `<div class="banner error"><b>Esta sección tuvo un error al dibujarse:</b> ${err.message}. Revisa la pestaña Configuración/diagnóstico.</div>` + (b.innerHTML||'');
+    }
+  });
+  try{ renderConfig(); }catch(err){ console.error('Error en configuración', err); }
+  if(!chartsReady()){
+    const b = document.getElementById('banner-resumen');
+    if(b) b.innerHTML = `<div class="banner error"><b>Las gráficas no cargaron.</b> La librería de gráficas (Chart.js) no se pudo descargar en este navegador/red. Los datos y las tablas sí están completos; intenta "Actualizar ahora" o abre el archivo en otra red.</div>` + (b.innerHTML||'');
+  }
 }
 
 function rebuildFromRaw(){
@@ -1157,7 +1226,7 @@ function initUI(){
       document.getElementById('tab-'+btn.dataset.tab).classList.add('active');
     });
   });
-  ['fTipo','fAnio','fMes','fTienda','fChofer','fCamion'].forEach(id=>{
+  ['fTipo','fAnio','fMes','fTienda','fChofer','fCamion','fEstado','fMunicipio'].forEach(id=>{
     document.getElementById(id).addEventListener('change', e=>{
       const key = id.slice(1).toLowerCase(); // fTipo -> tipo, fAnio -> anio, etc.
       state[key] = e.target.value;
