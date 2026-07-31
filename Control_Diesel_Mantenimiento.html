@@ -974,7 +974,7 @@ function renderUnidades(){
       <div class="row"><span>Último mantenimiento</span><b>${ultimo? ultimo['Fecha'] : 'Sin registro'}</b></div>
       <div class="row"><span>Próximo (km / fecha)</span><b>${e.proxKm? e.proxKm.toLocaleString('es-MX') : '—'} / ${e.proxFecha||'—'}</b></div>
       <div style="margin-top:10px;text-align:right;">
-        <button class="btn small secondary" onclick="descargarBitacora('${u.replace(/'/g,"\\'")}')">⬇ Bitácora</button>
+        <button class="btn small secondary" onclick="descargarBitacora('${u.replace(/'/g,"\\'")}')">🖨️ Bitácora taller</button>
       </div>
     </div>`;
   }).join('');
@@ -1003,9 +1003,103 @@ function exportarCSV(tipo){
   }
 }
 function descargarBitacora(unidad){
-  const mtto = DATA.mantenimiento.filter(m=> String(m['Número de Unidad/Caja'])===unidad);
-  const headers = ['Fecha','Equipo','Número de Unidad/Caja','Tipo de Operación','Kilometraje Actual','Tipo de Mantenimiento','Descripción/Falla','Taller','Taller Externo (Nombre)','Piezas/Refacciones','Costo','Comentarios','Próximo Mantenimiento (Km)','Próximo Mantenimiento (Fecha)'];
-  descargarCSVArchivo('bitacora_'+unidad+'.csv', toCSV(mtto, headers));
+  const mtto = DATA.mantenimiento
+    .filter(m=> String(m['Número de Unidad/Caja'])===unidad)
+    .sort((a,b)=> new Date(b['Fecha'])-new Date(a['Fecha']));
+  const kmMap = kmActualPorUnidad();
+  const ultimoMap = ultimoMttoPorUnidad();
+  const primerMap = primerRegistroPorUnidad();
+  const info = kmMap[unidad] || { km:0, equipo:'Tractor' };
+  const e = estatusUnidad(unidad, kmMap, ultimoMap, primerMap);
+  const ultimo = mtto[0];
+
+  const badgeColor = e.status==='vencido' ? '#c0392b' : (e.status==='proximo' ? '#d97706' : (e.status==='al_dia' ? '#1a7f37' : '#6b7280'));
+  const badgeTexto = e.label || 'Sin registro';
+
+  const recomendacion = (ultimo && esMantenimientoPendiente(ultimo))
+    ? (ultimo['Descripción/Falla'] || 'Requiere revisión — ver detalle capturado.')
+    : (e.status==='vencido' || e.status==='proximo')
+      ? `Le corresponde mantenimiento preventivo (llegó a ${e.proxKm? e.proxKm.toLocaleString('es-MX'):'—'} km o a la fecha ${e.proxFecha||'—'}).`
+      : 'Sin recomendación pendiente registrada — unidad al día.';
+
+  const filasHist = mtto.map(m => `
+    <tr>
+      <td>${m['Fecha']||''}</td>
+      <td>${m['Tipo de Mantenimiento']||''}</td>
+      <td>${m['Descripción/Falla']||''}</td>
+      <td>${m['Taller']||''}${m['Taller Externo (Nombre)']?(' - '+m['Taller Externo (Nombre)']):''}</td>
+      <td>${m['Piezas/Refacciones']||''}</td>
+      <td>${fmtMoney(m['Costo'])}</td>
+    </tr>`).join('') || `<tr><td colspan="6" style="text-align:center;color:#888;padding:14px;">Sin mantenimientos registrados todavía</td></tr>`;
+
+  const html = `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
+  <title>Bitácora ${unidad} — Logistics Ultra</title>
+  <style>
+    body{font-family:Arial,Helvetica,sans-serif;color:#1f2a1f;margin:30px;}
+    .logo{height:44px;background:#fff;}
+    header{display:flex;align-items:center;gap:16px;border-bottom:3px solid #284628;padding-bottom:14px;margin-bottom:18px;}
+    header h1{font-size:20px;margin:0;color:#284628;}
+    header .sub{font-size:12px;color:#666;}
+    .badge{display:inline-block;padding:4px 12px;border-radius:20px;color:#fff;font-size:12px;font-weight:700;background:${badgeColor};}
+    .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:16px 0;font-size:13px;}
+    .grid div b{display:block;color:#666;font-weight:600;font-size:11px;text-transform:uppercase;}
+    .recuadro{background:#fff4e0;border:1px solid #f0c36d;border-radius:8px;padding:14px 16px;margin:18px 0;font-size:14px;}
+    .recuadro b{color:#7a4a00;}
+    h2{font-size:14px;color:#284628;border-bottom:1px solid #ddd;padding-bottom:6px;margin-top:26px;}
+    table{width:100%;border-collapse:collapse;font-size:12px;margin-top:8px;}
+    th{background:#e8f0e6;color:#284628;text-align:left;padding:6px 8px;}
+    td{padding:6px 8px;border-bottom:1px solid #eee;}
+    .firma{margin-top:40px;display:grid;grid-template-columns:1fr 1fr;gap:40px;font-size:12px;}
+    .firma div{border-top:1px solid #333;padding-top:6px;text-align:center;color:#555;}
+    .campos-taller{margin-top:24px;font-size:13px;}
+    .campos-taller div{border-bottom:1px solid #ccc;padding:10px 0;}
+    .no-print{margin-bottom:16px;}
+    @media print{ .no-print{display:none;} }
+  </style></head>
+  <body>
+    <div class="no-print"><button onclick="window.print()" style="background:#284628;color:#fff;border:none;padding:10px 18px;border-radius:8px;cursor:pointer;font-size:13px;">🖨️ Imprimir / Guardar como PDF</button></div>
+    <header>
+      <img class="logo" src="data:image/png;base64,${LOGO_B64}">
+      <div>
+        <h1>Bitácora de Mantenimiento — Unidad ${unidad}</h1>
+        <div class="sub">Logistics Ultra · Generado el ${new Date().toLocaleDateString('es-MX',{year:'numeric',month:'long',day:'numeric'})}</div>
+      </div>
+    </header>
+
+    <div class="grid">
+      <div><b>Estatus</b><span class="badge">${badgeTexto}</span></div>
+      <div><b>Equipo</b>${info.equipo}</div>
+      <div><b>Tipo de operación</b>${ultimo? (ultimo['Tipo de Operación']||'—') : '—'}</div>
+      <div><b>Km actual conocido</b>${(info.km||0).toLocaleString('es-MX')}</div>
+      <div><b>Último mantenimiento</b>${ultimo? ultimo['Fecha'] : 'Sin registro'}</div>
+      <div><b>Próximo (km)</b>${e.proxKm? e.proxKm.toLocaleString('es-MX') : '—'}</div>
+      <div><b>Próximo (fecha)</b>${e.proxFecha||'—'}</div>
+      <div><b>Regla aplicada</b>${KM_ALERTA.toLocaleString('es-MX')} km o ${MESES_ALERTA} meses, lo que ocurra primero</div>
+    </div>
+
+    <div class="recuadro"><b>Recomendación para el taller:</b><br>${recomendacion}</div>
+
+    <h2>Historial de mantenimientos</h2>
+    <table><thead><tr><th>Fecha</th><th>Tipo</th><th>Descripción / falla</th><th>Taller</th><th>Piezas</th><th>Costo</th></tr></thead>
+    <tbody>${filasHist}</tbody></table>
+
+    <h2>Para llenar en el taller</h2>
+    <div class="campos-taller">
+      <div><b>Trabajo realizado:</b> ______________________________________________________________</div>
+      <div><b>Piezas / refacciones utilizadas:</b> _______________________________________________</div>
+      <div><b>Costo:</b> ____________________ &nbsp;&nbsp;&nbsp; <b>Fecha de entrega:</b> ____________________</div>
+      <div><b>Kilometraje al recibir:</b> ____________________ &nbsp;&nbsp;&nbsp; <b>Kilometraje al entregar:</b> ____________________</div>
+      <div><b>Observaciones:</b> ___________________________________________________________________</div>
+    </div>
+    <div class="firma">
+      <div>Firma / sello del taller</div>
+      <div>Recibido por Logistics Ultra</div>
+    </div>
+  </body></html>`;
+
+  const w = window.open('', '_blank');
+  w.document.write(html);
+  w.document.close();
 }
 
 /* ============ INIT ============ */
