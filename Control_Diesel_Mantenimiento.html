@@ -486,6 +486,7 @@ async function cargarDatos(forzar){
   _cargando = true;
   const status = document.getElementById('connStatus');
   status.textContent = '● cargando…';
+  ocultarBannerError();
   const g = DASHBOARD_CONFIG.GIDS;
   try{
     const [diesel, mantenimiento, kmDiario, operadoresRaw] = await Promise.all([
@@ -515,9 +516,10 @@ async function cargarDatos(forzar){
       if(opCache) poblarOperadores(JSON.parse(opCache));
     }
   }catch(err){
-    status.textContent = '● sin conexión (usando caché)';
-    status.title = String(err && err.message || err); // pasa el mouse sobre el estatus para ver el error real
+    status.textContent = '● error al cargar';
+    status.title = String(err && err.message || err);
     console.error('Error cargando datos del dashboard:', err);
+    mostrarBannerError('No se pudieron procesar los datos: ' + String(err && err.message || err));
     const cached = localStorage.getItem('ultra_diesel_mtto_cache');
     if(cached) DATA = JSON.parse(cached);
     const opCache = localStorage.getItem('ultra_operadores_cache');
@@ -526,7 +528,23 @@ async function cargarDatos(forzar){
   _cargando = false;
   const ts = localStorage.getItem('ultra_diesel_mtto_ts');
   document.getElementById('lastUpdate').textContent = ts ? ('Última actualización: '+new Date(ts).toLocaleString('es-MX')) : 'Sin conexión aún';
-  renderTodo();
+  try{
+    renderTodo();
+  }catch(err){
+    console.error('Error mostrando los datos en pantalla:', err);
+    mostrarBannerError('Los datos se descargaron pero hubo un error al mostrarlos: ' + String(err && err.message || err));
+  }
+}
+function mostrarBannerError(msg){
+  const el = document.getElementById('apiWarn');
+  el.style.display = 'block';
+  el.style.background = '#fdecea'; el.style.borderColor = '#e6a19a'; el.style.color = '#7a1f1a';
+  el.textContent = '⚠️ ' + msg;
+  el.dataset.esBannerDeError = '1';
+}
+function ocultarBannerError(){
+  const el = document.getElementById('apiWarn');
+  if(el.dataset.esBannerDeError){ el.style.display = 'none'; }
 }
 function poblarOperadores(nombres){
   document.getElementById('listaOperadores').innerHTML = nombres.map(n=>`<option value="${n.replace(/"/g,'&quot;')}">`).join('');
