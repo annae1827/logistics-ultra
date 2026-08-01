@@ -2401,6 +2401,23 @@ function renderFiniquitoBody(){
           <div class="field"><label>Fecha de ingreso (periodo vigente)</label><input disabled value="${fmtFecha(per.fechaIngreso)}"></div>
           <div class="field"><label class="req">Fecha de salida (cálculo)</label><input type="date" id="fin_fechaSalida" value="${fechaSalidaDefault}"></div>
         </div>
+        <div class="field">
+          <label>Motivo / tipo de baja</label>
+          <select id="fin_motivoBaja">
+            <option value="">Selecciona…</option>
+            <option ${per.motivoBaja==='Renuncia voluntaria'?'selected':''}>Renuncia voluntaria</option>
+            <option ${per.motivoBaja==='Fin de contrato'?'selected':''}>Fin de contrato</option>
+            <option ${per.motivoBaja==='Incumplimiento del reglamento'?'selected':''}>Incumplimiento del reglamento</option>
+            <option ${per.motivoBaja==='Desconexión / extracción de equipo GPS o telemático'?'selected':''}>Desconexión / extracción de equipo GPS o telemático</option>
+            <option ${per.motivoBaja==='Faltante de mercancía del cliente'?'selected':''}>Faltante de mercancía del cliente</option>
+            <option ${per.motivoBaja==='03 días de inasistencia sin justificante'?'selected':''}>03 días de inasistencia sin justificante</option>
+            <option ${per.motivoBaja==='Bajo el influjo de sustancias tóxicas'?'selected':''}>Bajo el influjo de sustancias tóxicas</option>
+            <option ${per.motivoBaja==='Uso del vehículo para fines ajenos a Ultra'?'selected':''}>Uso del vehículo para fines ajenos a Ultra</option>
+            <option ${per.motivoBaja==='Extracción de combustible, partes o daños al vehículo'?'selected':''}>Extracción de combustible, partes o daños al vehículo</option>
+            <option ${per.motivoBaja==='Otro'?'selected':''}>Otro</option>
+          </select>
+          <div class="help">Si ya se dio de baja formalmente, viene precargado con el motivo registrado; puedes cambiarlo solo para este cálculo.</div>
+        </div>
         <div class="field-row two">
           <div class="field"><label>Pagos pendientes (movimientos, días no pagados)</label><input type="number" step="0.01" min="0" id="fin_pagosPendientes" value="0"></div>
           <div class="field"><label>Adeudos (préstamos / anticipos)</label><input type="number" step="0.01" min="0" id="fin_adeudos" value="0"></div>
@@ -2409,7 +2426,7 @@ function renderFiniquitoBody(){
           <div class="field"><label>Infonavit</label><input type="number" step="0.01" min="0" id="fin_infonavit" value="0"></div>
           <div class="field"><label>Otras deducciones</label><input type="number" step="0.01" min="0" id="fin_otras" value="0"></div>
         </div>
-        <div class="help" style="margin-bottom:10px;">El ISR se calcula automáticamente (7.2% del monto bruto) y no es editable.</div>
+        <div class="help" style="margin-bottom:10px;">El ISR se calcula automáticamente (7.5% del monto bruto) y no es editable.</div>
         <button class="btn btn-amber" onclick="recalcularFiniquito()">Calcular finiquito</button>
       </div>
       <div id="finResultado"></div>
@@ -2428,6 +2445,7 @@ function renderFiniquitoBody(){
     </details>
   `;
   document.getElementById('fin_fechaSalida').addEventListener('change', recalcularFiniquito);
+  document.getElementById('fin_motivoBaja').addEventListener('change', recalcularFiniquito);
   ['fin_pagosPendientes','fin_adeudos','fin_infonavit','fin_otras'].forEach(id=>{
     document.getElementById(id).addEventListener('input', recalcularFiniquito);
   });
@@ -2464,6 +2482,8 @@ let __ultimoCalculoFiniquito = null;
 let __finOverrides = null; // {aguinaldo, vacaciones, prima} — solo aplica cuando es renuncia voluntaria
 
 function esRenunciaVoluntaria(e){
+  const sel = document.getElementById('fin_motivoBaja');
+  if(sel && sel.value) return sel.value === 'Renuncia voluntaria';
   return periodoVigente(e).motivoBaja === 'Renuncia voluntaria';
 }
 
