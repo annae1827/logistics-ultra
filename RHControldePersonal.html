@@ -1566,9 +1566,9 @@ function exportarActivosExcel(){
 
 function exportarBaseCompleta(){
   if(!DB.empleados.length){ toast('No hay empleados en la base para exportar.', 'err'); return; }
-  const rows = DB.empleados.slice()
-    .sort((a,b)=>nombreCompleto(a).localeCompare(nombreCompleto(b)))
-    .map(e=>{
+  const empleadosOrdenados = DB.empleados.slice().sort((a,b)=>nombreCompleto(a).localeCompare(nombreCompleto(b)));
+
+  const rowsEmpleados = empleadosOrdenados.map(e=>{
       const per = periodoVigente(e);
       const ant = calcAntiguedad(per.fechaIngreso);
       const c = e.contrato;
@@ -1603,9 +1603,49 @@ function exportarBaseCompleta(){
         'Contrato — meses de prueba': c && c.mesesPrueba ? c.mesesPrueba : ''
       };
     });
-  const ws = XLSX.utils.json_to_sheet(rows);
+
+  const rowsPeriodos = [];
+  empleadosOrdenados.forEach(e=>{
+    e.periodos.forEach((p,i)=>{
+      rowsPeriodos.push({
+        'Iniciales': e.iniciales, 'Nombre completo': nombreCompleto(e),
+        '# Periodo': i+1, 'Fecha de ingreso': p.fechaIngreso,
+        'Fecha de baja': p.fechaBaja || '', 'Motivo de baja': p.motivoBaja || ''
+      });
+    });
+  });
+
+  const rowsActas = DB.actas.slice().sort((a,b)=>b.fecha.localeCompare(a.fecha)).map(a=>{
+    const e = DB.empleados.find(x=>x.id===a.empleadoId);
+    return {
+      'Empleado': e ? nombreCompleto(e) : '(eliminado) ' + a.empleadoId,
+      'Fecha': a.fecha, 'Tipo': a.tipo, 'Motivo': a.motivo,
+      'Días suspendido': a.diasSuspendido || 0, 'Monto': a.monto || 0,
+      'Detalle descuento': a.detalleDescuento || '', 'Fecha de captura': a.creada
+    };
+  });
+
+  const rowsVacaciones = DB.vacaciones.slice().sort((a,b)=>b.inicio.localeCompare(a.inicio)).map(v=>{
+    const e = DB.empleados.find(x=>x.id===v.empleadoId);
+    return {
+      'Empleado': e ? nombreCompleto(e) : '(eliminado) ' + v.empleadoId,
+      'Inicio': v.inicio, 'Fin': v.fin, 'Días': v.dias,
+      'Nota': v.nota || '', 'Fecha de registro': v.registrado
+    };
+  });
+
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Plantilla completa');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rowsEmpleados), 'Empleados');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rowsPeriodos), 'Periodos (historial completo)');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rowsActas.length?rowsActas:[{'Sin actas registradas':''}]), 'Actas');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rowsVacaciones.length?rowsVacaciones:[{'Sin vacaciones registradas':''}]), 'Vacaciones');
+  // Respaldo crudo: JSON completo en una sola celda, para restaurar sin pérdida si algo falla del lado del servidor
+  const wsRaw = XLSX.utils.aoa_to_sheet([
+    ['NO EDITAR — respaldo técnico completo, usar solo para restaurar la base si algo falla'],
+    [JSON.stringify(DB)]
+  ]);
+  XLSX.utils.book_append_sheet(wb, wsRaw, 'RAW_JSON_BACKUP');
+
   XLSX.writeFile(wb, 'Ultra_RH_Base_Completa_' + todayISO() + '.xlsx');
 }
 
@@ -2421,6 +2461,23 @@ function agregarIncidenciaRapida(empId){
 }
 
 let __ultimoCalculoFiniquito = null;
+let __finOverrides = null; // {aguinaldo, vacaciones, prima} — solo aplica cuando es renuncia voluntaria
+
+function esRenunciaVoluntaria(e){
+  return periodoVigente(e).motivoBaja === 'Renuncia voluntaria';
+}
+
+function valoresEfectivosFiniquito(c, overrides){
+  const aguinaldo = overrides && overrides.aguinaldo !== null ? overrides.aguinaldo : c.aguinaldoProp;
+  const vacaciones = overrides && overrides.vacaciones !== null ? overrides.vacaciones : c.vacacionesPendientesMonto;
+  const prima = overrides && overrides.prima !== null ? overrides.prima : c.primaVacacional;
+  const subtotal = aguinaldo + vacaciones + prima + c.pagosPendientes;
+  const isr = subtotal * 0.075;
+  const deducciones = c.adeudos + isr + c.infonavit + c.otrasDeducciones + c.montoIncidencias + c.montoSuspensiones;
+  const total = subtotal - deducciones;
+  return { aguinaldo, vacaciones, prima, subtotal, isr, deducciones, total };
+}
+
 function recalcularFiniquito(){
   const empId = document.getElementById('fin_empleado').value;
   const e = DB.empleados.find(x=>x.id===empId);
@@ -2434,33 +2491,87 @@ function recalcularFiniquito(){
   };
   const c = calcularFiniquito(e, fechaSalida, extras);
   __ultimoCalculoFiniquito = { e, c };
+  __finOverrides = { aguinaldo: null, vacaciones: null, prima: null };
+  const esRenuncia = esRenunciaVoluntaria(e);
+  const vals = valoresEfectivosFiniquito(c, __finOverrides);
+
+  const filaAguinaldo = esRenuncia ? `
+    <tr><td>Aguinaldo proporcional por renuncia voluntaria</td>
+      <td style="text-align:right;white-space:nowrap;">
+        <input type="number" step="0.01" id="fin_ov_aguinaldo" value="${c.aguinaldoProp.toFixed(2)}" style="width:100px;text-align:right;display:inline-block;" oninput="actualizarFiniquitoOverride()">
+        <button type="button" class="btn btn-outline btn-sm" style="padding:2px 7px;margin-left:4px;" onclick="quitarOverrideFiniquito('aguinaldo')" title="Quitar este monto">✕</button>
+      </td></tr>`
+    : `<tr><td>Aguinaldo proporcional (${c.diasAguinaldo} días del año)</td><td style="text-align:right;">${fmtDinero(c.aguinaldoProp)}</td></tr>`;
+
+  const filaVacaciones = esRenuncia ? `
+    <tr><td>Vacaciones pendientes (${c.vacacionesPendientesDias.toFixed(2)} de ${c.diasLey} días)</td>
+      <td style="text-align:right;white-space:nowrap;">
+        <input type="number" step="0.01" id="fin_ov_vacaciones" value="${c.vacacionesPendientesMonto.toFixed(2)}" style="width:100px;text-align:right;display:inline-block;" oninput="actualizarFiniquitoOverride()">
+        <button type="button" class="btn btn-outline btn-sm" style="padding:2px 7px;margin-left:4px;" onclick="quitarOverrideFiniquito('vacaciones')" title="Quitar este monto">✕</button>
+      </td></tr>`
+    : `<tr><td>Vacaciones pendientes (${c.vacacionesPendientesDias.toFixed(2)} de ${c.diasLey} días)</td><td style="text-align:right;">${fmtDinero(c.vacacionesPendientesMonto)}</td></tr>`;
+
+  const filaPrima = esRenuncia ? `
+    <tr><td>Prima vacacional (25%)</td>
+      <td style="text-align:right;white-space:nowrap;">
+        <input type="number" step="0.01" id="fin_ov_prima" value="${c.primaVacacional.toFixed(2)}" style="width:100px;text-align:right;display:inline-block;" oninput="actualizarFiniquitoOverride()">
+        <button type="button" class="btn btn-outline btn-sm" style="padding:2px 7px;margin-left:4px;" onclick="quitarOverrideFiniquito('prima')" title="Quitar este monto">✕</button>
+      </td></tr>`
+    : `<tr><td>Prima vacacional (25%)</td><td style="text-align:right;">${fmtDinero(c.primaVacacional)}</td></tr>`;
+
   document.getElementById('finResultado').innerHTML = `
     <div class="card card-pad" style="background:#f6f8f4;">
       <div class="stat-strip" style="margin-bottom:12px;">
         <div class="si"><b>${c.ant.years}a ${c.ant.months}m ${c.ant.days}d</b> antigüedad</div>
       </div>
+      ${esRenuncia ? `<div class="small-note" style="margin-bottom:10px;">Baja por renuncia voluntaria: los montos calculados abajo son editables — ajústalos o quítalos con ✕ según lo acordado.</div>` : ''}
       <table style="font-size:12.5px;">
-        <tr><td>Aguinaldo proporcional (${c.diasAguinaldo} días del año)</td><td style="text-align:right;">${fmtDinero(c.aguinaldoProp)}</td></tr>
-        <tr><td>Vacaciones pendientes (${c.vacacionesPendientesDias.toFixed(2)} de ${c.diasLey} días)</td><td style="text-align:right;">${fmtDinero(c.vacacionesPendientesMonto)}</td></tr>
-        <tr><td>Prima vacacional (25%)</td><td style="text-align:right;">${fmtDinero(c.primaVacacional)}</td></tr>
+        ${filaAguinaldo}
+        ${filaVacaciones}
+        ${filaPrima}
         <tr><td>Pagos pendientes</td><td style="text-align:right;">${fmtDinero(c.pagosPendientes)}</td></tr>
-        <tr style="font-weight:700;border-top:1px solid var(--line);"><td>Subtotal</td><td style="text-align:right;">${fmtDinero(c.subtotal)}</td></tr>
+        <tr style="font-weight:700;border-top:1px solid var(--line);"><td>Subtotal</td><td style="text-align:right;" id="fin_val_subtotal">${fmtDinero(vals.subtotal)}</td></tr>
         <tr><td>Adeudos</td><td style="text-align:right;color:var(--red);">− ${fmtDinero(c.adeudos)}</td></tr>
-        <tr><td>ISR (7.5%)</td><td style="text-align:right;color:var(--red);">− ${fmtDinero(c.isr)}</td></tr>
+        <tr><td>ISR (7.5%)</td><td style="text-align:right;color:var(--red);" id="fin_val_isr">− ${fmtDinero(vals.isr)}</td></tr>
         <tr><td>Infonavit</td><td style="text-align:right;color:var(--red);">− ${fmtDinero(c.infonavit)}</td></tr>
         <tr><td>Otras deducciones</td><td style="text-align:right;color:var(--red);">− ${fmtDinero(c.otrasDeducciones)}</td></tr>
         <tr><td>Incidencias / infracciones (${c.actasEmp.length})</td><td style="text-align:right;color:var(--red);">− ${fmtDinero(c.montoIncidencias)}</td></tr>
         <tr><td>Días suspendidos (${c.diasSuspendidos}d)</td><td style="text-align:right;color:var(--red);">− ${fmtDinero(c.montoSuspensiones)}</td></tr>
-        <tr style="font-weight:800;font-size:15px;border-top:2px solid var(--navy-900);"><td>Total finiquito</td><td style="text-align:right;color:var(--navy-900);">${fmtDinero(c.total)}</td></tr>
+        <tr style="font-weight:800;font-size:15px;border-top:2px solid var(--navy-900);"><td>Total finiquito</td><td style="text-align:right;color:var(--navy-900);" id="fin_val_total">${fmtDinero(vals.total)}</td></tr>
       </table>
       <button class="btn btn-primary" style="margin-top:14px;width:100%;justify-content:center;" onclick="generarFiniquitoPDF()">Generar documento de finiquito</button>
     </div>
   `;
 }
 
+function actualizarFiniquitoOverride(){
+  if(!__ultimoCalculoFiniquito) return;
+  const ag = document.getElementById('fin_ov_aguinaldo');
+  const va = document.getElementById('fin_ov_vacaciones');
+  const pr = document.getElementById('fin_ov_prima');
+  __finOverrides = {
+    aguinaldo: ag ? Number(ag.value||0) : null,
+    vacaciones: va ? Number(va.value||0) : null,
+    prima: pr ? Number(pr.value||0) : null
+  };
+  const vals = valoresEfectivosFiniquito(__ultimoCalculoFiniquito.c, __finOverrides);
+  document.getElementById('fin_val_subtotal').textContent = fmtDinero(vals.subtotal);
+  document.getElementById('fin_val_isr').textContent = '− ' + fmtDinero(vals.isr);
+  document.getElementById('fin_val_total').textContent = fmtDinero(vals.total);
+}
+
+function quitarOverrideFiniquito(campo){
+  const mapa = { aguinaldo: 'fin_ov_aguinaldo', vacaciones: 'fin_ov_vacaciones', prima: 'fin_ov_prima' };
+  const input = document.getElementById(mapa[campo]);
+  if(input) input.value = '0.00';
+  actualizarFiniquitoOverride();
+}
+
 function generarFiniquitoPDF(){
   if(!__ultimoCalculoFiniquito) return;
   const { e, c } = __ultimoCalculoFiniquito;
+  const esRenuncia = esRenunciaVoluntaria(e);
+  const vals = valoresEfectivosFiniquito(c, __finOverrides);
   const win = window.open('', '_blank', 'width=850,height=1000');
   win.document.write(`
   <html><head><title>Finiquito — ${nombreCompleto(e)}</title>
@@ -2498,24 +2609,24 @@ function generarFiniquitoPDF(){
     </table>
     <table>
       <tr><th colspan="2">Percepciones</th></tr>
-      <tr><td>Aguinaldo proporcional (${c.diasAguinaldo} días del año)</td><td class="num">${fmtDinero(c.aguinaldoProp)}</td></tr>
-      <tr><td>Vacaciones pendientes (${c.vacacionesPendientesDias.toFixed(2)} de ${c.diasLey} días de ley)</td><td class="num">${fmtDinero(c.vacacionesPendientesMonto)}</td></tr>
-      <tr><td>Prima vacacional (25%)</td><td class="num">${fmtDinero(c.primaVacacional)}</td></tr>
+      <tr><td>${esRenuncia ? 'Aguinaldo proporcional por renuncia voluntaria' : 'Aguinaldo proporcional (' + c.diasAguinaldo + ' días del año)'}</td><td class="num">${fmtDinero(vals.aguinaldo)}</td></tr>
+      <tr><td>Vacaciones pendientes (${c.vacacionesPendientesDias.toFixed(2)} de ${c.diasLey} días de ley)</td><td class="num">${fmtDinero(vals.vacaciones)}</td></tr>
+      <tr><td>Prima vacacional (25%)</td><td class="num">${fmtDinero(vals.prima)}</td></tr>
       <tr><td>Pagos pendientes (movimientos, días laborados no pagados)</td><td class="num">${fmtDinero(c.pagosPendientes)}</td></tr>
-      <tr class="subtotal-row"><td>Subtotal</td><td class="num">${fmtDinero(c.subtotal)}</td></tr>
+      <tr class="subtotal-row"><td>Subtotal</td><td class="num">${fmtDinero(vals.subtotal)}</td></tr>
     </table>
     <table>
       <tr><th colspan="2">Adeudos y deducciones (préstamos, anticipos, penalizaciones)</th></tr>
       <tr><td class="deduc-lbl">Adelantos de nómina / préstamos</td><td class="num">${fmtDinero(c.adeudos)}</td></tr>
-      <tr><td class="deduc-lbl">ISR (7.5% del monto bruto)</td><td class="num">${fmtDinero(c.isr)}</td></tr>
+      <tr><td class="deduc-lbl">ISR (7.5% del monto bruto)</td><td class="num">${fmtDinero(vals.isr)}</td></tr>
       <tr><td class="deduc-lbl">Infonavit</td><td class="num">${fmtDinero(c.infonavit)}</td></tr>
       <tr><td class="deduc-lbl">Otras deducciones</td><td class="num">${fmtDinero(c.otrasDeducciones)}</td></tr>
       <tr><td class="deduc-lbl">Incidencias / infracciones registradas (${c.actasEmp.length})</td><td class="num">${fmtDinero(c.montoIncidencias)}</td></tr>
       <tr><td class="deduc-lbl">Días suspendidos (${c.diasSuspendidos} día(s))</td><td class="num">${fmtDinero(c.montoSuspensiones)}</td></tr>
-      <tr class="subtotal-row"><td>Deducciones totales</td><td class="num">${fmtDinero(c.deducciones)}</td></tr>
-      <tr class="total-row"><td>Total Finiquito</td><td class="num">${fmtDinero(c.total)}</td></tr>
+      <tr class="subtotal-row"><td>Deducciones totales</td><td class="num">${fmtDinero(vals.deducciones)}</td></tr>
+      <tr class="total-row"><td>Total Finiquito</td><td class="num">${fmtDinero(vals.total)}</td></tr>
     </table>
-    <p class="legal">El trabajador declara que ha percibido la cantidad de ${fmtDinero(c.total)} por concepto de su finiquito laboral,
+    <p class="legal">El trabajador declara que ha percibido la cantidad de ${fmtDinero(vals.total)} por concepto de su finiquito laboral,
     calculado conforme a la Ley Federal del Trabajo (aguinaldo proporcional Art. 87, vacaciones y prima vacacional proporcionales
     Art. 76 y 80), por su propia voluntad, correspondiente a las prestaciones devengadas hasta la fecha de su baja.
     Asimismo, manifiesta su conformidad con dicho pago, renunciando expresamente a cualquier reclamación posterior
