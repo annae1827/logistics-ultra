@@ -377,6 +377,15 @@ function parseFecha(v){
   }
   return new Date(s);
 }
+function guardarCache(key, value){
+  try{
+    localStorage.setItem(key, value);
+  }catch(e){
+    // Sin espacio en localStorage (normal si el dominio ya tiene varios
+    // dashboards de Ultra guardados ahí) — no es crítico, seguimos sin caché.
+    console.warn('No se pudo guardar caché "'+key+'":', e.message);
+  }
+}
 function slugEncabezado(h){
   return String(h).trim().toLowerCase()
     .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
@@ -499,8 +508,8 @@ async function cargarDatos(forzar){
       throw new Error('no se pudo leer ningún CSV (revisa los gid en DASHBOARD_CONFIG.GIDS)');
     }
     DATA = { diesel: normalizarDiesel(diesel||[]), mantenimiento: mantenimiento||[], kmDiario: kmDiario||[] };
-    localStorage.setItem('ultra_diesel_mtto_cache', JSON.stringify(DATA));
-    localStorage.setItem('ultra_diesel_mtto_ts', new Date().toISOString());
+    guardarCache('ultra_diesel_mtto_cache', JSON.stringify(DATA));
+    guardarCache('ultra_diesel_mtto_ts', new Date().toISOString());
     status.textContent = '● en vivo';
     status.title = '';
     if(operadoresRaw){
@@ -509,7 +518,7 @@ async function cargarDatos(forzar){
         .map(r => String(r['Operador']||'').trim())
         .filter(Boolean)
         .sort((a,b)=>a.localeCompare(b));
-      localStorage.setItem('ultra_operadores_cache', JSON.stringify(nombres));
+      guardarCache('ultra_operadores_cache', JSON.stringify(nombres));
       poblarOperadores(nombres);
     } else {
       const opCache = localStorage.getItem('ultra_operadores_cache');
