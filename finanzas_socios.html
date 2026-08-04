@@ -237,7 +237,7 @@ function byTipo(tipo){
   if(tipo==='JAVP_Fiscal')return d.filter(r=>r[0]==='JAVP_Fiscal');
   if(tipo==='JAVP_Banregio')return d.filter(r=>r[0]==='JAVP_Banregio');
   if(tipo==='TDC_Clara')return d.filter(r=>r[0]==='TDC_Clara');
-  if(tipo==='TDC_Konfío')return d.filter(r=>r[0]==='TDC_Konfio'||r[0]==='TDC_Konfío'||r[0]==='TDC_Konfio');
+  if(tipo==='TDC_Konfío')return d.filter(r=>r[0]==='TDC_Konfio'||r[0]==='TDC_Konfío');
   return d;
 }
 const sD=a=>a.reduce((s,r)=>s+r[3],0);
@@ -336,8 +336,6 @@ function dRes(){
   const jf=all.filter(r=>r[0]==='JAVP_Fiscal');
   const jnf=all.filter(r=>r[0]==='JAVP_No_Fiscal');
   const br=all.filter(r=>r[0]==='JAVP_Banregio');
-  const clara=all.filter(r=>r[0]==='TDC_Clara');
-  const konfio=all.filter(r=>r[0]==='TDC_Konfio'||r[0]==='TDC_Konfío'||r[0]==='TDC_Konfio');
   const tD=sD(all),tR=sR(all);
   const dM=byMD(all),rM=byMR(all);
   const mxI=dM.reduce((b,v,i)=>v>dM[b]?i:b,0);
@@ -345,7 +343,7 @@ function dRes(){
 
   // Per-account monthly data
   const clara=all.filter(r=>r[0]==='TDC_Clara');
-  const konfio=all.filter(r=>r[0]==='TDC_Konfio'||r[0]==='TDC_Konfío'||r[0]==='TDC_Konfio');
+  const konfio=all.filter(r=>r[0]==='TDC_Konfio'||r[0]==='TDC_Konfío');
   const CTAS=[
     {key:'UAL',d:ual,emoji:'&#x1F69B;',clr:'rgba(59,130,246,.75)',clr2:'rgba(59,130,246,.4)'},
     {key:'JAVP Fiscal',d:jf,emoji:'&#x1F3E2;',clr:'rgba(16,185,129,.75)',clr2:'rgba(16,185,129,.4)'},
