@@ -144,6 +144,8 @@ tfoot td.r{text-align:right}
 .tag-jf{background:var(--grn2);color:#065f46;font-weight:700;padding:2px 10px;border-radius:99px;font-size:11px;display:inline-block}
 .tag-jnf{background:var(--ylw2);color:#92400e;font-weight:700;padding:2px 10px;border-radius:99px;font-size:11px;display:inline-block}
 .tag-br{background:#e0e7ff;color:#3730a3;font-weight:700;padding:2px 10px;border-radius:99px;font-size:11px;display:inline-block}
+.tag-clara{background:#fce7f3;color:#9d174d;font-weight:700;padding:2px 10px;border-radius:99px;font-size:11px;display:inline-block}
+.tag-konfio{background:#fef3c7;color:#92400e;font-weight:700;padding:2px 10px;border-radius:99px;font-size:11px;display:inline-block}
 .slbl{font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.07em;margin:16px 0 10px;display:flex;align-items:center;gap:8px}
 .slbl::after{content:'';flex:1;height:1px;background:var(--br)}
 /* Nomina socios card */
@@ -175,6 +177,8 @@ tfoot td.r{text-align:right}
     <div class="ni" onclick="goTab('jf',this)"><span class="ni-e">&#x1F3E2;</span>P&L JAVP Fiscal</div>
     <div class="ni" onclick="goTab('jnf',this)"><span class="ni-e">&#x1F4BC;</span>P&L JAVP No Fiscal</div>
     <div class="ni" onclick="goTab('br',this)"><span class="ni-e">&#x1F3E6;</span>P&L JAVP Banregio</div>
+    <div class="ni" onclick="goTab('clara',this)"><span class="ni-e">&#x1F4B3;</span>P&L TDC Clara</div>
+    <div class="ni" onclick="goTab('konfio',this)"><span class="ni-e">&#x1F4B3;</span>P&L TDC Konfío</div>
     <div class="sb-sec">Socios</div>
     <div class="ni" onclick="goTab('nomina',this)"><span class="ni-e">&#x1F465;</span>Nomina de Socios</div>
     <div class="sb-sec">Analisis</div>
@@ -232,6 +236,8 @@ function byTipo(tipo){
   if(tipo==='JAVP_No_Fiscal')return d.filter(r=>r[0]==='JAVP_No_Fiscal');
   if(tipo==='JAVP_Fiscal')return d.filter(r=>r[0]==='JAVP_Fiscal');
   if(tipo==='JAVP_Banregio')return d.filter(r=>r[0]==='JAVP_Banregio');
+  if(tipo==='TDC_Clara')return d.filter(r=>r[0]==='TDC_Clara');
+  if(tipo==='TDC_Konfío')return d.filter(r=>r[0]==='TDC_Konfio'||r[0]==='TDC_Konfío'||r[0]==='TDC_Konfio');
   return d;
 }
 const sD=a=>a.reduce((s,r)=>s+r[3],0);
@@ -265,29 +271,33 @@ function ibox(items){return '<div class="ibox"><div class="ibox-hd">&#x1F9E0; In
 function kc(l,v,cls,e,sub){return '<div class="kc"><div class="kc-hd"><div class="kl">'+l+'</div><div class="ke">'+e+'</div></div><div class="kv '+cls+'">'+v+'</div><div class="kd">'+(sub||'&nbsp;')+'</div></div>';}
 
 // CHART HELPERS
-function mkBar(id,labs,datasets,hor){
+function mkBar(id,labs,datasets,hor,stacked){
   const el=$(id);if(!el)return;
   CH[id]=new Chart(el,{type:'bar',data:{labels:labs,datasets},options:{
     indexAxis:hor?'y':'x',responsive:true,maintainAspectRatio:false,
     layout:{padding:{right:hor?80:0,top:hor?0:22}},
     plugins:{
       legend:{display:datasets.length>1,position:'top',labels:{font:{size:11},usePointStyle:true,boxWidth:10}},
-      datalabels:{display:true,anchor:'end',align:hor?'right':'top',color:'#1e293b',font:{size:10,weight:'600'},formatter:v=>v>0?fmtK(v):''},
-      tooltip:{callbacks:{label:c=>' '+fmt(c.raw)}}
+      datalabels:{display:!stacked,anchor:'end',align:hor?'right':'top',color:'#1e293b',font:{size:10,weight:'600'},formatter:v=>v>0?fmtK(v):''},
+      tooltip:{mode:'index',callbacks:{label:c=>' '+c.dataset.label+': '+fmt(c.raw)}}
     },
     scales:{
       x:hor?{
+        stacked:!!stacked,
         ticks:{color:'#94a3b8',font:{size:10},callback:v=>fmtK(v)},
         grid:{color:'rgba(0,0,0,.04)'}
       }:{
+        stacked:!!stacked,
         ticks:{color:'#94a3b8',font:{size:11},autoSkip:false,maxRotation:0},
         grid:{color:'rgba(0,0,0,.04)'}
       },
       y:hor?{
+        stacked:!!stacked,
         ticks:{color:'#1e293b',font:{size:11,weight:'600'},
           callback:function(val){const l=labs[val];return l&&l.length>24?l.substring(0,24)+'...':l||val;}},
         grid:{display:false}
       }:{
+        stacked:!!stacked,
         ticks:{color:'#94a3b8',font:{size:10},callback:v=>fmtK(v)},
         grid:{color:'rgba(0,0,0,.04)'}
       }
@@ -296,7 +306,7 @@ function mkBar(id,labs,datasets,hor){
 }
 
 // ROUTING
-const TABS={res:'&#x1F4CA; Resumen General',pnl:'&#x1F4C8; P&L Empresa (Total)',ual:'&#x1F69B; P&L UAL',jf:'&#x1F3E2; P&L JAVP Fiscal',jnf:'&#x1F4BC; P&L JAVP No Fiscal',br:'&#x1F3E6; P&L JAVP Banregio',br:'&#x1F3E6; P&L JAVP Banregio',nomina:'&#x1F465; Nomina de Socios',clas:'&#x1F5C2;&#xFE0F; Por Clasificacion',fij:'&#x1F4CC; Gastos Fijos'};
+const TABS={res:'&#x1F4CA; Resumen General',pnl:'&#x1F4C8; P&L Empresa (Total)',ual:'&#x1F69B; P&L UAL',jf:'&#x1F3E2; P&L JAVP Fiscal',jnf:'&#x1F4BC; P&L JAVP No Fiscal',br:'&#x1F3E6; P&L JAVP Banregio',clara:'&#x1F4B3; P&L TDC Clara',konfio:'&#x1F4B3; P&L TDC Konfío',br:'&#x1F3E6; P&L JAVP Banregio',clara:'&#x1F4B3; P&L TDC Clara',konfio:'&#x1F4B3; P&L TDC Konfío',nomina:'&#x1F465; Nomina de Socios',clas:'&#x1F5C2;&#xFE0F; Por Clasificacion',fij:'&#x1F4CC; Gastos Fijos'};
 function goTab(name,el){
   curTab=name;curMes=-1;curTG='all';curCta='all';
   document.querySelectorAll('.ni').forEach(n=>n.classList.remove('on'));
@@ -312,7 +322,8 @@ function render(){
   else if(curTab==='jf')dPNL(byTipo('JAVP_Fiscal'),'&#x1F3E2; JAVP Fiscal','tag-jf','JAVP Fiscal');
   else if(curTab==='jnf')dPNL(byTipo('JAVP_No_Fiscal'),'&#x1F4BC; JAVP No Fiscal','tag-jnf','JAVP No Fiscal');
   else if(curTab==='br')dPNL(byTipo('JAVP_Banregio'),'&#x1F3E6; JAVP Banregio','tag-br','JAVP Banregio');
-  else if(curTab==='br')dPNL(byTipo('JAVP_Banregio'),'&#x1F3E6; JAVP Banregio','tag-br','JAVP Banregio');
+  else if(curTab==='clara')dPNL(byTipo('TDC_Clara'),'&#x1F4B3; TDC Clara','tag-clara','TDC Clara');
+  else if(curTab==='konfio')dPNL(byTipo('TDC_Konfio'),'&#x1F4B3; TDC Konfio','tag-konfio','TDC Konfio');
   else if(curTab==='nomina')dNomina();
   else if(curTab==='clas')dClas();
   else if(curTab==='fij')dFij();
@@ -325,17 +336,23 @@ function dRes(){
   const jf=all.filter(r=>r[0]==='JAVP_Fiscal');
   const jnf=all.filter(r=>r[0]==='JAVP_No_Fiscal');
   const br=all.filter(r=>r[0]==='JAVP_Banregio');
+  const clara=all.filter(r=>r[0]==='TDC_Clara');
+  const konfio=all.filter(r=>r[0]==='TDC_Konfio'||r[0]==='TDC_Konfío'||r[0]==='TDC_Konfio');
   const tD=sD(all),tR=sR(all);
   const dM=byMD(all),rM=byMR(all);
   const mxI=dM.reduce((b,v,i)=>v>dM[b]?i:b,0);
   const topCl=grp(all.filter(r=>r[4]>0),5,4).filter(x=>x[0]&&x[0]!=='S/D')[0];
 
   // Per-account monthly data
+  const clara=all.filter(r=>r[0]==='TDC_Clara');
+  const konfio=all.filter(r=>r[0]==='TDC_Konfio'||r[0]==='TDC_Konfío'||r[0]==='TDC_Konfio');
   const CTAS=[
     {key:'UAL',d:ual,emoji:'&#x1F69B;',clr:'rgba(59,130,246,.75)',clr2:'rgba(59,130,246,.4)'},
     {key:'JAVP Fiscal',d:jf,emoji:'&#x1F3E2;',clr:'rgba(16,185,129,.75)',clr2:'rgba(16,185,129,.4)'},
     {key:'JAVP No Fiscal',d:jnf,emoji:'&#x1F4BC;',clr:'rgba(245,158,11,.75)',clr2:'rgba(245,158,11,.4)'},
     {key:'JAVP Banregio',d:br,emoji:'&#x1F3E6;',clr:'rgba(99,102,241,.75)',clr2:'rgba(99,102,241,.4)'},
+    {key:'TDC Clara',d:clara,emoji:'&#x1F4B3;',clr:'rgba(236,72,153,.75)',clr2:'rgba(236,72,153,.4)'},
+    {key:'TDC Konfío',d:konfio,emoji:'&#x1F4B3;',clr:'rgba(245,158,11,.75)',clr2:'rgba(245,158,11,.4)'},
   ].filter(c=>c.d.length>0);
 
   const ins=[
@@ -420,15 +437,15 @@ function dRes(){
   mkBar('cRcta',MES,CTAS.map(c=>({
     label:c.key,
     data:MES.map((_,m)=>c.d.filter(r=>r[2]-1===m).reduce((s,r)=>s+r[3],0)),
-    backgroundColor:c.clr,borderRadius:2,stack:'ing',
-  })));
+    backgroundColor:c.clr,borderRadius:2,
+  })),false,true);
 
   // Egresos por cuenta apilados
   mkBar('cRctaE',MES,CTAS.map(c=>({
     label:c.key,
     data:MES.map((_,m)=>c.d.filter(r=>r[2]-1===m).reduce((s,r)=>s+r[4],0)),
-    backgroundColor:c.clr2,borderRadius:2,stack:'egr',
-  })));
+    backgroundColor:c.clr2,borderRadius:2,
+  })),false,true);
 
   const EXCL_LABELS=['S/D','','Sin clasificar','Sin tipificar'];
   const tcli=grp(all.filter(r=>r[7]==='Ingreso por ventas'&&r[3]>0),5,3).filter(x=>x[0]&&!EXCL_LABELS.includes(x[0])).slice(0,10);
