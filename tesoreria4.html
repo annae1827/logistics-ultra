@@ -263,8 +263,7 @@ tr:last-child td{border-bottom:none}
           <thead><tr>
             <th onclick="srt('tEdo',0)">Fecha Factura</th>
             <th onclick="srt('tEdo',1)">No. Factura</th>
-            <th onclick="srt('tEdo',2)">Referencia</th>
-            <th onclick="srt('tEdo',3)">Ruta / Servicio</th>
+            <th onclick="srt('tEdo',2)">Ruta / Servicio</th>
             <th onclick="srt('tEdo',3)" class="num">Monto</th>
             <th>Moneda</th>
             <th onclick="srt('tEdo',5)" class="num">Días Créd.</th>
@@ -374,7 +373,7 @@ tr:last-child td{border-bottom:none}
 // ═══════════════════════════════════════════════════
 //  CONFIGURACIÓN
 // ═══════════════════════════════════════════════════
-const PROXY = 'https://script.google.com/macros/s/AKfycbzGHGZ69Qp40sH7eV10J0Bv2xkrFueMYEzjAJ5KP7wL4s6Vah15_OoUeTLzBxOX9_6S5A/exec';
+const SHEET_BASE = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ8pL24fRHM2DlVvk_UT_QgUS3mg3d7kNKK8CQmUuuZjcPZmonQLob-seBgosxLOFzCpANJUu4f_wit/pub';
 const TC = 19; // USD → MXN
 
 const CLIENTES = [
@@ -469,7 +468,7 @@ function parseSheet(text, nombre, cfg) {
   // Precalcular índices
   const fi = (...keys) => { for(const k of keys){const i=H.findIndex(h=>h.includes(k));if(i>=0)return i;} return -1; };
   const iF  = fi('fecha contable','fecha factura');
-  const iN  = fi('no. de fact.','no. de fact','no. fact.','no. fact','no. de factura','num. factura','factura','folio');
+  const iN  = fi('no. de fact','no. de factura','num. factura','factura','folio');
   const iR  = fi('concepto / ruta','concepto/ruta','concepto','ruta');
   const iMF = fi('monto factura','total factura');
   const iMP = fi('monto pago','monto pagado');
@@ -558,7 +557,7 @@ async function fetchCliente(nombre) {
   const cfg = CLIENTES.find(c=>c.n===nombre);
   if(!cfg) return [];
   try {
-    const res = await fetch(PROXY+'?gid='+cfg.gid);
+    const res = await fetch(SHEET_BASE+'?gid='+cfg.gid+'&single=true&output=csv');
     if(!res.ok) throw new Error('HTTP '+res.status);
     const text = await res.text();
     if(!text||text.trim().startsWith('<!')) throw new Error('No CSV');
@@ -853,19 +852,16 @@ async function loadEstadoCuenta(nombre) {
   document.getElementById('edoContent').style.display='block';
 
   // KPIs
-  const esUSD = rows.length > 0 && rows.every(r=>r.moneda==='USD');
-  const edoConv = (v,m) => esUSD ? v : toMXN(v,m);
-  const edoMon = esUSD ? 'USD' : 'MXN';
-  const tF=rows.reduce((s,r)=>s+edoConv(r.monto,r.moneda),0);
-  const tC=rows.filter(r=>r.estatus==='PAGADO').reduce((s,r)=>s+edoConv(r.montoPagado,r.moneda),0);
-  const tV=rows.filter(r=>r.estatus==='VENCIDO').reduce((s,r)=>s+edoConv(r.saldo||0,r.moneda),0);
-  const tP=rows.filter(r=>r.estatus!=='PAGADO').reduce((s,r)=>s+edoConv(r.saldo||0,r.moneda),0);
+  const tF=rows.reduce((s,r)=>s+toMXN(r.monto,r.moneda),0);
+  const tC=rows.filter(r=>r.estatus==='PAGADO').reduce((s,r)=>s+toMXN(r.montoPagado,r.moneda),0);
+  const tV=rows.filter(r=>r.estatus==='VENCIDO').reduce((s,r)=>s+toMXN(r.saldo||0,r.moneda),0);
+  const tP=rows.filter(r=>r.estatus!=='PAGADO').reduce((s,r)=>s+toMXN(r.saldo||0,r.moneda),0);
   const pct=tF>0?Math.round(tC/tF*100):0;
   document.getElementById('kgEdo').innerHTML=
-    `<div class="kc"><div class="kl">Facturado</div><div class="kv">${fM(tF,edoMon)}</div><div class="ks">${rows.length} facturas</div></div>`+
-    `<div class="kc"><div class="kl">Cobrado</div><div class="kv g">${fM(tC,edoMon)}</div><div class="ks">${pct}% del total</div></div>`+
-    `<div class="kc"><div class="kl">Pendiente</div><div class="kv a">${fM(tP,edoMon)}</div></div>`+
-    `<div class="kc"><div class="kl">Vencido</div><div class="kv r">${fM(tV,edoMon)}</div></div>`;
+    `<div class="kc"><div class="kl">Facturado</div><div class="kv">${fM(tF)}</div><div class="ks">${rows.length} facturas</div></div>`+
+    `<div class="kc"><div class="kl">Cobrado</div><div class="kv g">${fM(tC)}</div><div class="ks">${pct}% del total</div></div>`+
+    `<div class="kc"><div class="kl">Pendiente</div><div class="kv a">${fM(tP)}</div></div>`+
+    `<div class="kc"><div class="kl">Vencido</div><div class="kv r">${fM(tV)}</div></div>`;
 
   filtrarEstado();
 }
@@ -878,7 +874,6 @@ function filtrarEstado() {
     tb.innerHTML+=`<tr>
       <td>${fD(r.fechaFact)}</td>
       <td style="font-family:monospace;font-size:11px">${r.noFact||'—'}</td>
-      <td style="font-size:11px;color:var(--text3)">${r.referencia||'—'}</td>
       <td>${r.ruta||'—'}</td>
       <td class="num">${fM(r.monto,r.moneda)}</td>
       <td><span class="b ${r.moneda==='USD'?'ba':'bx'}">${r.moneda}</span></td>
@@ -923,14 +918,10 @@ async function genPDF() {
 
   if(!rows.length){toast('Sin datos para el período seleccionado','e');return;}
 
-  // Detectar si el cliente es 100% USD
-  const esUSD = rows.length > 0 && rows.every(r=>r.moneda==='USD');
-  const monPDF = esUSD ? 'USD' : 'MXN';
-  const conv = (v,m) => esUSD ? v : toMXN(v,m);
-  const tF=rows.reduce((s,r)=>s+conv(r.monto,r.moneda),0);
-  const tC=rows.filter(r=>r.estatus==='PAGADO').reduce((s,r)=>s+conv(r.montoPagado,r.moneda),0);
-  const tP=rows.filter(r=>r.estatus!=='PAGADO').reduce((s,r)=>s+conv(r.saldo||0,r.moneda),0);
-  const tV=rows.filter(r=>r.estatus==='VENCIDO').reduce((s,r)=>s+conv(r.saldo||0,r.moneda),0);
+  const tF=rows.reduce((s,r)=>s+toMXN(r.monto,r.moneda),0);
+  const tC=rows.filter(r=>r.estatus==='PAGADO').reduce((s,r)=>s+toMXN(r.montoPagado,r.moneda),0);
+  const tP=rows.filter(r=>r.estatus!=='PAGADO').reduce((s,r)=>s+toMXN(r.saldo||0,r.moneda),0);
+  const tV=rows.filter(r=>r.estatus==='VENCIDO').reduce((s,r)=>s+toMXN(r.saldo||0,r.moneda),0);
   const fc=new Date().toLocaleDateString('es-MX',{day:'2-digit',month:'long',year:'numeric'});
   const per=desde||hasta?
     ((desde?new Date(desde).toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'}):'—')+' al '+(hasta?new Date(hasta).toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'}):'—'))
@@ -975,10 +966,10 @@ tbody tr:nth-child(even){background:#f9fafb}tbody td{padding:7px 9px;border-bott
 <div><div class="il">No. Facturas en per\u00edodo</div><div class="iv">${rows.length}</div></div>
 </div>
 <div class="ks">
-<div class="kp"><div class="kl">Total Facturado</div><div class="kv" style="color:#1a1a2e">${fM(tF,monPDF)}</div></div>
-<div class="kp"><div class="kl">Total Cobrado</div><div class="kv" style="color:#065f46">${fM(tC,monPDF)}</div></div>
-<div class="kp"><div class="kl">Saldo Pendiente</div><div class="kv" style="color:#92400e">${fM(tP,monPDF)}</div></div>
-<div class="kp"><div class="kl">Saldo Vencido</div><div class="kv" style="color:#991b1b">${fM(tV,monPDF)}</div></div>
+<div class="kp"><div class="kl">Total Facturado</div><div class="kv" style="color:#1a1a2e">${fM(tF)}</div></div>
+<div class="kp"><div class="kl">Total Cobrado</div><div class="kv" style="color:#065f46">${fM(tC)}</div></div>
+<div class="kp"><div class="kl">Saldo Pendiente</div><div class="kv" style="color:#92400e">${fM(tP)}</div></div>
+<div class="kp"><div class="kl">Saldo Vencido</div><div class="kv" style="color:#991b1b">${fM(tV)}</div></div>
 </div>
 <div class="st">Detalle de Facturas</div>
 <table><thead><tr><th>Fecha</th><th>No. Factura</th><th>Ruta</th><th>Monto</th><th>Mon.</th><th>Cr\u00e9d.</th><th>D\u00edas</th><th>Adeudo</th><th>Estatus</th><th>F.Pago</th></tr></thead>
