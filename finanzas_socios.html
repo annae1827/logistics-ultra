@@ -564,78 +564,159 @@ function dNomina(){
   const socios=['Juan Angel','Ernesto Garza'];
   const SOCCLR={'Juan Angel':'rgba(139,92,246,.75)','Ernesto Garza':'rgba(236,72,153,.75)'};
   const SOCEMO={'Juan Angel':'&#x1F464;','Ernesto Garza':'&#x1F465;'};
+  const SOCBG={'Juan Angel':'var(--pur2)','Ernesto Garza':'var(--pnk2)'};
+  const SOCCOL={'Juan Angel':'var(--pur)','Ernesto Garza':'#9d174d'};
+
+  // Selected socio state (use curCta for socio selection in nomina tab)
+  const selSoc = (curCta!=='all'&&socios.includes(curCta))?curCta:null;
 
   const socData=socios.map(s=>{
     const d=all.filter(r=>r[7]===s&&r[4]>0);
     const mes=MES.map((_,m)=>d.filter(r=>r[2]-1===m).reduce((a,r)=>a+r[4],0));
-    const byTG=grp(d,6,4);
-    const tTotal=sum(mes);
-    return {s,d,mes,byTG,tTotal};
+    const byCl=grp(d,5,4).filter(x=>x[0]&&x[0]!=='S/D');
+    const byTG=grp(d,6,4).filter(x=>x[0]&&x[0]!=='S/D');
+    const byCta=grp(d,0,4);
+    const tTotal=d.reduce((a,r)=>a+r[4],0);
+    return {s,d,mes,byCl,byTG,byCta,tTotal};
   });
   const grand=socData.reduce((a,x)=>a+x.tTotal,0);
   const mesTotal=MES.map((_,m)=>socData.reduce((a,x)=>a+x.mes[m],0));
 
-  const ins=[
-    {e:'&#x1F465;',t:'Total nomina socios',b:'<b>'+fmtK(grand)+'</b> en gastos de socios identificados'},
-    {e:'&#x1F451;',t:'Mayor gasto',b:socData.sort((a,b)=>b.tTotal-a.tTotal)[0].s+': <b>'+fmtK(socData[0].tTotal)+'</b>'},
-    {e:'&#x1F4CC;',t:'Nota contable',b:'Gastos de socios se registran como <b>Sueldos de Socios</b> en el P&L'},
-    {e:'&#x1F4C5;',t:'Mes mas alto',b:'<b>'+MES[mesTotal.indexOf(Math.max(...mesTotal))]+'</b>: '+fmtK(Math.max(...mesTotal))},
-  ];
+  // Selector de socio
+  const socSelector='<div style="display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap">'+
+    '<button onclick="curCta='all';render()" style="padding:8px 18px;border-radius:99px;border:2px solid '+(selSoc?'var(--br)':'var(--teal)')+';background:'+(selSoc?'var(--s0)':'var(--teal)')+';color:'+(selSoc?'var(--t2)':'#fff')+';font-weight:700;font-family:var(--font);cursor:pointer;font-size:13px">&#x1F465; Ambos socios</button>'+
+    socios.map(s=>'<button onclick="curCta=''+s+'';render()" style="padding:8px 18px;border-radius:99px;border:2px solid '+(selSoc===s?SOCCOL[s]:'var(--br)')+';background:'+(selSoc===s?SOCBG[s]:'var(--s0)')+';color:'+(selSoc===s?SOCCOL[s]:'var(--t2)')+';font-weight:700;font-family:var(--font);cursor:pointer;font-size:13px">'+SOCEMO[s]+' '+s+'</button>').join('')+
+    '</div>';
 
-  $('main').innerHTML=
-    ibox(ins)+
-    fbox([{l:'Mes',h:sMes()},{l:'Tipo gasto',h:sTG(all)}])+
-    '<div class="krow">'+
-    socData.map(({s,tTotal,d})=>kc(s,fmtK(tTotal),'p',SOCEMO[s]||'&#x1F464;',fmtN(d.length)+' movimientos')).join('')+
-    kc('Total sueldos socios',fmtK(grand),'y','&#x1F4CA;','acumulado periodo')+
-    '</div>'+
-    '<div class="cc"><div class="cc-t">&#x1F4CA; Gastos por socio &mdash; mensual</div>'+
-    '<div class="lgnd">'+socios.map(s=>'<span><span class="lsq" style="background:'+SOCCLR[s]+'"></span>'+s+'</span>').join('')+'</div>'+
-    '<div style="position:relative;height:230px"><canvas id="cNm"></canvas></div></div>'+
-    '<div class="g2">'+socData.map(({s,byTG,tTotal,d})=>{
-      const byCl=grp(d,5,4).filter(x=>x[0]&&x[0]!=='S/D').slice(0,10);
-      const mxCl=byCl[0]?byCl[0][1]:1;
-      return `<div class="soc-card">
-        <div style="font-size:13px;font-weight:800;color:var(--t0);margin-bottom:14px">${SOCEMO[s]} ${s} &mdash; <span style="color:var(--pur)">${fmtK(tTotal)}</span></div>
-        <div style="font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;display:flex;align-items:center;gap:6px"><span style="width:3px;height:12px;background:var(--pur);border-radius:2px;display:inline-block"></span>Clasificacion de gastos (col L)</div>
-        ${byCl.map(([k,v])=>`
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-            <div style="font-size:11px;font-weight:500;min-width:165px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--t1)">${k}</div>
-            <div style="flex:1;height:9px;background:var(--s2);border-radius:3px;overflow:hidden">
-              <div style="width:${(v/mxCl*100).toFixed(1)}%;height:100%;background:${SOCCLR[s]};border-radius:3px;opacity:.8"></div>
-            </div>
-            <div style="font-size:11px;min-width:68px;text-align:right;font-family:var(--mono);font-weight:700;color:var(--pur)">${fmt(v)}</div>
-          </div>`).join('')}
-        <div style="margin-top:14px;font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Mensual</div>
-        <div style="display:flex;gap:4px;flex-wrap:wrap">
-          ${d.mes?d.mes.map((v,i)=>`<div style="text-align:center;min-width:40px"><div style="font-size:9px;color:var(--t3)">${MES[i]}</div><div style="font-size:11px;font-weight:700;color:${v>0?SOCCLR[s]:'var(--t4)'}">${v>0?fmtK(v):'—'}</div></div>`).join(''):
-          socData.find(x=>x.s===s).mes.map((v,i)=>`<div style="text-align:center;min-width:40px"><div style="font-size:9px;color:var(--t3)">${MES[i]}</div><div style="font-size:11px;font-weight:700;color:${v>0?SOCCLR[s]:'var(--t4)'}">${v>0?fmtK(v):'—'}</div></div>`).join('')}
-        </div>
-      </div>`;
-    }).join('')+'</div>'+
-    '<div class="slbl">Desglose por clasificacion de gasto (col L)</div>'+
-    '<div class="tw"><table>'+
-    '<thead><tr><th>Socio</th><th>Clasificacion de gasto</th><th class="r">Monto</th><th class="r">% del socio</th></tr></thead>'+
-    '<tbody>'+socData.flatMap(({s,d,tTotal})=>{
-      const byCl=grp(d,5,4).filter(x=>x[0]&&x[0]!=='S/D');
-      return byCl.map(([cl,v])=>'<tr><td><span style="font-size:10px;padding:2px 8px;border-radius:99px;font-weight:600;background:var(--pur2);color:var(--pur)">'+s+'</span></td>'+
-        '<td style="font-weight:500">'+cl+'</td>'+
-        '<td class="r re">'+fmt(v)+'</td>'+
-        '<td class="r mu">'+(tTotal>0?(v/tTotal*100).toFixed(1):0)+'%</td></tr>');
-    }).join('')+
-    '</tbody></table></div>'+
-    '<div class="slbl">Tabla comparativa mensual</div>'+
-    '<div class="tw"><table>'+
-    '<thead><tr><th>Socio</th>'+MES.map(m=>'<th class="r">'+m+'</th>').join('')+'<th class="r">Total</th></tr></thead>'+
-    '<tbody>'+socData.map(({s,mes,tTotal})=>'<tr><td style="font-weight:700">'+SOCEMO[s]+' '+s+'</td>'+mes.map(v=>'<td class="r '+(v>0?'':'mu')+'">'+( v>0?fmt(v):'—')+'</td>').join('')+'<td class="r y">'+fmt(tTotal)+'</td></tr>').join('')+
-    '</tbody><tfoot><tr><td>Total socios</td>'+mesTotal.map(v=>'<td class="r">'+fmt(v)+'</td>').join('')+'<td class="r">'+fmt(grand)+'</td></tr></tfoot></table></div>';
+  if(selSoc){
+    // ── VISTA INDIVIDUAL ────────────────────────────────────────────
+    const sd=socData.find(x=>x.s===selSoc);
+    const mxCl=sd.byCl[0]?sd.byCl[0][1]:1;
+    const mxTG=sd.byTG[0]?sd.byTG[0][1]:1;
+    const pct=(v,t)=>t>0?(v/t*100).toFixed(1)+'%':'—';
 
-  mkBar('cNm',MES,socios.map(s=>({
-    label:s,
-    data:MES.map((_,m)=>all.filter(r=>r[7]===s&&r[4]>0&&r[2]-1===m).reduce((a,r)=>a+r[4],0)),
-    backgroundColor:SOCCLR[s],borderRadius:4,
-  })));
+    const ins=[
+      {e:'&#x1F4B8;',t:'Gasto total',b:'<b>'+fmtK(sd.tTotal)+'</b> en el periodo seleccionado'},
+      {e:'&#x1F3C6;',t:'Mayor clasificacion',b:sd.byCl[0]?'<b>'+sd.byCl[0][0]+'</b>: '+fmtK(sd.byCl[0][1])+' ('+pct(sd.byCl[0][1],sd.tTotal)+')':'Sin datos'},
+      {e:'&#x1F4C5;',t:'Mes mas alto',b:'<b>'+MES[sd.mes.indexOf(Math.max(...sd.mes))]+'</b>: '+fmtK(Math.max(...sd.mes))},
+      {e:'&#x1F4CC;',t:'Nota contable',b:'Gastos de socios se registran como <b>Sueldos de Socios</b> en el P&L'},
+    ];
+
+    $('main').innerHTML=
+      socSelector+
+      ibox(ins)+
+      fbox([{l:'Mes',h:sMes()}])+
+      '<div class="krow">'+
+      kc('Gasto total',fmtK(sd.tTotal),'p',SOCEMO[selSoc],fmtN(sd.d.length)+' movimientos')+
+      kc('Prom. mensual',fmtK(Math.round(sd.tTotal/12)),'y','&#x1F4C5;','por mes')+
+      kc('Clasificaciones',fmtN(sd.byCl.length),'b','&#x1F5C2;&#xFE0F;','tipos de gasto')+
+      kc('Mayor gasto',fmtK(sd.byCl[0]?sd.byCl[0][1]:0),'r','&#x1F525;',sd.byCl[0]?sd.byCl[0][0]:'—')+
+      '</div>'+
+
+      // Gráfica mensual
+      '<div class="cc"><div class="cc-t">'+SOCEMO[selSoc]+' '+selSoc+' &mdash; gasto mensual</div>'+
+      '<div style="position:relative;height:220px"><canvas id="cNind"></canvas></div></div>'+
+
+      '<div class="g2">'+
+      // Por clasificacion
+      '<div class="cc"><div class="cc-t">&#x1F5C2;&#xFE0F; Por clasificacion de gasto (col L)</div>'+
+      '<div style="position:relative;height:'+Math.max(220,sd.byCl.slice(0,12).length*30+60)+'px"><canvas id="cNcl"></canvas></div></div>'+
+      // Por tipo gasto
+      '<div class="cc"><div class="cc-t">&#x1F3AF; Por tipo de gasto</div>'+
+      '<div style="position:relative;height:'+Math.max(220,sd.byTG.slice(0,10).length*30+60)+'px"><canvas id="cNtg"></canvas></div></div>'+
+      '</div>'+
+
+      // Por cuenta
+      '<div class="cc"><div class="cc-t">&#x1F3E2; Distribucion por cuenta</div>'+
+      '<div style="display:flex;gap:12px;flex-wrap:wrap;padding:4px 0">'+
+      sd.byCta.map(([cta,v])=>'<div style="background:var(--s1);border:1.5px solid var(--br);border-radius:10px;padding:12px 16px;min-width:160px">'+
+        '<div style="font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;margin-bottom:4px">'+cta+'</div>'+
+        '<div style="font-size:18px;font-weight:800;color:'+SOCCOL[selSoc]+'">'+fmtK(v)+'</div>'+
+        '<div style="font-size:11px;color:var(--t3)">'+pct(v,sd.tTotal)+'</div></div>').join('')+
+      '</div></div>'+
+
+      // Tabla detalle
+      '<div class="slbl">Top gastos por clasificacion</div>'+
+      '<div class="tw"><table>'+
+      '<thead><tr><th>Clasificacion</th><th>Tipo de gasto</th><th class="r">Monto</th><th class="r">% del total</th></tr></thead>'+
+      '<tbody>'+sd.byCl.map(([cl,v])=>{
+        const topTG=grp(sd.d.filter(r=>r[5]===cl),6,4)[0];
+        return '<tr><td style="font-weight:600">'+cl+'</td>'+
+          '<td class="mu">'+(topTG?topTG[0]:'—')+'</td>'+
+          '<td class="r re">'+fmt(v)+'</td>'+
+          '<td class="r mu">'+pct(v,sd.tTotal)+'</td></tr>';
+      }).join('')+
+      '</tbody><tfoot><tr><td colspan="2">Total</td><td class="r">'+fmt(sd.tTotal)+'</td><td class="r">100%</td></tr></tfoot></table></div>'+
+
+      // Movimientos recientes
+      '<div class="slbl">Movimientos recientes</div>'+
+      '<div class="tw"><table>'+
+      '<thead><tr><th>Fecha</th><th>Descripcion</th><th>Clasificacion</th><th>Tipo gasto</th><th class="r">Monto</th></tr></thead>'+
+      '<tbody>'+sd.d.slice(0,100).map(r=>'<tr>'+
+        '<td class="mu">'+r[1]+'/'+String(r[2]).padStart(2,'0')+'</td>'+
+        '<td>'+r[8]+'</td>'+
+        '<td>'+(r[5]?'<span class="bdg bt">'+r[5]+'</span>':'')+'</td>'+
+        '<td>'+(r[6]?'<span class="bdg bg">'+r[6]+'</span>':'')+'</td>'+
+        '<td class="r re">'+fmt(r[4])+'</td></tr>').join('')+
+      '</tbody></table></div>';
+
+    mkBar('cNind',MES,[{label:selSoc,data:sd.mes,backgroundColor:SOCCLR[selSoc],borderRadius:4}]);
+    const clData=sd.byCl.slice(0,12);
+    mkBar('cNcl',clData.map(x=>x[0]),[{label:'g',data:clData.map(x=>x[1]),backgroundColor:SOCCLR[selSoc],borderRadius:4}],true);
+    const tgData=sd.byTG.slice(0,10);
+    mkBar('cNtg',tgData.map(x=>x[0]),[{label:'g',data:tgData.map(x=>x[1]),backgroundColor:SOCCLR[selSoc]+'99',borderRadius:4}],true);
+
+  } else {
+    // ── VISTA CONSOLIDADA AMBOS SOCIOS ──────────────────────────────
+    const ins=[
+      {e:'&#x1F465;',t:'Total nomina socios',b:'<b>'+fmtK(grand)+'</b> entre '+socios.length+' socios'},
+      {e:'&#x1F451;',t:'Mayor gasto',b:socData.sort((a,b)=>b.tTotal-a.tTotal)[0].s+': <b>'+fmtK(socData[0].tTotal)+'</b>'},
+      {e:'&#x1F4CC;',t:'Nota contable',b:'Se registran como <b>Sueldos de Socios</b> en el P&L de la empresa'},
+      {e:'&#x1F4C5;',t:'Mes mas alto',b:'<b>'+MES[mesTotal.indexOf(Math.max(...mesTotal))]+'</b>: '+fmtK(Math.max(...mesTotal))},
+    ];
+
+    $('main').innerHTML=
+      socSelector+
+      ibox(ins)+
+      fbox([{l:'Mes',h:sMes()}])+
+      '<div class="krow">'+
+      socData.map(({s,tTotal,d})=>kc(s,fmtK(tTotal),'p',SOCEMO[s],fmtN(d.length)+' movimientos')).join('')+
+      kc('Total sueldos socios',fmtK(grand),'y','&#x1F4CA;','acumulado periodo')+
+      '</div>'+
+      '<div class="cc"><div class="cc-t">&#x1F4CA; Gastos por socio &mdash; mensual</div>'+
+      '<div class="lgnd">'+socios.map(s=>'<span><span class="lsq" style="background:'+SOCCLR[s]+'"></span>'+s+'</span>').join('')+'</div>'+
+      '<div style="position:relative;height:230px"><canvas id="cNm"></canvas></div></div>'+
+      '<div class="g2">'+socData.map(({s,byCl,tTotal,mes})=>{
+        const mxCl=byCl[0]?byCl[0][1]:1;
+        return '<div class="soc-card">'+
+          '<div style="font-size:13px;font-weight:800;color:var(--t0);margin-bottom:14px">'+SOCEMO[s]+' '+s+' &mdash; <span style="color:'+SOCCOL[s]+'">'+fmtK(tTotal)+'</span></div>'+
+          '<div style="font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Clasificacion de gastos (col L)</div>'+
+          byCl.slice(0,8).map(([k,v])=>'<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">'+
+            '<div style="font-size:11px;font-weight:500;min-width:165px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+k+'</div>'+
+            '<div style="flex:1;height:9px;background:var(--s2);border-radius:3px;overflow:hidden">'+
+            '<div style="width:'+(v/mxCl*100).toFixed(1)+'%;height:100%;background:'+SOCCLR[s]+';border-radius:3px;opacity:.8"></div></div>'+
+            '<div style="font-size:11px;min-width:68px;text-align:right;font-family:var(--mono);font-weight:700;color:'+SOCCOL[s]+'">'+fmt(v)+'</div></div>').join('')+
+          '<div style="margin-top:12px;font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;margin-bottom:6px">Mensual</div>'+
+          '<div style="display:flex;gap:3px;flex-wrap:wrap">'+
+          mes.map((v,i)=>'<div style="text-align:center;min-width:38px">'+
+            '<div style="font-size:9px;color:var(--t3)">'+MES[i]+'</div>'+
+            '<div style="font-size:11px;font-weight:700;color:'+(v>0?SOCCLR[s]:'var(--t4)')+'">'+( v>0?fmtK(v):'—')+'</div></div>').join('')+
+          '</div></div>';
+      }).join('')+'</div>'+
+      '<div class="slbl">Tabla comparativa mensual</div>'+
+      '<div class="tw"><table>'+
+      '<thead><tr><th>Socio</th>'+MES.map(m=>'<th class="r">'+m+'</th>').join('')+'<th class="r">Total</th></tr></thead>'+
+      '<tbody>'+socData.map(({s,mes,tTotal})=>'<tr><td style="font-weight:700">'+SOCEMO[s]+' '+s+'</td>'+mes.map(v=>'<td class="r '+(v>0?'re':'mu')+'">'+( v>0?fmt(v):'—')+'</td>').join('')+'<td class="r y">'+fmt(tTotal)+'</td></tr>').join('')+
+      '</tbody><tfoot><tr><td>Total</td>'+mesTotal.map(v=>'<td class="r">'+fmt(v)+'</td>').join('')+'<td class="r">'+fmt(grand)+'</td></tr></tfoot></table></div>';
+
+    mkBar('cNm',MES,socios.map(s=>({
+      label:s,
+      data:MES.map((_,m)=>all.filter(r=>r[7]===s&&r[4]>0&&r[2]-1===m).reduce((a,r)=>a+r[4],0)),
+      backgroundColor:SOCCLR[s],borderRadius:4,
+    })));
+  }
 }
+
 
 // ─── POR CLASIFICACION ───────────────────────────────────────────────────────
 function dClas(){
