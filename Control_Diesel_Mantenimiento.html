@@ -48,9 +48,9 @@
   @media(max-width:900px){.grid2,.grid3{grid-template-columns:1fr;}}
   .card{background:var(--card);border-radius:14px;padding:18px;border:1px solid var(--borde);margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,.04);}
   .card h3{margin:0 0 12px;font-size:15px;color:var(--verde);display:flex;align-items:center;gap:8px;}
-  table{width:100%;border-collapse:collapse;font-size:13px;}
-  th{text-align:left;padding:8px 10px;background:var(--verde-claro);color:var(--verde);font-weight:600;position:sticky;top:0;}
-  td{padding:8px 10px;border-bottom:1px solid var(--borde);}
+  table{width:100%;border-collapse:collapse;font-size:12px;}
+  th{text-align:left;padding:6px 8px;background:var(--verde-claro);color:var(--verde);font-weight:600;position:sticky;top:0;white-space:nowrap;}
+  td{padding:5px 8px;border-bottom:1px solid var(--borde);line-height:1.3;}
   tr:hover td{background:#fafbf9;}
   .table-wrap{max-height:480px;overflow:auto;border:1px solid var(--borde);border-radius:10px;}
   .badge{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;display:inline-block;}
@@ -63,7 +63,7 @@
   button.btn{background:var(--verde);color:#fff;border:none;cursor:pointer;font-weight:600;}
   button.btn:hover{background:var(--verde2);}
   button.btn.secondary{background:#fff;color:var(--verde);border:1px solid var(--verde);}
-  button.btn.small{padding:6px 10px;font-size:12px;}
+  button.btn.small{padding:4px 8px;font-size:11px;}
   .formgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;}
   .formgrid label{font-size:11px;color:var(--gris);font-weight:600;display:block;margin-bottom:2px;}
   .unidades-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;}
@@ -232,7 +232,7 @@
   <span class="close-x" onclick="cerrarModal('modalMtto')">✕</span>
   <h3 id="modalMttoTitulo">🔧 Registrar mantenimiento</h3>
   <div class="formgrid">
-    <div><label id="mFechaLabel">Fecha</label><input type="date" id="mFecha"></div>
+    <div><label id="mFechaLabel">Fecha</label><input type="date" id="mFecha" oninput="actualizarPreviewMtto()"></div>
     <div><label>Equipo</label>
       <select id="mEquipo"><option>Tractor</option><option>Caja</option></select>
     </div>
@@ -240,7 +240,7 @@
     <div><label>Operación</label>
       <select id="mTipoOperacion"><option>Alen IP</option><option>Foráneos</option><option>Locales</option></select>
     </div>
-    <div><label id="mKmLabel">Kilometraje actual</label><input type="number" id="mKm"></div>
+    <div><label id="mKmLabel">Kilometraje actual</label><input type="number" id="mKm" oninput="actualizarPreviewMtto()"></div>
     <div><label>Tipo</label>
       <select id="mTipoMtto"><option>Preventivo</option><option>Correctivo</option></select>
     </div>
@@ -257,6 +257,7 @@
     <div class="field-span2"><label>Piezas / refacciones</label><input id="mPiezas"></div>
     <div class="field-span2"><label id="mComentariosLabel">Comentarios</label><textarea id="mComentarios" rows="2" style="width:100%;"></textarea></div>
   </div>
+  <div id="mInfoBox" style="display:none;margin-top:10px;background:var(--verde-claro);border-radius:8px;padding:10px 14px;font-size:12px;"></div>
   <div style="margin-top:12px;text-align:right;">
     <button class="btn secondary" onclick="cerrarModal('modalMtto')">Cancelar</button>
     <button class="btn" id="btnGuardarMtto" onclick="guardarMtto()">Guardar</button>
@@ -631,6 +632,8 @@ function resetModalDiesel(){
 function resetModalMtto(){
   editingMttoId = null;
   marcandoRealizado = false;
+  kmCapturaOriginal = null;
+  document.getElementById('mInfoBox').style.display = 'none';
   document.getElementById('modalMttoTitulo').textContent = '🔧 Registrar mantenimiento';
   document.getElementById('btnGuardarMtto').textContent = 'Guardar';
   ['mFecha','mUnidad','mKm','mTallerExt','mCosto','mDescripcion','mPiezas','mComentarios','mMecanico'].forEach(id=>document.getElementById(id).value='');
@@ -706,6 +709,7 @@ function editarMtto(i){
 // Toma el último mantenimiento (pendiente) de la unidad y precarga el formulario
 // para confirmar que ya se hizo — actualiza ESA misma fila en vez de crear una nueva.
 let marcandoRealizado = false;
+let kmCapturaOriginal = null;
 function marcarRealizado(unidad){
   const ultimoMap = ultimoMttoPorUnidad();
   const m = ultimoMap[unidad];
@@ -719,6 +723,9 @@ function marcarRealizado(unidad){
   document.getElementById('mDescripcionLabel').textContent = '¿Qué se le hizo?';
   document.getElementById('mComentariosLabel').textContent = '¿Qué quedó pendiente?';
   document.getElementById('mFecha').value = hoyISO(); // fecha en la que se hizo — ajustable
+  // el km con el que se había capturado originalmente la necesidad de este
+  // mantenimiento (antes de actualizarlo) — se muestra de referencia.
+  kmCapturaOriginal = Number(m['Kilometraje Actual']) || 0;
   // el kilometraje al que se le hace el mantenimiento es el punto de partida del
   // siguiente conteo — usamos el más reciente conocido de la unidad, no el que
   // tenía cuando solo se había detectado la falla.
@@ -733,7 +740,24 @@ function marcarRealizado(unidad){
   document.getElementById('mComentarios').placeholder = 'Ej. falta cambiar balatas — dejar vacío si no quedó nada pendiente';
   document.getElementById('mMecanico').focus();
   marcandoRealizado = true;
+  actualizarPreviewMtto();
   abrirModal('modalMtto');
+}
+function actualizarPreviewMtto(){
+  const box = document.getElementById('mInfoBox');
+  if(!marcandoRealizado){ box.style.display = 'none'; return; }
+  const km = Number(document.getElementById('mKm').value) || 0;
+  const fechaStr = document.getElementById('mFecha').value;
+  let html = `<b>Km con el que se capturó originalmente:</b> ${kmCapturaOriginal!==null ? kmCapturaOriginal.toLocaleString('es-MX')+' km' : '—'}`;
+  if(km && fechaStr){
+    const proxKm = km + KM_ALERTA;
+    const fProx = parseFecha(fechaStr);
+    fProx.setMonth(fProx.getMonth() + MESES_ALERTA);
+    const proxFechaStr = fProx.toISOString().slice(0,10);
+    html += `<br><b>Próximo mantenimiento estimado:</b> ${proxKm.toLocaleString('es-MX')} km — ${proxFechaStr} (a ${KM_ALERTA.toLocaleString('es-MX')} km o ${MESES_ALERTA} meses desde este servicio, lo que ocurra primero)`;
+  }
+  box.innerHTML = html;
+  box.style.display = 'block';
 }
 async function eliminarMtto(i){
   const m = _mttoRowsCache[i];
@@ -1150,11 +1174,11 @@ function renderMtto(){
     <tr><td>${m['Fecha']||''}</td><td>${m['Equipo']||''}</td><td><b>${m['Número de Unidad/Caja']||''}</b></td>
     <td>${m['Tipo de Operación']||''}</td><td>${(Number(m['Kilometraje Actual'])||0).toLocaleString('es-MX')}</td>
     <td>${m['Tipo de Mantenimiento']==='Correctivo'?'<span class="badge b-bad">Correctivo</span>':'<span class="badge b-ok">Preventivo</span>'}</td>
-    <td>${m['Descripción/Falla']||''}</td><td>${m['Taller']||''}${m['Taller Externo (Nombre)']?(' - '+m['Taller Externo (Nombre)']):''}</td>
+    <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${(m['Descripción/Falla']||'').replace(/"/g,'&quot;')}">${m['Descripción/Falla']||''}</td><td>${m['Taller']||''}${m['Taller Externo (Nombre)']?(' - '+m['Taller Externo (Nombre)']):''}</td>
     <td>${m['Mecánico']||''}</td>
     <td>${m['Piezas/Refacciones']||''}</td><td>${fmtMoney(m['Costo'])}</td>
     <td>${(Number(m['Próximo Mantenimiento (Km)'])||0).toLocaleString('es-MX')}</td><td>${m['Próximo Mantenimiento (Fecha)']||''}</td>
-    <td>${m['ID'] ? `${esMantenimientoPendiente(m)?`<button class="btn small" style="background:#1a7f37;" onclick="marcarRealizado('${String(m['Número de Unidad/Caja']).replace(/'/g,"\\'")}')">✅ Realizado</button> `:''}<button class="btn small secondary" onclick="editarMtto(${i})">✏️</button> <button class="btn small secondary" onclick="eliminarMtto(${i})">🗑️</button>` : '<span style="color:var(--gris);font-size:11px;">histórico</span>'}</td></tr>
+    <td><div style="display:flex;gap:4px;flex-wrap:wrap;">${m['ID'] ? `${esMantenimientoPendiente(m)?`<button class="btn small" style="background:#1a7f37;" onclick="marcarRealizado('${String(m['Número de Unidad/Caja']).replace(/'/g,"\\'")}')">✅ Realizado</button>`:''}<button class="btn small secondary" onclick="editarMtto(${i})">✏️</button><button class="btn small secondary" onclick="eliminarMtto(${i})">🗑️</button>` : '<span style="color:var(--gris);font-size:11px;">histórico</span>'}</div></td></tr>
   `).join('');
 }
 
