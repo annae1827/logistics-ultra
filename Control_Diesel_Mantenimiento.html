@@ -1151,7 +1151,7 @@ function renderDiesel(){
     <td>${d['_lectura']!=null?d['_lectura'].toLocaleString('es-MX'):''}${d['_lecturaSospechosa']?' <span title="Salto de km o rendimiento poco realista respecto a la carga anterior de esta unidad — revisar" style="cursor:help;">⚠️</span>':''}</td><td>${d['Kilometraje']||''}</td>
     <td>${d['Rendimiento (km/l)']||''}</td><td>${d['Costo por Litro']||''}</td><td>${fmtMoney(d['Monto Total'])}</td>
     <td>${d['Tipo de Pago']||''}</td>
-    <td>${d['ID'] ? `<button class="btn small secondary" onclick="editarDiesel(${i})">✏️</button> <button class="btn small secondary" onclick="eliminarDiesel(${i})">🗑️</button>` : '<span style="color:var(--gris);font-size:11px;">histórico</span>'}</td></tr>
+    <td><div style="display:flex;gap:3px;align-items:center;">${d['ID'] ? `<button class="btn small secondary" title="Editar" onclick="editarDiesel(${i})">✏️</button><button class="btn small secondary" title="Eliminar" onclick="eliminarDiesel(${i})">🗑️</button>` : '<span style="color:var(--gris);font-size:11px;">histórico</span>'}</div></td></tr>
   `).join('');
 }
 
@@ -1182,7 +1182,7 @@ function renderMtto(){
     <td>${m['Mecánico']||''}</td>
     <td>${m['Piezas/Refacciones']||''}</td><td>${fmtMoney(m['Costo'])}</td>
     <td>${(Number(m['Próximo Mantenimiento (Km)'])||0).toLocaleString('es-MX')}</td><td>${m['Próximo Mantenimiento (Fecha)']||''}</td>
-    <td><div style="display:flex;gap:4px;flex-wrap:wrap;">${m['ID'] ? `${esMantenimientoPendiente(m)?`<button class="btn small" style="background:#1a7f37;" onclick="marcarRealizado('${String(m['Número de Unidad/Caja']).replace(/'/g,"\\'")}')">✅ Realizado</button>`:''}<button class="btn small secondary" onclick="editarMtto(${i})">✏️</button><button class="btn small secondary" onclick="eliminarMtto(${i})">🗑️</button>` : '<span style="color:var(--gris);font-size:11px;">histórico</span>'}</div></td></tr>
+    <td><div style="display:flex;gap:3px;align-items:center;">${m['ID'] ? `${esMantenimientoPendiente(m)?`<button class="btn small" title="Marcar como realizado" style="background:#1a7f37;padding:4px 7px;" onclick="marcarRealizado('${String(m['Número de Unidad/Caja']).replace(/'/g,"\\'")}')">✅</button>`:''}<button class="btn small secondary" title="Editar" onclick="editarMtto(${i})">✏️</button><button class="btn small secondary" title="Eliminar" onclick="eliminarMtto(${i})">🗑️</button>` : '<span style="color:var(--gris);font-size:11px;">histórico</span>'}</div></td></tr>
   `).join('');
 }
 
