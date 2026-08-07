@@ -133,7 +133,7 @@
     </div>
     <div class="card">
       <h3>🚨 Alertas de mantenimiento</h3>
-      <div class="table-wrap"><table id="tblAlertas"><thead><tr><th>Unidad</th><th>Equipo</th><th>Km actual</th><th>Próximo Km</th><th>Próxima fecha</th><th>Estatus</th></tr></thead><tbody></tbody></table></div>
+      <div class="table-wrap"><table id="tblAlertas"><thead><tr><th>Unidad</th><th>Equipo</th><th>Km actual</th><th>Próximo Km</th><th>Próxima fecha</th><th>Faltan</th><th>Estatus</th></tr></thead><tbody></tbody></table></div>
     </div>
   </div>
 
@@ -629,9 +629,11 @@ function resetModalDiesel(){
 }
 function resetModalMtto(){
   editingMttoId = null;
+  marcandoRealizado = false;
   document.getElementById('modalMttoTitulo').textContent = '🔧 Registrar mantenimiento';
   document.getElementById('btnGuardarMtto').textContent = 'Guardar';
   ['mFecha','mUnidad','mKm','mTallerExt','mCosto','mDescripcion','mPiezas','mComentarios'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('mComentarios').placeholder = '';
   document.getElementById('mEquipo').value='Tractor';
   document.getElementById('mTipoOperacion').value='Alen IP';
   document.getElementById('mTipoMtto').value='Preventivo';
@@ -669,12 +671,8 @@ async function eliminarDiesel(i){
   else toast((r&&r.error)||'No se pudo eliminar');
 }
 
-function editarMtto(i){
-  const m = _mttoRowsCache[i];
-  if(!m || !m['ID']) return;
+function cargarFormularioMtto(m){
   editingMttoId = m['ID'];
-  document.getElementById('modalMttoTitulo').textContent = '✏️ Editar mantenimiento';
-  document.getElementById('btnGuardarMtto').textContent = 'Guardar cambios';
   document.getElementById('mFecha').value = m['Fecha']||'';
   document.getElementById('mEquipo').value = m['Equipo']||'Tractor';
   document.getElementById('mUnidad').value = m['Número de Unidad/Caja']||'';
@@ -689,6 +687,37 @@ function editarMtto(i){
   document.getElementById('mDescripcion').value = m['Descripción/Falla']||'';
   document.getElementById('mPiezas').value = m['Piezas/Refacciones']||'';
   document.getElementById('mComentarios').value = m['Comentarios']||'';
+}
+function editarMtto(i){
+  const m = _mttoRowsCache[i];
+  if(!m || !m['ID']) return;
+  document.getElementById('modalMttoTitulo').textContent = '✏️ Editar mantenimiento';
+  document.getElementById('btnGuardarMtto').textContent = 'Guardar cambios';
+  cargarFormularioMtto(m);
+  abrirModal('modalMtto');
+}
+// Toma el último mantenimiento (pendiente) de la unidad y precarga el formulario
+// para confirmar que ya se hizo — actualiza ESA misma fila en vez de crear una nueva.
+let marcandoRealizado = false;
+function marcarRealizado(unidad){
+  const ultimoMap = ultimoMttoPorUnidad();
+  const m = ultimoMap[unidad];
+  if(!m || !m['ID']) return;
+  document.getElementById('modalMttoTitulo').textContent = '✅ Confirmar mantenimiento realizado — Unidad ' + unidad;
+  document.getElementById('btnGuardarMtto').textContent = 'Confirmar realizado';
+  cargarFormularioMtto(m);
+  document.getElementById('mRealizado').value = 'Realizado';
+  document.getElementById('mFecha').value = hoyISO(); // fecha en la que se hizo — ajustable
+  // el kilometraje al que se le hace el mantenimiento es el punto de partida del
+  // siguiente conteo — usamos el más reciente conocido de la unidad, no el que
+  // tenía cuando solo se había detectado la falla.
+  const kmMap = kmActualPorUnidad();
+  if(kmMap[unidad]) document.getElementById('mKm').value = kmMap[unidad].km;
+  // los comentarios que traía eran sobre la falla detectada, no sobre el
+  // trabajo ya hecho — se limpian para forzar a capturar qué se hizo.
+  document.getElementById('mComentarios').value = '';
+  document.getElementById('mComentarios').placeholder = 'Obligatorio: ¿qué se le hizo a la unidad?';
+  marcandoRealizado = true;
   abrirModal('modalMtto');
 }
 async function eliminarMtto(i){
@@ -767,6 +796,10 @@ function toggleTallerExterno(){
 async function guardarMtto(){
   const unidad = document.getElementById('mUnidad').value.trim();
   if(!unidad){ toast('Falta número de unidad'); return; }
+  if(marcandoRealizado){
+    if(!document.getElementById('mKm').value){ toast('Falta el kilometraje al que se hizo el mantenimiento'); return; }
+    if(!document.getElementById('mComentarios').value.trim()){ toast('Falta describir qué se le hizo a la unidad'); return; }
+  }
   const payload = {
     fecha: document.getElementById('mFecha').value,
     equipo: document.getElementById('mEquipo').value,
@@ -857,7 +890,7 @@ function estatusUnidad(unidad, kmMap, ultimoMap, primerMap){
   // de inmediato, sin importar el cálculo de km/fecha.
   if(ultimo && esMantenimientoPendiente(ultimo)){
     const kmActualPend = kmInfo ? kmInfo.km : Number(ultimo['Kilometraje Actual']);
-    return { status:'vencido', label:'Mantenimiento requerido', proxKm: kmActualPend, proxFecha: ultimo['Fecha'], pendiente:true };
+    return { status:'vencido', label:'Mantenimiento requerido', proxKm: kmActualPend, proxFecha: ultimo['Fecha'], pendiente:true, kmRestantes:0, diasRestantes:0 };
   }
 
   let proxKm, proxFecha;
@@ -886,6 +919,15 @@ function estatusUnidad(unidad, kmMap, ultimoMap, primerMap){
   return { status:'al_dia', label:'Al día', proxKm, proxFecha, kmRestantes, diasRestantes };
 }
 
+function formatoContador(e){
+  if(e.kmRestantes===undefined || e.kmRestantes===null) return '—';
+  if(e.status==='vencido'){
+    const kmVenc = Math.abs(e.kmRestantes), diasVenc = Math.abs(e.diasRestantes);
+    if(e.pendiente) return 'Pendiente de realizar';
+    return `Vencido hace ${kmVenc>0?kmVenc.toLocaleString('es-MX')+' km':''}${(kmVenc>0&&diasVenc>0)?' / ':''}${diasVenc>0?diasVenc+' días':''}`;
+  }
+  return `Faltan ${e.kmRestantes.toLocaleString('es-MX')} km / ${e.diasRestantes} días`;
+}
 function badgeFor(status){
   if(status==='vencido') return '<span class="badge b-bad">Vencido</span>';
   if(status==='proximo') return '<span class="badge b-warn">Próximo</span>';
@@ -1034,10 +1076,10 @@ function renderAlertas(){
     .sort((a,b)=> (a.e.status==='vencido'?0:1) - (b.e.status==='vencido'?0:1));
 
   const tbody = document.querySelector('#tblAlertas tbody');
-  if(!rows.length){ tbody.innerHTML = '<tr><td colspan="6" class="empty">Sin alertas activas 🎉</td></tr>'; return; }
+  if(!rows.length){ tbody.innerHTML = '<tr><td colspan="7" class="empty">Sin alertas activas 🎉</td></tr>'; return; }
   tbody.innerHTML = rows.map(r=>`
     <tr><td><b>${r.u}</b></td><td>${r.equipo}</td><td>${r.km?.toLocaleString('es-MX')||'—'}</td>
-    <td>${r.e.proxKm?.toLocaleString('es-MX')||'—'}</td><td>${r.e.proxFecha||'—'}</td><td>${badgeFor(r.e.status)}</td></tr>
+    <td>${r.e.proxKm?.toLocaleString('es-MX')||'—'}</td><td>${r.e.proxFecha||'—'}</td><td>${formatoContador(r.e)}</td><td>${badgeFor(r.e.status)}</td></tr>
   `).join('');
 }
 
@@ -1095,7 +1137,7 @@ function renderMtto(){
     <td>${m['Descripción/Falla']||''}</td><td>${m['Taller']||''}${m['Taller Externo (Nombre)']?(' - '+m['Taller Externo (Nombre)']):''}</td>
     <td>${m['Piezas/Refacciones']||''}</td><td>${fmtMoney(m['Costo'])}</td>
     <td>${(Number(m['Próximo Mantenimiento (Km)'])||0).toLocaleString('es-MX')}</td><td>${m['Próximo Mantenimiento (Fecha)']||''}</td>
-    <td>${m['ID'] ? `<button class="btn small secondary" onclick="editarMtto(${i})">✏️</button> <button class="btn small secondary" onclick="eliminarMtto(${i})">🗑️</button>` : '<span style="color:var(--gris);font-size:11px;">histórico</span>'}</td></tr>
+    <td>${m['ID'] ? `${esMantenimientoPendiente(m)?`<button class="btn small" style="background:#1a7f37;" onclick="marcarRealizado('${String(m['Número de Unidad/Caja']).replace(/'/g,"\\'")}')">✅ Realizado</button> `:''}<button class="btn small secondary" onclick="editarMtto(${i})">✏️</button> <button class="btn small secondary" onclick="eliminarMtto(${i})">🗑️</button>` : '<span style="color:var(--gris);font-size:11px;">histórico</span>'}</td></tr>
   `).join('');
 }
 
@@ -1122,7 +1164,9 @@ function renderUnidades(){
       <div class="row"><span>Tipo de operación</span><b>${ultimo? (ultimo['Tipo de Operación']||'—') : '—'}</b></div>
       <div class="row"><span>Último mantenimiento</span><b>${ultimo? ultimo['Fecha'] : 'Sin registro'}</b></div>
       <div class="row"><span>Próximo (km / fecha)</span><b>${e.proxKm? e.proxKm.toLocaleString('es-MX') : '—'} / ${e.proxFecha||'—'}</b></div>
+      <div class="row"><span>Faltan</span><b style="color:${e.status==='vencido'?'var(--rojo)':(e.status==='proximo'?'var(--naranja)':'var(--verde)')}">${formatoContador(e)}</b></div>
       <div style="margin-top:10px;text-align:right;">
+        ${(ultimo && ultimo['ID'] && esMantenimientoPendiente(ultimo)) ? `<button class="btn small" style="background:#1a7f37;" onclick="marcarRealizado('${u.replace(/'/g,"\\'")}')">✅ Marcar realizado</button> ` : ''}
         <button class="btn small secondary" onclick="descargarBitacora('${u.replace(/'/g,"\\'")}')">🖨️ Bitácora taller</button>
       </div>
     </div>`;
