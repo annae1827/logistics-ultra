@@ -89,6 +89,7 @@
   <div>
     <h1>Control de Diesel y Mantenimiento</h1>
     <div class="sub" id="lastUpdate">Sin conexión aún</div>
+    <div class="sub" style="opacity:.6;font-size:10px;">Versión del archivo: 2026-08-05 18:40</div>
   </div>
   <div class="header-right">
     <span id="connStatus" class="pill">● conectando…</span>
@@ -919,7 +920,9 @@ function esMantenimientoPendiente(m){
   if(!m) return false;
   if(String(m['Estatus']||'').toLowerCase()==='pendiente') return true;
   const texto = String(m['Descripción/Falla']||'') + ' ' + String(m['Comentarios']||'');
-  return /necesita|requiere|pendiente|falta (?:hacer|realizar)/i.test(texto);
+  // usamos raíces de palabra (no la palabra completa) para tolerar errores de
+  // dedo típicos de captura rápida, ej. "neceita" en vez de "necesita"
+  return /nece|requier|pendient|falta.*(hacer|realizar)/i.test(texto);
 }
 
 function estatusUnidad(unidad, kmMap, ultimoMap, primerMap){
