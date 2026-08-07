@@ -875,7 +875,7 @@ async function guardarKm(){
 function kmActualPorUnidad(){
   const map = {}; // unidad -> {km, fecha, equipo}
   function consider(unidad, km, fecha, equipo){
-    if(!unidad || !km) return;
+    if(!unidad || km===null || km===undefined || km==='' || isNaN(Number(km))) return;
     unidad = String(unidad).trim(); if(!unidad) return;
     const f = parseFecha(fecha);
     if(!map[unidad] || f > map[unidad].fecha){
@@ -904,7 +904,8 @@ function ultimoMttoPorUnidad(){
 function primerRegistroPorUnidad(){
   const map = {};
   function consider(unidad, km, fecha){
-    unidad = String(unidad||'').trim(); if(!unidad || !km || !fecha) return;
+    unidad = String(unidad||'').trim();
+    if(!unidad || km===null || km===undefined || km==='' || isNaN(Number(km)) || !fecha) return;
     const f = parseFecha(fecha); if(isNaN(f)) return;
     if(!map[unidad] || f < map[unidad].fecha){ map[unidad] = { km:Number(km), fecha:f }; }
   }
