@@ -37,10 +37,10 @@
   .tab.active{display:block;animation:fade .25s ease;}
   @keyframes fade{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:translateY(0);}}
   .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;margin-bottom:20px;}
-  .kpi{background:var(--card);border-radius:14px;padding:16px 18px;border:1px solid var(--borde);box-shadow:0 1px 3px rgba(0,0,0,.04);}
-  .kpi .icon{font-size:22px;margin-bottom:6px;}
-  .kpi .val{font-size:24px;font-weight:700;color:var(--verde);}
-  .kpi .lbl{font-size:12px;color:var(--gris);margin-top:2px;}
+  .kpi{background:var(--card);border-radius:14px;padding:12px 14px;border:1px solid var(--borde);box-shadow:0 1px 3px rgba(0,0,0,.04);}
+  .kpi .icon{font-size:19px;margin-bottom:4px;}
+  .kpi .val{font-size:21px;font-weight:700;color:var(--verde);}
+  .kpi .lbl{font-size:11px;color:var(--gris);margin-top:2px;}
   .kpi .delta{font-size:11px;margin-top:6px;font-weight:600;}
   .delta.up{color:#1a7f37;} .delta.down{color:var(--rojo);}
   .grid2{display:grid;grid-template-columns:2fr 1fr;gap:16px;}
@@ -59,21 +59,21 @@
   .b-bad{background:#fdecea;color:var(--rojo);}
   .b-gray{background:#eee;color:var(--gris);}
   .toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;align-items:center;}
-  input,select,button.btn,textarea{font-family:inherit;font-size:13px;padding:9px 12px;border-radius:8px;border:1px solid var(--borde);}
+  input,select,button.btn,textarea{font-family:inherit;font-size:13px;padding:7px 10px;border-radius:8px;border:1px solid var(--borde);}
   button.btn{background:var(--verde);color:#fff;border:none;cursor:pointer;font-weight:600;}
   button.btn:hover{background:var(--verde2);}
   button.btn.secondary{background:#fff;color:var(--verde);border:1px solid var(--verde);}
   button.btn.small{padding:6px 10px;font-size:12px;}
-  .formgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;}
-  .formgrid label{font-size:12px;color:var(--gris);font-weight:600;display:block;margin-bottom:4px;}
+  .formgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;}
+  .formgrid label{font-size:11px;color:var(--gris);font-weight:600;display:block;margin-bottom:2px;}
   .unidades-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;}
-  .ucard{background:var(--card);border:1px solid var(--borde);border-radius:14px;padding:16px;}
-  .ucard h4{margin:0 0 6px;font-size:16px;color:var(--verde);}
-  .ucard .row{display:flex;justify-content:space-between;font-size:12px;padding:3px 0;color:var(--gris);}
+  .ucard{background:var(--card);border:1px solid var(--borde);border-radius:14px;padding:14px;}
+  .ucard h4{margin:0 0 4px;font-size:15px;color:var(--verde);}
+  .ucard .row{display:flex;justify-content:space-between;font-size:11px;padding:2px 0;color:var(--gris);}
   .ucard .row b{color:var(--texto);}
   .modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:100;align-items:center;justify-content:center;}
   .modal-bg.active{display:flex;}
-  .modal{background:#fff;border-radius:14px;padding:22px;max-width:560px;width:92%;max-height:88vh;overflow:auto;}
+  .modal{background:#fff;border-radius:14px;padding:18px;max-width:560px;width:92%;max-height:88vh;overflow:auto;}
   .modal h3{color:var(--verde);margin-top:0;}
   .close-x{float:right;cursor:pointer;font-size:18px;color:var(--gris);}
   .toast{position:fixed;bottom:20px;right:20px;background:var(--verde);color:#fff;padding:12px 18px;border-radius:10px;z-index:200;display:none;box-shadow:0 4px 12px rgba(0,0,0,.2);}
@@ -180,7 +180,7 @@
     <div class="card">
       <div class="table-wrap"><table id="tblMtto"><thead><tr>
         <th>Fecha</th><th>Equipo</th><th>Unidad</th><th>Operación</th><th>Km</th><th>Tipo</th><th>Falla/Descripción</th>
-        <th>Taller</th><th>Piezas</th><th>Costo</th><th>Próx. Km</th><th>Próx. Fecha</th><th>Acciones</th>
+        <th>Taller</th><th>Mecánico</th><th>Piezas</th><th>Costo</th><th>Próx. Km</th><th>Próx. Fecha</th><th>Acciones</th>
       </tr></thead><tbody></tbody></table></div>
     </div>
   </div>
@@ -232,31 +232,32 @@
   <span class="close-x" onclick="cerrarModal('modalMtto')">✕</span>
   <h3 id="modalMttoTitulo">🔧 Registrar mantenimiento</h3>
   <div class="formgrid">
-    <div><label>Fecha</label><input type="date" id="mFecha"></div>
+    <div><label id="mFechaLabel">Fecha</label><input type="date" id="mFecha"></div>
     <div><label>Equipo</label>
       <select id="mEquipo"><option>Tractor</option><option>Caja</option></select>
     </div>
-    <div><label>Número de unidad/caja</label><input id="mUnidad"></div>
-    <div><label>Tipo de operación</label>
+    <div><label>Unidad/caja</label><input id="mUnidad"></div>
+    <div><label>Operación</label>
       <select id="mTipoOperacion"><option>Alen IP</option><option>Foráneos</option><option>Locales</option></select>
     </div>
-    <div><label>Kilometraje actual</label><input type="number" id="mKm"></div>
-    <div><label>Tipo de mantenimiento</label>
+    <div><label id="mKmLabel">Kilometraje actual</label><input type="number" id="mKm"></div>
+    <div><label>Tipo</label>
       <select id="mTipoMtto"><option>Preventivo</option><option>Correctivo</option></select>
     </div>
     <div><label>Taller</label>
       <select id="mTaller" onchange="toggleTallerExterno()"><option>Interno</option><option>Externo</option></select>
     </div>
     <div><label>¿Ya se realizó?</label>
-      <select id="mRealizado"><option value="Realizado">Sí, ya se hizo</option><option value="Pendiente">No, está pendiente / solo se detectó la necesidad</option></select>
+      <select id="mRealizado"><option value="Realizado">Sí, ya se hizo</option><option value="Pendiente">No, pendiente</option></select>
     </div>
-    <div id="mTallerExtWrap" style="display:none;"><label>Nombre del taller externo</label><input id="mTallerExt"></div>
+    <div id="mTallerExtWrap" style="display:none;"><label>Taller externo</label><input id="mTallerExt"></div>
+    <div><label>Mecánico</label><input id="mMecanico" placeholder="Nombre"></div>
     <div><label>Costo</label><input type="number" id="mCosto"></div>
-    <div class="field-span2"><label>Descripción / falla</label><input id="mDescripcion"></div>
-    <div class="field-span2"><label>Piezas / refacciones compradas</label><input id="mPiezas"></div>
-    <div class="field-span2"><label>Comentarios del taller</label><textarea id="mComentarios" rows="2" style="width:100%;"></textarea></div>
+    <div class="field-span2"><label id="mDescripcionLabel">Descripción / falla</label><input id="mDescripcion"></div>
+    <div class="field-span2"><label>Piezas / refacciones</label><input id="mPiezas"></div>
+    <div class="field-span2"><label id="mComentariosLabel">Comentarios</label><textarea id="mComentarios" rows="2" style="width:100%;"></textarea></div>
   </div>
-  <div style="margin-top:14px;text-align:right;">
+  <div style="margin-top:12px;text-align:right;">
     <button class="btn secondary" onclick="cerrarModal('modalMtto')">Cancelar</button>
     <button class="btn" id="btnGuardarMtto" onclick="guardarMtto()">Guardar</button>
   </div>
@@ -632,8 +633,13 @@ function resetModalMtto(){
   marcandoRealizado = false;
   document.getElementById('modalMttoTitulo').textContent = '🔧 Registrar mantenimiento';
   document.getElementById('btnGuardarMtto').textContent = 'Guardar';
-  ['mFecha','mUnidad','mKm','mTallerExt','mCosto','mDescripcion','mPiezas','mComentarios'].forEach(id=>document.getElementById(id).value='');
+  ['mFecha','mUnidad','mKm','mTallerExt','mCosto','mDescripcion','mPiezas','mComentarios','mMecanico'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('mComentarios').placeholder = '';
+  document.getElementById('mDescripcion').placeholder = '';
+  document.getElementById('mFechaLabel').textContent = 'Fecha';
+  document.getElementById('mKmLabel').textContent = 'Kilometraje actual';
+  document.getElementById('mDescripcionLabel').textContent = 'Descripción / falla';
+  document.getElementById('mComentariosLabel').textContent = 'Comentarios';
   document.getElementById('mEquipo').value='Tractor';
   document.getElementById('mTipoOperacion').value='Alen IP';
   document.getElementById('mTipoMtto').value='Preventivo';
@@ -687,6 +693,7 @@ function cargarFormularioMtto(m){
   document.getElementById('mDescripcion').value = m['Descripción/Falla']||'';
   document.getElementById('mPiezas').value = m['Piezas/Refacciones']||'';
   document.getElementById('mComentarios').value = m['Comentarios']||'';
+  document.getElementById('mMecanico').value = m['Mecánico']||'';
 }
 function editarMtto(i){
   const m = _mttoRowsCache[i];
@@ -703,20 +710,28 @@ function marcarRealizado(unidad){
   const ultimoMap = ultimoMttoPorUnidad();
   const m = ultimoMap[unidad];
   if(!m || !m['ID']) return;
-  document.getElementById('modalMttoTitulo').textContent = '✅ Confirmar mantenimiento realizado — Unidad ' + unidad;
+  document.getElementById('modalMttoTitulo').textContent = '✅ Confirmar realizado — Unidad ' + unidad;
   document.getElementById('btnGuardarMtto').textContent = 'Confirmar realizado';
   cargarFormularioMtto(m);
   document.getElementById('mRealizado').value = 'Realizado';
+  document.getElementById('mFechaLabel').textContent = 'Fecha del servicio';
+  document.getElementById('mKmLabel').textContent = 'Km al finalizar el servicio';
+  document.getElementById('mDescripcionLabel').textContent = '¿Qué se le hizo?';
+  document.getElementById('mComentariosLabel').textContent = '¿Qué quedó pendiente?';
   document.getElementById('mFecha').value = hoyISO(); // fecha en la que se hizo — ajustable
   // el kilometraje al que se le hace el mantenimiento es el punto de partida del
   // siguiente conteo — usamos el más reciente conocido de la unidad, no el que
   // tenía cuando solo se había detectado la falla.
   const kmMap = kmActualPorUnidad();
   if(kmMap[unidad]) document.getElementById('mKm').value = kmMap[unidad].km;
-  // los comentarios que traía eran sobre la falla detectada, no sobre el
-  // trabajo ya hecho — se limpian para forzar a capturar qué se hizo.
+  // la descripción que traía era sobre la falla detectada, no sobre el trabajo
+  // ya hecho — se limpia para forzar a capturar qué se hizo. Comentarios pasa
+  // a ser "qué quedó pendiente" (puede quedar vacío si no quedó nada).
+  document.getElementById('mDescripcion').value = '';
+  document.getElementById('mDescripcion').placeholder = 'Obligatorio: ej. cambio de aceite y filtros';
   document.getElementById('mComentarios').value = '';
-  document.getElementById('mComentarios').placeholder = 'Obligatorio: ¿qué se le hizo a la unidad?';
+  document.getElementById('mComentarios').placeholder = 'Ej. falta cambiar balatas — dejar vacío si no quedó nada pendiente';
+  document.getElementById('mMecanico').focus();
   marcandoRealizado = true;
   abrirModal('modalMtto');
 }
@@ -797,8 +812,8 @@ async function guardarMtto(){
   const unidad = document.getElementById('mUnidad').value.trim();
   if(!unidad){ toast('Falta número de unidad'); return; }
   if(marcandoRealizado){
-    if(!document.getElementById('mKm').value){ toast('Falta el kilometraje al que se hizo el mantenimiento'); return; }
-    if(!document.getElementById('mComentarios').value.trim()){ toast('Falta describir qué se le hizo a la unidad'); return; }
+    if(!document.getElementById('mKm').value){ toast('Falta el kilometraje al finalizar el servicio'); return; }
+    if(!document.getElementById('mDescripcion').value.trim()){ toast('Falta describir qué se le hizo a la unidad'); return; }
   }
   const payload = {
     fecha: document.getElementById('mFecha').value,
@@ -811,6 +826,7 @@ async function guardarMtto(){
     descripcion: document.getElementById('mDescripcion').value,
     taller: document.getElementById('mTaller').value,
     tallerExterno: document.getElementById('mTallerExt').value,
+    mecanico: document.getElementById('mMecanico').value,
     piezas: document.getElementById('mPiezas').value,
     costo: document.getElementById('mCosto').value,
     comentarios: document.getElementById('mComentarios').value
@@ -1129,12 +1145,13 @@ function renderMtto(){
   document.getElementById('mVencidos').textContent = Object.keys(kmMap).filter(u=> estatusUnidad(u,kmMap,ultimoMap,primerMap).status==='vencido').length;
 
   const tbody = document.querySelector('#tblMtto tbody');
-  if(!rows.length){ tbody.innerHTML = '<tr><td colspan="13" class="empty">Sin registros</td></tr>'; return; }
+  if(!rows.length){ tbody.innerHTML = '<tr><td colspan="14" class="empty">Sin registros</td></tr>'; return; }
   tbody.innerHTML = rows.map((m,i)=>`
     <tr><td>${m['Fecha']||''}</td><td>${m['Equipo']||''}</td><td><b>${m['Número de Unidad/Caja']||''}</b></td>
     <td>${m['Tipo de Operación']||''}</td><td>${(Number(m['Kilometraje Actual'])||0).toLocaleString('es-MX')}</td>
     <td>${m['Tipo de Mantenimiento']==='Correctivo'?'<span class="badge b-bad">Correctivo</span>':'<span class="badge b-ok">Preventivo</span>'}</td>
     <td>${m['Descripción/Falla']||''}</td><td>${m['Taller']||''}${m['Taller Externo (Nombre)']?(' - '+m['Taller Externo (Nombre)']):''}</td>
+    <td>${m['Mecánico']||''}</td>
     <td>${m['Piezas/Refacciones']||''}</td><td>${fmtMoney(m['Costo'])}</td>
     <td>${(Number(m['Próximo Mantenimiento (Km)'])||0).toLocaleString('es-MX')}</td><td>${m['Próximo Mantenimiento (Fecha)']||''}</td>
     <td>${m['ID'] ? `${esMantenimientoPendiente(m)?`<button class="btn small" style="background:#1a7f37;" onclick="marcarRealizado('${String(m['Número de Unidad/Caja']).replace(/'/g,"\\'")}')">✅ Realizado</button> `:''}<button class="btn small secondary" onclick="editarMtto(${i})">✏️</button> <button class="btn small secondary" onclick="eliminarMtto(${i})">🗑️</button>` : '<span style="color:var(--gris);font-size:11px;">histórico</span>'}</td></tr>
