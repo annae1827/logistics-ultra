@@ -89,7 +89,7 @@
   <div>
     <h1>Control de Diesel y Mantenimiento</h1>
     <div class="sub" id="lastUpdate">Sin conexión aún</div>
-    <div class="sub" style="opacity:.6;font-size:10px;">Versión del archivo: 2026-08-05 18:40</div>
+    <div class="sub" style="opacity:.6;font-size:10px;">Versión del archivo: 2026-08-05 19:20 (botones de acciones compactos)</div>
   </div>
   <div class="header-right">
     <span id="connStatus" class="pill">● conectando…</span>
@@ -181,7 +181,7 @@
     <div class="card">
       <div class="table-wrap"><table id="tblMtto"><thead><tr>
         <th>Fecha</th><th>Equipo</th><th>Unidad</th><th>Operación</th><th>Km</th><th>Tipo</th><th>Falla/Descripción</th>
-        <th>Taller</th><th>Mecánico</th><th>Piezas</th><th>Costo</th><th>Próx. Km</th><th>Próx. Fecha</th><th>Acciones</th>
+        <th>Taller</th><th>Mecánico</th><th>Piezas</th><th>Costo</th><th>Próx. Km</th><th>Próx. Fecha</th><th>Estatus</th><th>Acciones</th>
       </tr></thead><tbody></tbody></table></div>
     </div>
   </div>
@@ -1173,7 +1173,7 @@ function renderMtto(){
   document.getElementById('mVencidos').textContent = Object.keys(kmMap).filter(u=> estatusUnidad(u,kmMap,ultimoMap,primerMap).status==='vencido').length;
 
   const tbody = document.querySelector('#tblMtto tbody');
-  if(!rows.length){ tbody.innerHTML = '<tr><td colspan="14" class="empty">Sin registros</td></tr>'; return; }
+  if(!rows.length){ tbody.innerHTML = '<tr><td colspan="15" class="empty">Sin registros</td></tr>'; return; }
   tbody.innerHTML = rows.map((m,i)=>`
     <tr><td>${m['Fecha']||''}</td><td>${m['Equipo']||''}</td><td><b>${m['Número de Unidad/Caja']||''}</b></td>
     <td>${m['Tipo de Operación']||''}</td><td>${(Number(m['Kilometraje Actual'])||0).toLocaleString('es-MX')}</td>
@@ -1182,6 +1182,7 @@ function renderMtto(){
     <td>${m['Mecánico']||''}</td>
     <td>${m['Piezas/Refacciones']||''}</td><td>${fmtMoney(m['Costo'])}</td>
     <td>${(Number(m['Próximo Mantenimiento (Km)'])||0).toLocaleString('es-MX')}</td><td>${m['Próximo Mantenimiento (Fecha)']||''}</td>
+    <td>${esMantenimientoPendiente(m) ? '<span class="badge b-bad">Pendiente</span>' : '<span class="badge b-ok">Realizado</span>'}</td>
     <td><div style="display:flex;gap:3px;align-items:center;">${m['ID'] ? `${esMantenimientoPendiente(m)?`<button class="btn small" title="Marcar como realizado" style="background:#1a7f37;padding:4px 7px;" onclick="marcarRealizado('${String(m['Número de Unidad/Caja']).replace(/'/g,"\\'")}')">✅</button>`:''}<button class="btn small secondary" title="Editar" onclick="editarMtto(${i})">✏️</button><button class="btn small secondary" title="Eliminar" onclick="eliminarMtto(${i})">🗑️</button>` : '<span style="color:var(--gris);font-size:11px;">histórico</span>'}</div></td></tr>
   `).join('');
 }
