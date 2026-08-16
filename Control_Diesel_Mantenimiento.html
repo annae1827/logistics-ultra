@@ -915,17 +915,26 @@ function estatusUnidad(unidad, kmMap, ultimoMap, primerMap){
   // hizo, solo se detectó la necesidad), la unidad se marca como requerida/vencida
   // de inmediato, sin importar el cálculo de km/fecha.
   if(ultimo && esMantenimientoPendiente(ultimo)){
-    const kmActualPend = kmInfo ? kmInfo.km : Number(ultimo['Kilometraje Actual']);
-    return { status:'vencido', label:'Mantenimiento requerido', proxKm: kmActualPend, proxFecha: ultimo['Fecha'], pendiente:true, kmRestantes:0, diasRestantes:0 };
+    const kmBasePend = Number(ultimo['Kilometraje Actual']) || 0;
+    const kmActualPend = kmInfo ? kmInfo.km : kmBasePend;
+    return {
+      status:'vencido', label:'Mantenimiento requerido', proxKm: kmActualPend, proxFecha: ultimo['Fecha'],
+      pendiente:true, kmRestantes:0, diasRestantes:0,
+      kmUsado: kmActualPend - kmBasePend, diasUsados: Math.max(0, Math.floor((new Date() - parseFecha(ultimo['Fecha']))/(1000*60*60*24)))
+    };
   }
 
-  let proxKm, proxFecha;
+  let proxKm, proxFecha, kmBase, fechaBase;
   if(ultimo){
     proxKm = Number(ultimo['Próximo Mantenimiento (Km)']);
     proxFecha = ultimo['Próximo Mantenimiento (Fecha)'];
+    kmBase = Number(ultimo['Kilometraje Actual']) || 0;
+    fechaBase = ultimo['Fecha'];
   } else if(primerMap[unidad]){
     // sin mantenimiento real todavía: usamos la primera lectura de km como punto de partida
     const base = primerMap[unidad];
+    kmBase = base.km;
+    fechaBase = base.fecha; // ya es un objeto Date
     proxKm = base.km + KM_ALERTA;
     const fBase = new Date(base.fecha); // base.fecha ya es un objeto Date
     fBase.setMonth(fBase.getMonth() + MESES_ALERTA);
@@ -940,9 +949,18 @@ function estatusUnidad(unidad, kmMap, ultimoMap, primerMap){
   const porFecha = hoy >= fVenc;
   const diasRestantes = Math.ceil((fVenc-hoy)/(1000*60*60*24));
   const kmRestantes = proxKm - kmActual;
-  if(porKm || porFecha) return { status:'vencido', label:'Vencido', proxKm, proxFecha, kmRestantes, diasRestantes };
-  if(kmRestantes <= 2000 || diasRestantes <= 30) return { status:'proximo', label:'Próximo', proxKm, proxFecha, kmRestantes, diasRestantes };
-  return { status:'al_dia', label:'Al día', proxKm, proxFecha, kmRestantes, diasRestantes };
+  const kmUsado = kmActual - kmBase;
+  const diasUsados = Math.max(0, Math.floor((hoy - parseFecha(fechaBase))/(1000*60*60*24)));
+  if(porKm || porFecha) return { status:'vencido', label:'Vencido', proxKm, proxFecha, kmRestantes, diasRestantes, kmUsado, diasUsados };
+  if(kmRestantes <= 2000 || diasRestantes <= 30) return { status:'proximo', label:'Próximo', proxKm, proxFecha, kmRestantes, diasRestantes, kmUsado, diasUsados };
+  return { status:'al_dia', label:'Al día', proxKm, proxFecha, kmRestantes, diasRestantes, kmUsado, diasUsados };
+}
+
+function formatoUsado(e){
+  if(e.kmUsado===undefined || e.kmUsado===null) return '—';
+  const meses = e.diasUsados/30.4;
+  const tiempoTxt = meses>=1 ? (meses.toFixed(meses<10?1:0) + (meses>=2?' meses':' mes')) : (e.diasUsados + (e.diasUsados===1?' día':' días'));
+  return `${e.kmUsado.toLocaleString('es-MX')} km / ${tiempoTxt} desde el último mantenimiento`;
 }
 
 function formatoContador(e){
@@ -1134,14 +1152,17 @@ function enviarAvisoWhatsApp(numeroFijo){
     if(!numero) return;
   }
   const fechaHoy = new Date().toLocaleDateString('es-MX',{year:'numeric',month:'long',day:'numeric'});
-  let msg = `🚨 *Alertas de mantenimiento — Logistics Ultra*\n_${fechaHoy}_\n\n`;
+  let msg = `🚨 *Alertas de mantenimiento — Logistics Ultra* 🚛\n📅 _${fechaHoy}_\n📏 _Regla: 25,000 km o 4 meses, lo que ocurra primero_\n\n`;
   rows.forEach(r=>{
     const icono = r.e.status==='vencido' ? '🔴' : '🟡';
-    msg += `${icono} *Unidad ${r.u}* (${r.equipo}) — ${r.e.label}\n`;
-    if(r.falla) msg += `   ${r.falla}\n`;
-    msg += `   ${formatoContador(r.e)}\n\n`;
+    const iconoEquipo = r.equipo==='Caja' ? '📦' : '🚚';
+    msg += `${icono} *Unidad ${r.u}* ${iconoEquipo} (${r.equipo}) — ${r.e.label}\n`;
+    if(r.falla) msg += `   🔧 ${r.falla}\n`;
+    msg += `   🛣️ Km último registro: ${r.km!=null ? r.km.toLocaleString('es-MX')+' km' : '—'}\n`;
+    msg += `   📊 Lleva: ${formatoUsado(r.e)}\n`;
+    msg += `   ⏳ ${formatoContador(r.e)}\n\n`;
   });
-  msg += `Generado desde el dashboard de Control de Diesel y Mantenimiento.`;
+  msg += `🤖 Generado desde el dashboard de Control de Diesel y Mantenimiento.`;
   const url = 'https://wa.me/' + numero.replace(/\D/g,'') + '?text=' + encodeURIComponent(msg);
   window.open(url, '_blank');
 }
