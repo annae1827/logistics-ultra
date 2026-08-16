@@ -89,7 +89,7 @@
   <div>
     <h1>Control de Diesel y Mantenimiento</h1>
     <div class="sub" id="lastUpdate">Sin conexión aún</div>
-    <div class="sub" style="opacity:.6;font-size:10px;">Versión del archivo: 2026-08-05 19:20 (botones de acciones compactos)</div>
+    <div class="sub" style="opacity:.6;font-size:10px;">Versión del archivo: 2026-08-11 (WhatsApp + estatus + fix de sintaxis)</div>
   </div>
   <div class="header-right">
     <span id="connStatus" class="pill">● conectando…</span>
@@ -135,7 +135,7 @@
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
         <h3 style="margin:0;">🚨 Alertas de mantenimiento</h3>
-        <button class="btn small" style="background:#25D366;" onclick="enviarAvisoWhatsApp()">📲 Avisar por WhatsApp</button>
+        <div id="whatsappBtns" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
       </div>
       <div class="table-wrap" style="margin-top:10px;"><table id="tblAlertas"><thead><tr><th>Unidad</th><th>Equipo</th><th>Km actual</th><th>Próximo Km</th><th>Próxima fecha</th><th>Faltan</th><th>Estatus</th></tr></thead><tbody></tbody></table></div>
     </div>
@@ -311,11 +311,11 @@ const DASHBOARD_CONFIG = {
   },
   // Base de operadores (Capital Humano) para autocompletar el campo Operador
   OPERADORES_CSV: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTwEjh5qrVcsEg6Y3sA_g4EL5GDDUf-WEse9SMYP3zC9yMWLtb3flhY7lJ4O-YO4WhJzKAS6Y9FVqXq/pub?gid=0&single=true&output=csv',
-  // Número de WhatsApp para el botón de avisos (con código de país, sin +, sin espacios).
-  // Ej. México: 52 + 10 dígitos = '5218112345678'. Déjalo vacío para que pida el número cada vez.
-  WHATSAPP_NUMBER: '',
-  // Base de operadores (Capital Humano) — para autocompletar el campo Operador en Diesel
-  CSV_OPERADORES: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTwEjh5qrVcsEg6Y3sA_g4EL5GDDUf-WEse9SMYP3zC9yMWLtb3flhY7lJ4O-YO4WhJzKAS6Y9FVqXq/pub?gid=0&single=true&output=csv'
+  // Números de WhatsApp para el botón de avisos (código de país + número, sin espacios).
+  WHATSAPP_NUMBERS: [
+    { label: 'Juan', numero: '5218118023259' },
+    { label: 'Ernesto', numero: '5218135520551' }
+  ]
 };
 const COSTO_PATIO = 25.19;
 const COSTO_FUERA = 27.059;
@@ -329,30 +329,6 @@ let DATA = { diesel: [], mantenimiento: [], kmDiario: [] };
 
 document.getElementById('logoImg').src = "data:image/png;base64," + LOGO_B64;
 if (!DASHBOARD_CONFIG.GIDS.diesel) document.getElementById('apiWarn').style.display = 'block';
-
-/* ============ OPERADORES (Capital Humano) ============ */
-function cargarOperadores(){
-  if(!DASHBOARD_CONFIG.CSV_OPERADORES) return;
-  Papa.parse(DASHBOARD_CONFIG.CSV_OPERADORES, {
-    download:true, header:true, skipEmptyLines:true,
-    complete: (res)=>{
-      const g = (row, ...keys)=>{ for(const k of keys){ if(row[k]!==undefined && String(row[k]).trim()!=='') return row[k]; } return ''; };
-      const nombres = (res.data||[])
-        .filter(r=>{
-          const estatus = String(g(r,'Estatus')).toLowerCase();
-          const area = String(g(r,'Área','Area')).toLowerCase();
-          return estatus.includes('activo') && area.includes('operador');
-        })
-        .map(r=> g(r,'Operador'))
-        .filter(Boolean)
-        .sort((a,b)=> a.localeCompare(b,'es'));
-      const dl = document.getElementById('listaOperadores');
-      if(dl) dl.innerHTML = nombres.map(n=>`<option value="${n.replace(/"/g,'&quot;')}">`).join('');
-    },
-    error: ()=>{}
-  });
-}
-cargarOperadores();
 
 /* ============ NAV ============ */
 document.querySelectorAll('.tabBtn').forEach(btn=>{
@@ -1137,10 +1113,22 @@ function renderAlertas(){
   `).join('');
 }
 
-function enviarAvisoWhatsApp(){
+function pintarBotonesWhatsApp(){
+  const cont = document.getElementById('whatsappBtns');
+  const nums = DASHBOARD_CONFIG.WHATSAPP_NUMBERS || [];
+  if(!nums.length){
+    cont.innerHTML = `<button class="btn small" style="background:#25D366;" onclick="enviarAvisoWhatsApp()">📲 Avisar por WhatsApp</button>`;
+    return;
+  }
+  cont.innerHTML = nums.map(n=>
+    `<button class="btn small" style="background:#25D366;" onclick="enviarAvisoWhatsApp('${n.numero}')">📲 ${n.label}</button>`
+  ).join('');
+}
+
+function enviarAvisoWhatsApp(numeroFijo){
   const rows = obtenerAlertas();
   if(!rows.length){ toast('No hay unidades con alertas activas ahorita 🎉'); return; }
-  let numero = DASHBOARD_CONFIG.WHATSAPP_NUMBER;
+  let numero = numeroFijo;
   if(!numero){
     numero = prompt('Número de WhatsApp (con código de país, sin +, sin espacios). Ej. 5218112345678:');
     if(!numero) return;
@@ -1373,6 +1361,7 @@ function descargarBitacora(unidad){
 }
 
 /* ============ INIT ============ */
+pintarBotonesWhatsApp();
 cargarDatos();
 setInterval(()=>cargarDatos(), 300000); // cada 5 min — el CSV publicado es pesado, no conviene pedirlo cada minuto
 </script>
