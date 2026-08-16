@@ -1162,8 +1162,22 @@ function enviarAvisoWhatsApp(numeroFijo){
     msg += `   ⏳ ${formatoContador(r.e)}\n\n`;
   });
   msg += `Generado desde el dashboard de Control de Diesel y Mantenimiento.`;
-  const url = 'https://wa.me/' + numero.replace(/\D/g,'') + '?text=' + encodeURIComponent(msg);
-  window.open(url, '_blank');
+  // Copiamos el mensaje al portapapeles y abrimos el chat SIN texto en la URL —
+  // así evitamos que el link de WhatsApp corrompa los emojis. Solo hay que pegar.
+  const abrirChat = ()=> window.open('https://wa.me/' + numero.replace(/\D/g,''), '_blank');
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(msg).then(()=>{
+      toast('Mensaje copiado — pégalo (Ctrl+V) dentro del chat que se va a abrir');
+      abrirChat();
+    }).catch(()=>{
+      toast('No se pudo copiar automático — copia el mensaje del cuadro que aparece');
+      prompt('Copia este mensaje (Ctrl+C) y pégalo en WhatsApp:', msg);
+      abrirChat();
+    });
+  } else {
+    prompt('Copia este mensaje (Ctrl+C) y pégalo en WhatsApp:', msg);
+    abrirChat();
+  }
 }
 
 let _dieselRowsCache = [];
