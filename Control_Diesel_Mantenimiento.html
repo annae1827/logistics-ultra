@@ -133,8 +133,11 @@
       </div>
     </div>
     <div class="card">
-      <h3>🚨 Alertas de mantenimiento</h3>
-      <div class="table-wrap"><table id="tblAlertas"><thead><tr><th>Unidad</th><th>Equipo</th><th>Km actual</th><th>Próximo Km</th><th>Próxima fecha</th><th>Faltan</th><th>Estatus</th></tr></thead><tbody></tbody></table></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+        <h3 style="margin:0;">🚨 Alertas de mantenimiento</h3>
+        <button class="btn small" style="background:#25D366;" onclick="enviarAvisoWhatsApp()">📲 Avisar por WhatsApp</button>
+      </div>
+      <div class="table-wrap" style="margin-top:10px;"><table id="tblAlertas"><thead><tr><th>Unidad</th><th>Equipo</th><th>Km actual</th><th>Próximo Km</th><th>Próxima fecha</th><th>Faltan</th><th>Estatus</th></tr></thead><tbody></tbody></table></div>
     </div>
   </div>
 
@@ -308,6 +311,9 @@ const DASHBOARD_CONFIG = {
   },
   // Base de operadores (Capital Humano) para autocompletar el campo Operador
   OPERADORES_CSV: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTwEjh5qrVcsEg6Y3sA_g4EL5GDDUf-WEse9SMYP3zC9yMWLtb3flhY7lJ4O-YO4WhJzKAS6Y9FVqXq/pub?gid=0&single=true&output=csv',
+  // Número de WhatsApp para el botón de avisos (con código de país, sin +, sin espacios).
+  // Ej. México: 52 + 10 dígitos = '5218112345678'. Déjalo vacío para que pida el número cada vez.
+  WHATSAPP_NUMBER: '',
   // Base de operadores (Capital Humano) — para autocompletar el campo Operador en Diesel
   CSV_OPERADORES: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTwEjh5qrVcsEg6Y3sA_g4EL5GDDUf-WEse9SMYP3zC9yMWLtb3flhY7lJ4O-YO4WhJzKAS6Y9FVqXq/pub?gid=0&single=true&output=csv'
 };
@@ -1108,23 +1114,48 @@ function renderCharts(){
   });
 }
 
-function renderAlertas(){
+function obtenerAlertas(){
   const kmMap = kmActualPorUnidad();
   const ultimoMap = ultimoMttoPorUnidad();
   const primerMap = primerRegistroPorUnidad();
-  const rows = Object.keys(kmMap).map(u=>{
+  return Object.keys(kmMap).map(u=>{
     const info = kmMap[u];
     const e = estatusUnidad(u, kmMap, ultimoMap, primerMap);
-    return { u, equipo: info.equipo, km: info.km, e };
+    const ultimo = ultimoMap[u];
+    return { u, equipo: info.equipo, km: info.km, e, falla: ultimo ? ultimo['Descripción/Falla'] : '' };
   }).filter(r=> r.e.status==='vencido' || r.e.status==='proximo')
     .sort((a,b)=> (a.e.status==='vencido'?0:1) - (b.e.status==='vencido'?0:1));
+}
 
+function renderAlertas(){
+  const rows = obtenerAlertas();
   const tbody = document.querySelector('#tblAlertas tbody');
   if(!rows.length){ tbody.innerHTML = '<tr><td colspan="7" class="empty">Sin alertas activas 🎉</td></tr>'; return; }
   tbody.innerHTML = rows.map(r=>`
     <tr><td><b>${r.u}</b></td><td>${r.equipo}</td><td>${r.km?.toLocaleString('es-MX')||'—'}</td>
     <td>${r.e.proxKm?.toLocaleString('es-MX')||'—'}</td><td>${r.e.proxFecha||'—'}</td><td>${formatoContador(r.e)}</td><td>${badgeFor(r.e.status)}</td></tr>
   `).join('');
+}
+
+function enviarAvisoWhatsApp(){
+  const rows = obtenerAlertas();
+  if(!rows.length){ toast('No hay unidades con alertas activas ahorita 🎉'); return; }
+  let numero = DASHBOARD_CONFIG.WHATSAPP_NUMBER;
+  if(!numero){
+    numero = prompt('Número de WhatsApp (con código de país, sin +, sin espacios). Ej. 5218112345678:');
+    if(!numero) return;
+  }
+  const fechaHoy = new Date().toLocaleDateString('es-MX',{year:'numeric',month:'long',day:'numeric'});
+  let msg = `🚨 *Alertas de mantenimiento — Logistics Ultra*\n_${fechaHoy}_\n\n`;
+  rows.forEach(r=>{
+    const icono = r.e.status==='vencido' ? '🔴' : '🟡';
+    msg += `${icono} *Unidad ${r.u}* (${r.equipo}) — ${r.e.label}\n`;
+    if(r.falla) msg += `   ${r.falla}\n`;
+    msg += `   ${formatoContador(r.e)}\n\n`;
+  });
+  msg += `Generado desde el dashboard de Control de Diesel y Mantenimiento.`;
+  const url = 'https://wa.me/' + numero.replace(/\D/g,'') + '?text=' + encodeURIComponent(msg);
+  window.open(url, '_blank');
 }
 
 let _dieselRowsCache = [];
