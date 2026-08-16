@@ -1152,17 +1152,16 @@ function enviarAvisoWhatsApp(numeroFijo){
     if(!numero) return;
   }
   const fechaHoy = new Date().toLocaleDateString('es-MX',{year:'numeric',month:'long',day:'numeric'});
-  let msg = `🚨 *Alertas de mantenimiento — Logistics Ultra* 🚛\n📅 _${fechaHoy}_\n📏 _Regla: 25,000 km o 4 meses, lo que ocurra primero_\n\n`;
+  let msg = `⚠️ *Alertas de mantenimiento — Logistics Ultra*\nFecha: ${fechaHoy}\nRegla: 25,000 km o 4 meses, lo que ocurra primero\n\n`;
   rows.forEach(r=>{
-    const icono = r.e.status==='vencido' ? '🔴' : '🟡';
-    const iconoEquipo = r.equipo==='Caja' ? '📦' : '🚚';
-    msg += `${icono} *Unidad ${r.u}* ${iconoEquipo} (${r.equipo}) — ${r.e.label}\n`;
-    if(r.falla) msg += `   🔧 ${r.falla}\n`;
-    msg += `   🛣️ Km último registro: ${r.km!=null ? r.km.toLocaleString('es-MX')+' km' : '—'}\n`;
-    msg += `   📊 Lleva: ${formatoUsado(r.e)}\n`;
+    const icono = r.e.status==='vencido' ? '●' : '○';
+    msg += `${icono} *Unidad ${r.u}* (${r.equipo}) — ${r.e.label}\n`;
+    if(r.falla) msg += `   ⚙ ${r.falla}\n`;
+    msg += `   Km último registro: ${r.km!=null ? r.km.toLocaleString('es-MX')+' km' : '—'}\n`;
+    msg += `   Lleva: ${formatoUsado(r.e)}\n`;
     msg += `   ⏳ ${formatoContador(r.e)}\n\n`;
   });
-  msg += `🤖 Generado desde el dashboard de Control de Diesel y Mantenimiento.`;
+  msg += `Generado desde el dashboard de Control de Diesel y Mantenimiento.`;
   const url = 'https://wa.me/' + numero.replace(/\D/g,'') + '?text=' + encodeURIComponent(msg);
   window.open(url, '_blank');
 }
