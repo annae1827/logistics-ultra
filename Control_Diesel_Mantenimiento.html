@@ -89,7 +89,7 @@
   <div>
     <h1>Control de Diesel y Mantenimiento</h1>
     <div class="sub" id="lastUpdate">Sin conexión aún</div>
-    <div class="sub" style="opacity:.6;font-size:10px;">Versión del archivo: 2026-08-11 (WhatsApp + estatus + fix de sintaxis)</div>
+    <div class="sub" style="opacity:.6;font-size:10px;">Versión del archivo: 2026-08-16 (KPIs flota, ranking rendimiento, bitácora desde Resumen/Mtto, fix estatus)</div>
   </div>
   <div class="header-right">
     <span id="connStatus" class="pill">● conectando…</span>
@@ -112,6 +112,13 @@
   <!-- ===================== RESUMEN ===================== -->
   <div class="tab active" id="tab-resumen">
     <div class="kpis" id="kpiRow"></div>
+    <div class="card">
+      <h3>📄 Bitácora / PDF de una unidad</h3>
+      <div class="toolbar" style="margin-bottom:0;">
+        <select id="selUnidadBitacoraResumen" style="min-width:200px;"></select>
+        <button class="btn" onclick="descargarBitacoraDesdeSelect('selUnidadBitacoraResumen')">🖨️ Generar bitácora / PDF</button>
+      </div>
+    </div>
     <div class="grid2">
       <div class="card">
         <h3>📈 Litros y gasto por mes — <span id="anioActualLbl"></span> vs <span id="anioAnteriorLbl"></span></h3>
@@ -156,6 +163,10 @@
       <div class="kpi"><div class="icon">🎯</div><div class="val" id="dRendProm">0</div><div class="lbl">Rendimiento promedio km/l</div></div>
     </div>
     <div class="card">
+      <h3>🏆 Mejor rendimiento por unidad <span style="font-weight:400;font-size:12px;color:var(--gris);">(según el mes filtrado arriba — o histórico si no filtras)</span></h3>
+      <div class="table-wrap"><table id="tblRanking"><thead><tr><th>#</th><th>Unidad</th><th>Rendimiento prom. (km/l)</th><th>Litros</th><th>Cargas</th></tr></thead><tbody></tbody></table></div>
+    </div>
+    <div class="card">
       <div class="table-wrap"><table id="tblDiesel"><thead><tr>
         <th>Fecha</th><th>Unidad</th><th>Caja</th><th>Ruta</th><th>Operador</th><th>Lugar</th><th>Litros</th>
         <th>Odómetro</th><th>Km</th><th>Rend. km/l</th><th>$/L</th><th>Monto</th><th>Pago</th><th>Acciones</th>
@@ -175,6 +186,8 @@
         <option value="Correctivo">Correctivo</option>
       </select>
       <button class="btn secondary" onclick="exportarCSV('mtto')">⬇ Exportar CSV</button>
+      <select id="selUnidadBitacoraMtto" style="min-width:160px;"></select>
+      <button class="btn secondary" onclick="descargarBitacoraDesdeSelect('selUnidadBitacoraMtto')">🖨️ Bitácora / PDF</button>
     </div>
     <div class="grid3">
       <div class="kpi"><div class="icon">🛠️</div><div class="val" id="mEventosMes">0</div><div class="lbl">Mantenimientos este mes</div></div>
@@ -987,6 +1000,22 @@ function renderTodo(){
   renderDiesel();
   renderMtto();
   renderUnidades();
+  poblarSelectoresUnidadBitacora();
+}
+
+function poblarSelectoresUnidadBitacora(){
+  const unidades = Object.keys(kmActualPorUnidad()).sort();
+  const opts = '<option value="">Selecciona unidad…</option>' + unidades.map(u=>`<option value="${u}">${u}</option>`).join('');
+  ['selUnidadBitacoraResumen','selUnidadBitacoraMtto'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el && el.innerHTML !== opts) el.innerHTML = opts;
+  });
+}
+
+function descargarBitacoraDesdeSelect(selectId){
+  const u = document.getElementById(selectId).value;
+  if(!u){ toast('Selecciona primero una unidad'); return; }
+  descargarBitacora(u);
 }
 
 function renderKpis(){
@@ -1005,21 +1034,31 @@ function renderKpis(){
   const ultimoMap = ultimoMttoPorUnidad();
   const primerMap = primerRegistroPorUnidad();
   const unidades = Object.keys(kmMap);
-  let vencidos=0, proximos=0;
+  let vencidos=0, proximos=0, conMtto=0, sinMtto=0;
+  let cajasDanadas=0, cajasReparadas=0;
   unidades.forEach(u=>{
     const e = estatusUnidad(u, kmMap, ultimoMap, primerMap);
     if(e.status==='vencido') vencidos++;
     if(e.status==='proximo') proximos++;
+    if(ultimoMap[u]) conMtto++; else sinMtto++;
+    if(kmMap[u].equipo==='Caja'){
+      if(e.status==='vencido') cajasDanadas++;
+      else if(ultimoMap[u]) cajasReparadas++;
+    }
   });
+  const flotaDisponible = unidades.length ? (((unidades.length - vencidos) / unidades.length) * 100) : 0;
 
   const kpis = [
     {icon:'⛽', val: litrosMes.toLocaleString('es-MX'), lbl:'Litros cargados este mes'},
     {icon:'💵', val: fmtMoney(gastoMes), lbl:'Gasto en diesel este mes'},
     {icon:'🎯', val: rendProm.toFixed(2), lbl:'Rendimiento promedio (km/l)'},
     {icon:'🚛', val: unidades.length, lbl:'Unidades con registro'},
+    {icon:'✅', val: flotaDisponible.toFixed(0)+'%', lbl:'Flota disponible (sin mtto vencido)'},
     {icon:'🚨', val: vencidos, lbl:'Mantenimientos vencidos'},
     {icon:'⏳', val: proximos, lbl:'Próximos a vencer (≤30 días / 2,000 km)'},
-    {icon:'🛠️', val: fmtMoney(gastoMttoMes), lbl:'Gasto en mantenimiento este mes'}
+    {icon:'🛠️', val: fmtMoney(gastoMttoMes), lbl:'Gasto en mantenimiento este mes'},
+    {icon:'📋', val: `${conMtto} / ${sinMtto}`, lbl:'Unidades con mantenimiento registrado / sin ninguno'},
+    {icon:'📦', val: `${cajasDanadas} / ${cajasReparadas}`, lbl:'Cajas dañadas / reparadas'}
   ];
   document.getElementById('kpiRow').innerHTML = kpis.map(k=>`
     <div class="kpi"><div class="icon">${k.icon}</div><div class="val">${k.val}</div><div class="lbl">${k.lbl}</div></div>
@@ -1197,6 +1236,7 @@ function renderDiesel(){
   document.getElementById('dRendProm').textContent = rends.length? (rends.reduce((a,b)=>a+b,0)/rends.length).toFixed(2) : '0';
 
   const tbody = document.querySelector('#tblDiesel tbody');
+  renderRankingRendimiento(fm);
   if(!rows.length){ tbody.innerHTML = '<tr><td colspan="14" class="empty">Sin registros</td></tr>'; return; }
   tbody.innerHTML = rows.map((d,i)=>`
     <tr><td>${d['Fecha']||''}</td><td><b>${d['Unidad']||''}</b></td><td>${d['Caja']||''}</td><td>${d['Ruta']||''}</td>
@@ -1205,6 +1245,30 @@ function renderDiesel(){
     <td>${d['Rendimiento (km/l)']||''}</td><td>${d['Costo por Litro']||''}</td><td>${fmtMoney(d['Monto Total'])}</td>
     <td>${d['Tipo de Pago']||''}</td>
     <td><div style="display:flex;gap:3px;align-items:center;">${d['ID'] ? `<button class="btn small secondary" title="Editar" onclick="editarDiesel(${i})">✏️</button><button class="btn small secondary" title="Eliminar" onclick="eliminarDiesel(${i})">🗑️</button>` : '<span style="color:var(--gris);font-size:11px;">histórico</span>'}</div></td></tr>
+  `).join('');
+}
+
+function renderRankingRendimiento(mesFiltro){
+  const rows = mesFiltro ? DATA.diesel.filter(d=>mesKey(d['Fecha'])===mesFiltro) : DATA.diesel;
+  const porUnidad = {};
+  rows.forEach(d=>{
+    const u = String(d['Unidad']||'').trim(); if(!u) return;
+    const rend = Number(d['Rendimiento (km/l)']);
+    if(!porUnidad[u]) porUnidad[u] = { litros:0, cargas:0, rendSum:0, rendCnt:0 };
+    porUnidad[u].litros += Number(d['Litros'])||0;
+    porUnidad[u].cargas += 1;
+    if(rend>0){ porUnidad[u].rendSum += rend; porUnidad[u].rendCnt += 1; }
+  });
+  const ranking = Object.keys(porUnidad)
+    .map(u=>({ u, ...porUnidad[u], rendProm: porUnidad[u].rendCnt ? porUnidad[u].rendSum/porUnidad[u].rendCnt : 0 }))
+    .filter(r=>r.rendCnt>0)
+    .sort((a,b)=> b.rendProm - a.rendProm)
+    .slice(0,10);
+  const tbody = document.querySelector('#tblRanking tbody');
+  if(!ranking.length){ tbody.innerHTML = '<tr><td colspan="5" class="empty">Sin datos de rendimiento para este filtro todavía</td></tr>'; return; }
+  tbody.innerHTML = ranking.map((r,i)=>`
+    <tr><td>${i+1}${i===0?' 🥇':i===1?' 🥈':i===2?' 🥉':''}</td><td><b>${r.u}</b></td>
+    <td>${r.rendProm.toFixed(2)}</td><td>${r.litros.toLocaleString('es-MX')}</td><td>${r.cargas}</td></tr>
   `).join('');
 }
 
@@ -1227,7 +1291,14 @@ function renderMtto(){
 
   const tbody = document.querySelector('#tblMtto tbody');
   if(!rows.length){ tbody.innerHTML = '<tr><td colspan="15" class="empty">Sin registros</td></tr>'; return; }
-  tbody.innerHTML = rows.map((m,i)=>`
+  tbody.innerHTML = rows.map((m,i)=>{
+    // una fila solo cuenta como "Pendiente" vigente si ES el registro más
+    // reciente de su unidad — si ya hay uno más nuevo (por ejemplo, ya se marcó
+    // como realizado), esta fila queda como histórica aunque su texto original
+    // dijera "necesita..."
+    const esVigente = ultimoMap[String(m['Número de Unidad/Caja']||'').trim()]?.['ID'] === m['ID'];
+    const pendienteVigente = esVigente && esMantenimientoPendiente(m);
+    return `
     <tr><td>${m['Fecha']||''}</td><td>${m['Equipo']||''}</td><td><b>${m['Número de Unidad/Caja']||''}</b></td>
     <td>${m['Tipo de Operación']||''}</td><td>${(Number(m['Kilometraje Actual'])||0).toLocaleString('es-MX')}</td>
     <td>${m['Tipo de Mantenimiento']==='Correctivo'?'<span class="badge b-bad">Correctivo</span>':'<span class="badge b-ok">Preventivo</span>'}</td>
@@ -1235,9 +1306,9 @@ function renderMtto(){
     <td>${m['Mecánico']||''}</td>
     <td>${m['Piezas/Refacciones']||''}</td><td>${fmtMoney(m['Costo'])}</td>
     <td>${(Number(m['Próximo Mantenimiento (Km)'])||0).toLocaleString('es-MX')}</td><td>${m['Próximo Mantenimiento (Fecha)']||''}</td>
-    <td>${esMantenimientoPendiente(m) ? '<span class="badge b-bad">Pendiente</span>' : '<span class="badge b-ok">Realizado</span>'}</td>
-    <td><div style="display:flex;gap:3px;align-items:center;">${m['ID'] ? `${esMantenimientoPendiente(m)?`<button class="btn small" title="Marcar como realizado" style="background:#1a7f37;padding:4px 7px;" onclick="marcarRealizado('${String(m['Número de Unidad/Caja']).replace(/'/g,"\\'")}')">✅</button>`:''}<button class="btn small secondary" title="Editar" onclick="editarMtto(${i})">✏️</button><button class="btn small secondary" title="Eliminar" onclick="eliminarMtto(${i})">🗑️</button>` : '<span style="color:var(--gris);font-size:11px;">histórico</span>'}</div></td></tr>
-  `).join('');
+    <td>${pendienteVigente ? '<span class="badge b-bad">Pendiente</span>' : (esVigente ? '<span class="badge b-ok">Realizado</span>' : '<span class="badge b-gray">Histórico</span>')}</td>
+    <td><div style="display:flex;gap:3px;align-items:center;">${m['ID'] ? `${pendienteVigente?`<button class="btn small" title="Marcar como realizado" style="background:#1a7f37;padding:4px 7px;" onclick="marcarRealizado('${String(m['Número de Unidad/Caja']).replace(/'/g,"\\'")}')">✅</button>`:''}<button class="btn small secondary" title="Editar" onclick="editarMtto(${i})">✏️</button><button class="btn small secondary" title="Eliminar" onclick="eliminarMtto(${i})">🗑️</button>` : '<span style="color:var(--gris);font-size:11px;">histórico</span>'}</div></td></tr>`;
+  }).join('');
 }
 
 function renderUnidades(){
