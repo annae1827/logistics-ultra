@@ -1594,6 +1594,12 @@ function descargarBitacora(unidad){
 }
 
 /* ============ INIT ============ */
+(function(){
+  const now = new Date();
+  const mesActualInput = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
+  const elMes = document.getElementById('fDieselMes');
+  if(elMes) elMes.value = mesActualInput;
+})();
 pintarBotonesWhatsApp();
 cargarDatos();
 setInterval(()=>cargarDatos(), 300000); // cada 5 min — el CSV publicado es pesado, no conviene pedirlo cada minuto
