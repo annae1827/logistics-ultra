@@ -2010,6 +2010,7 @@ servicio a nuestros clientes, a continuación te compartimos el reglamento sobre
 function generarContratoPDF(e, tipo, datos){
   const esTmp = tipo === 'Temporal';
   const esOperador = e.puesto === 'Operador';
+  const esCoordOperaciones = /coordinad/i.test(e.puesto) && /operaciones/i.test(e.puesto);
   const per = periodoVigente(e);
   const ant = calcAntiguedad(per.fechaIngreso);
   const antTxt = ant.years===0 && ant.months===0 ? 'Reciente' : (ant.years + 'a ' + ant.months + 'm');
@@ -2086,6 +2087,11 @@ function generarContratoPDF(e, tipo, datos){
   <p>Para puestos de <strong>operaciones</strong>, domingos y festivos trabajados se pagan al <strong>doble del salario diario</strong> (Art. 75 LFT).</p></div>
 
   <div class="cl"><div class="cl-t">${esTmp?'CUARTA':'QUINTA'}. – JORNADA DE TRABAJO</div>
+  ${esCoordOperaciones ? `
+  <p>Por la naturaleza del puesto de <strong>Coordinador de Operaciones</strong>, los días laborales y los horarios están sujetos a un esquema de <strong>turnos rotativos</strong>: "EL TRABAJADOR" laborará <strong>4 (cuatro) turnos</strong> consecutivos y descansará <strong>2 (dos) días</strong>, de acuerdo con el rol operativo que determine "EL EMPLEADOR" conforme a las necesidades del área de operaciones.</p>
+  <p>El horario específico de cada turno (diurno o nocturno) y los días exactos de descanso se asignarán y notificarán con anticipación conforme a la programación operativa vigente, pudiendo variar de una semana a otra según dicho rol.</p>
+  <div class="nota"><strong>Nota:</strong> Los descansos otorgados dentro de este esquema de turnos rotativos se consideran para todos los efectos como el descanso semanal con goce de salario (Art. 69 LFT), independientemente del día de la semana en que caigan.</div>
+  ` : `
   <ul><li><strong>Lunes a viernes:</strong> ${fmtHora(horario.lvIni)} – ${fmtHora(horario.lvFin)}, con 1 hora de descanso para alimentos.</li>
   ${horario.trabajaSab ? `<li><strong>Sábado:</strong> ${fmtHora(horario.sabIni)} – ${fmtHora(horario.sabFin)}.</li>` : ''}
   ${horario.trabajaDom ? `<li><strong>Domingo:</strong> ${fmtHora(horario.domIni)} – ${fmtHora(horario.domFin)}.</li>` : ''}</ul>
@@ -2093,7 +2099,8 @@ function generarContratoPDF(e, tipo, datos){
     !horario.trabajaSab && !horario.trabajaDom ? 'sábado y domingo'
     : horario.trabajaSab && horario.trabajaDom ? 'un día conforme al rol operativo asignado'
     : horario.trabajaSab ? 'domingo' : 'sábado'
-  }</strong> con goce de salario (Art. 69 LFT).</p></div>
+  }</strong> con goce de salario (Art. 69 LFT).</p>
+  `}</div>
 
   <div class="cl"><div class="cl-t">${esTmp?'QUINTA':'SEXTA'}. – DÍAS DE DESCANSO OBLIGATORIOS</div>
   <p>Son días de descanso obligatorio con salario íntegro los del artículo 74 LFT: 1° enero, primer lunes de febrero, tercer lunes de marzo, 1° mayo, 16 septiembre, tercer lunes de noviembre, 1° octubre cada seis años y 25 diciembre.</p>
