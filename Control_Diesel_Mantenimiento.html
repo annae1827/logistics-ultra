@@ -252,7 +252,10 @@
     <div class="toolbar">
       <select id="rndUnidad"><option value="__ALL__">Todas las unidades</option></select>
       <select id="rndLugar"><option value="__ALL__">Patio y Gasolinera</option><option>Patio</option><option>Gasolinera</option></select>
-      <select id="rndRango"><option value="all">Todo el periodo</option><option value="7">Últimos 7 días</option><option value="15">Últimos 15 días</option><option value="30">Últimos 30 días</option><option value="90">Últimos 90 días</option></select>
+      <label style="font-size:11px;color:var(--gris);font-weight:600;display:flex;align-items:center;gap:5px;">Desde <input type="date" id="rndDesde"></label>
+      <label style="font-size:11px;color:var(--gris);font-weight:600;display:flex;align-items:center;gap:5px;">Hasta <input type="date" id="rndHasta"></label>
+      <button class="btn secondary small" type="button" id="rndMesActual">Mes actual</button>
+      <button class="btn secondary small" type="button" id="rndTodo">Todo</button>
     </div>
 
     <div class="kpis" id="rndKpis"></div>
@@ -1716,9 +1719,11 @@ setInterval(()=>cargarDatos(), 300000); // cada 5 min — el CSV publicado es pe
         litros:Number(r['Litros'])||0,pesos:Number(r['Monto Total'])||0,fecha:f,
         rend:rv>0?rv:null, rendOk:rv>0, sosp:r['_lecturaSospechosa']===true};
     }).filter(r=>r.u);
-    const u=$("rndUnidad").value, lg=$("rndLugar").value, rango=$("rndRango").value;
+    const u=$("rndUnidad").value, lg=$("rndLugar").value;
+    const desde=$("rndDesde").value, hasta=$("rndHasta").value;
     let d=norm;
-    if(rango!=="all"){const v=d.filter(r=>r.fecha&&!isNaN(r.fecha));const maxd=v.reduce((a,r)=>r.fecha>a?r.fecha:a,new Date(0));const cut=new Date(maxd);cut.setDate(cut.getDate()-parseInt(rango));d=d.filter(r=>r.fecha&&r.fecha>=cut);}
+    if(desde){const dd=new Date(desde+"T00:00:00");d=d.filter(r=>r.fecha&&!isNaN(r.fecha)&&r.fecha>=dd);}
+    if(hasta){const hh=new Date(hasta+"T23:59:59");d=d.filter(r=>r.fecha&&!isNaN(r.fecha)&&r.fecha<=hh);}
     if(u!=="__ALL__")d=d.filter(r=>r.u===u);
     if(lg!=="__ALL__")d=d.filter(r=>r.lug===lg);
     return d;
@@ -1817,8 +1822,13 @@ setInterval(()=>cargarDatos(), 300000); // cada 5 min — el CSV publicado es pe
     $("rndTbl").querySelector("tbody").innerHTML=classify(unitStats(data)).sort((a,b)=>(b.rend||-1)-(a.rend||-1)).map(u=>`<tr><td><b>${u.eco}</b></td><td>${u.cargas}</td><td>${fmtN(u.litros)}</td><td>${fmt$(u.pesos)}</td><td>${u.precio?fmt$(u.precio,2):"—"}</td><td><b>${u.rend!=null?fmtN(u.rend,2):"—"}</b></td><td>${u.sosp||"—"}</td><td><span class="rnd-pill ${u.cls}">${names[u.cls]}</span></td></tr>`).join("");
   }
 
+  function fechaISO(dt){return dt.getFullYear()+"-"+String(dt.getMonth()+1).padStart(2,"0")+"-"+String(dt.getDate()).padStart(2,"0");}
+  function setMesActual(){const n=new Date();if($("rndDesde"))$("rndDesde").value=fechaISO(new Date(n.getFullYear(),n.getMonth(),1));if($("rndHasta"))$("rndHasta").value=fechaISO(n);}
+  setMesActual(); // predeterminado: mes en curso
   window.renderRendimiento=renderRendimiento;
-  ["rndUnidad","rndLugar","rndRango","rndMetric","rndBreak"].forEach(id=>{const el=$(id);if(el)el.addEventListener("change",renderRendimiento);});
+  ["rndUnidad","rndLugar","rndDesde","rndHasta","rndMetric","rndBreak"].forEach(id=>{const el=$(id);if(el)el.addEventListener("change",renderRendimiento);});
+  const bMes=$("rndMesActual"); if(bMes)bMes.addEventListener("click",()=>{setMesActual();renderRendimiento();});
+  const bTodo=$("rndTodo"); if(bTodo)bTodo.addEventListener("click",()=>{if($("rndDesde"))$("rndDesde").value="";if($("rndHasta"))$("rndHasta").value="";renderRendimiento();});
   const btn=document.querySelector('[data-tab="rendimiento"]'); if(btn)btn.addEventListener("click",()=>setTimeout(renderRendimiento,40));
   if(typeof renderTodo==="function"){const _rt=renderTodo;renderTodo=function(){_rt.apply(this,arguments);try{const t=$("tab-rendimiento");if(t&&t.classList.contains("active"))renderRendimiento();}catch(e){}};}
 })();
