@@ -256,6 +256,7 @@
       <label style="font-size:11px;color:var(--gris);font-weight:600;display:flex;align-items:center;gap:5px;">Hasta <input type="date" id="rndHasta"></label>
       <button class="btn secondary small" type="button" id="rndMesActual">Mes actual</button>
       <button class="btn secondary small" type="button" id="rndTodo">Todo</button>
+      <button class="btn small" type="button" id="rndPDF" style="margin-left:auto;">🖨️ Exportar PDF</button>
     </div>
 
     <div class="kpis" id="rndKpis"></div>
@@ -1778,7 +1779,7 @@ setInterval(()=>cargarDatos(), 300000); // cada 5 min — el CSV publicado es pe
     const okR=data.filter(r=>r.rendOk), rendAvg=okR.length?okR.reduce((a,r)=>a+r.rend,0)/okR.length:null;
     const sosp=data.filter(r=>r.sosp).length, units=new Set(data.map(r=>r.u)).size;
     const fechas=data.filter(r=>r.fecha&&!isNaN(r.fecha)).map(r=>r.fecha).sort((a,b)=>a-b);
-    const span=fechas.length?(fechas[0].getDate()+" "+M3[fechas[0].getMonth()]+" – "+fechas.at(-1).getDate()+" "+M3[fechas.at(-1).getMonth()]):"—";
+    const span=fechas.length?(fechas[0].getDate()+" "+M3[fechas[0].getMonth()]+" '"+String(fechas[0].getFullYear()).slice(2)+" – "+fechas.at(-1).getDate()+" "+M3[fechas.at(-1).getMonth()]+" '"+String(fechas.at(-1).getFullYear()).slice(2)):"—";
     $("rndKpis").innerHTML=`
       <div class="kpi"><div class="icon">⛽</div><div class="val">${fmtN(litros)}</div><div class="lbl">Litros · ${data.length} cargas</div></div>
       <div class="kpi"><div class="icon">💵</div><div class="val">${fmt$(pesos)}</div><div class="lbl">Gasto en diesel</div></div>
@@ -1825,10 +1826,86 @@ setInterval(()=>cargarDatos(), 300000); // cada 5 min — el CSV publicado es pe
   function fechaISO(dt){return dt.getFullYear()+"-"+String(dt.getMonth()+1).padStart(2,"0")+"-"+String(dt.getDate()).padStart(2,"0");}
   function setMesActual(){const n=new Date();if($("rndDesde"))$("rndDesde").value=fechaISO(new Date(n.getFullYear(),n.getMonth(),1));if($("rndHasta"))$("rndHasta").value=fechaISO(n);}
   setMesActual(); // predeterminado: mes en curso
+  function canvasImg(id){const src=$(id);if(!src)return"";try{const t=document.createElement("canvas");t.width=src.width;t.height=src.height;const c=t.getContext("2d");c.fillStyle="#fff";c.fillRect(0,0,t.width,t.height);c.drawImage(src,0,0);return t.toDataURL("image/png");}catch(e){return"";}}
+  function exportarPDF(){
+    const data=filas();
+    const litros=data.reduce((a,r)=>a+r.litros,0),pesos=data.reduce((a,r)=>a+r.pesos,0);
+    const okR=data.filter(r=>r.rendOk),rendAvg=okR.length?okR.reduce((a,r)=>a+r.rend,0)/okR.length:null;
+    const sosp=data.filter(r=>r.sosp).length,units=new Set(data.map(r=>r.u)).size;
+    const fechas=data.filter(r=>r.fecha&&!isNaN(r.fecha)).map(r=>r.fecha).sort((a,b)=>a-b);
+    const desde=$("rndDesde").value,hasta=$("rndHasta").value;
+    const periodo=(desde||hasta)?((desde||"inicio")+" a "+(hasta||"hoy")):"Todo el periodo";
+    const uSel=$("rndUnidad").value==="__ALL__"?"Todas las unidades":("Unidad "+$("rndUnidad").value);
+    const lSel=$("rndLugar").value==="__ALL__"?"Patio y Gasolinera":$("rndLugar").value;
+    const logo=(typeof LOGO_B64!=="undefined")?LOGO_B64:"";
+    const us=classify(unitStats(data)),ranked=us.filter(u=>u.rend!=null).sort((a,b)=>b.rend-a.rend);
+    let podioHtml="";
+    if(ranked.length){const best=ranked[0],worst=ranked.at(-1),mid=ranked[Math.floor((ranked.length-1)/2)];
+      const tc=(u,cls,tag,img)=>`<div class="pcard ${cls}"><div class="ptag">${tag}</div><img src="${img}"><div class="peco">Unidad ${u.eco}</div><div class="prd">${fmtN(u.rend,2)} km/L</div></div>`;
+      if(ranked.length===1)podioHtml=tc(best,"mid","Rendimiento",IMG.neutral);
+      else if(ranked.length===2)podioHtml=tc(best,"good","Mejor",IMG.happy)+tc(worst,"bad","Peor",IMG.sad);
+      else podioHtml=tc(best,"good","Mejor rendimiento",IMG.happy)+tc(mid,"mid","Rendimiento medio",IMG.neutral)+tc(worst,"bad","Peor rendimiento",IMG.sad);}
+    const kpisHtml=`
+      <div class="k"><b>Litros totales</b>${fmtN(litros)} L · ${data.length} cargas</div>
+      <div class="k"><b>Gasto total</b>${fmt$(pesos)}</div>
+      <div class="k"><b>Precio promedio</b>${fmt$(litros?pesos/litros:0,2)} / L</div>
+      <div class="k"><b>Unidades</b>${units}</div>
+      <div class="k"><b>Rend. promedio</b>${rendAvg!=null?fmtN(rendAvg,2):"—"} km/L</div>
+      <div class="k"><b>Cargas sospechosas</b>${sosp}</div>`;
+    const charts=[
+      {t:$("rndExpTitle").textContent,id:"rndMain",full:true},
+      {t:"Litros por día",id:"rndDia"},{t:"Litros por semana",id:"rndSem"},
+      {t:"Litros por quincena",id:"rndQui"},{t:"Litros por mes",id:"rndMes"},
+      {t:"Litros por mes y año",id:"rndAnual",full:true},
+      {t:"Litros y gasto por unidad",id:"rndUniCons"},{t:"Rendimiento promedio por unidad",id:"rndUniRend"},
+      {t:"Patio vs. Gasolinera",id:"rndLugarCh"},{t:"Rendimiento por carga en el tiempo",id:"rndScatter"}];
+    const chartsHtml=charts.map(c=>{const im=canvasImg(c.id);if(!im)return"";return `<div class="ch ${c.full?"full":""}"><h4>${c.t}</h4><img src="${im}"></div>`;}).join("");
+    const names={good:"Bueno",mid:"Medio",bad:"Bajo",na:"Sin dato"};
+    const filasT=classify(unitStats(data)).sort((a,b)=>(b.rend||-1)-(a.rend||-1)).map(u=>`<tr><td><b>${u.eco}</b></td><td>${u.cargas}</td><td>${fmtN(u.litros)}</td><td>${fmt$(u.pesos)}</td><td>${u.precio?fmt$(u.precio,2):"—"}</td><td><b>${u.rend!=null?fmtN(u.rend,2):"—"}</b></td><td>${u.sosp||"—"}</td><td>${names[u.cls]}</td></tr>`).join("");
+    const now=new Date();const fh=now.toLocaleDateString("es-MX")+" "+now.getHours()+":"+String(now.getMinutes()).padStart(2,"0");
+    const html=`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Rendimiento de Diesel — Logistics Ultra</title>
+    <style>
+      *{box-sizing:border-box;} body{font-family:Arial,Helvetica,sans-serif;color:#1f2a1f;margin:26px;}
+      header{display:flex;align-items:center;gap:16px;border-bottom:3px solid #284628;padding-bottom:12px;margin-bottom:12px;}
+      header img.lg{height:42px;} header h1{font-size:19px;margin:0;color:#284628;} header .sub{font-size:11.5px;color:#666;margin-top:3px;}
+      .ctx{font-size:12px;color:#444;background:#eef3ec;border:1px solid #cfe0cb;border-radius:8px;padding:8px 12px;margin-bottom:14px;}
+      .ctx b{color:#284628;}
+      .kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px;}
+      .k{border:1px solid #e2e8e0;border-radius:10px;padding:9px 12px;font-size:18px;font-weight:800;color:#284628;}
+      .k b{display:block;font-size:10.5px;color:#666;font-weight:700;text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px;}
+      h2{font-size:14px;color:#284628;border-bottom:1px solid #ddd;padding-bottom:5px;margin:22px 0 10px;}
+      .podio{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+      .pcard{border:1px solid #e2e8e0;border-radius:12px;padding:10px;text-align:center;position:relative;}
+      .pcard img{width:100%;max-width:220px;display:block;margin:2px auto;}
+      .ptag{font-size:10px;font-weight:800;text-transform:uppercase;color:#fff;border-radius:999px;padding:3px 9px;display:inline-block;margin-bottom:4px;}
+      .pcard.good .ptag{background:#2E9E3F;} .pcard.mid .ptag{background:#d97706;} .pcard.bad .ptag{background:#c0392b;}
+      .peco{font-size:15px;font-weight:800;} .prd{font-size:20px;font-weight:800;color:#284628;}
+      .charts{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+      .ch{border:1px solid #e2e8e0;border-radius:10px;padding:8px 10px;page-break-inside:avoid;}
+      .ch.full{grid-column:1/-1;} .ch h4{margin:0 0 6px;font-size:12px;color:#284628;} .ch img{width:100%;display:block;}
+      table{width:100%;border-collapse:collapse;font-size:11.5px;margin-top:6px;} th{background:#e8f0e6;color:#284628;text-align:left;padding:6px 8px;} td{padding:5px 8px;border-bottom:1px solid #eee;}
+      .no-print{margin-bottom:14px;} @page{margin:12mm;}
+      @media print{ .no-print{display:none;} .ch,.pcard,tr{page-break-inside:avoid;} }
+    </style></head><body>
+      <div class="no-print"><button onclick="window.print()" style="background:#284628;color:#fff;border:none;padding:10px 18px;border-radius:8px;cursor:pointer;font-size:13px;">🖨️ Imprimir / Guardar como PDF</button></div>
+      <header>${logo?`<img class="lg" src="${logo}">`:""}<div><h1>Reporte de Rendimiento de Diesel</h1><div class="sub">Logistics Ultra · generado ${fh}</div></div></header>
+      <div class="ctx"><b>Periodo:</b> ${periodo} &nbsp;·&nbsp; <b>Unidad:</b> ${uSel} &nbsp;·&nbsp; <b>Lugar:</b> ${lSel}${fechas.length?` &nbsp;·&nbsp; <b>Datos:</b> ${fechas[0].getDate()+" "+M3[fechas[0].getMonth()]+" '"+String(fechas[0].getFullYear()).slice(2)} – ${fechas.at(-1).getDate()+" "+M3[fechas.at(-1).getMonth()]+" '"+String(fechas.at(-1).getFullYear()).slice(2)}`:""}</div>
+      <div class="kpis">${kpisHtml}</div>
+      <h2>Ranking de unidades</h2><div class="podio">${podioHtml||'<div style="color:#888;">Sin rendimiento válido en el periodo.</div>'}</div>
+      <h2>Gráficas</h2><div class="charts">${chartsHtml}</div>
+      <h2>Detalle por unidad</h2>
+      <table><thead><tr><th>Unidad</th><th>Cargas</th><th>Litros</th><th>Gasto</th><th>$/L</th><th>Rend. prom</th><th>Sospech.</th><th>Desempeño</th></tr></thead><tbody>${filasT}</tbody></table>
+      <script>setTimeout(function(){window.print();},400);<\/script>
+    </body></html>`;
+    const w=window.open("","_blank");
+    if(!w){alert("Permite las ventanas emergentes para generar el PDF.");return;}
+    w.document.open();w.document.write(html);w.document.close();
+  }
   window.renderRendimiento=renderRendimiento;
   ["rndUnidad","rndLugar","rndDesde","rndHasta","rndMetric","rndBreak"].forEach(id=>{const el=$(id);if(el)el.addEventListener("change",renderRendimiento);});
   const bMes=$("rndMesActual"); if(bMes)bMes.addEventListener("click",()=>{setMesActual();renderRendimiento();});
   const bTodo=$("rndTodo"); if(bTodo)bTodo.addEventListener("click",()=>{if($("rndDesde"))$("rndDesde").value="";if($("rndHasta"))$("rndHasta").value="";renderRendimiento();});
+  const bPDF=$("rndPDF"); if(bPDF)bPDF.addEventListener("click",exportarPDF);
   const btn=document.querySelector('[data-tab="rendimiento"]'); if(btn)btn.addEventListener("click",()=>setTimeout(renderRendimiento,40));
   if(typeof renderTodo==="function"){const _rt=renderTodo;renderTodo=function(){_rt.apply(this,arguments);try{const t=$("tab-rendimiento");if(t&&t.classList.contains("active"))renderRendimiento();}catch(e){}};}
 })();
