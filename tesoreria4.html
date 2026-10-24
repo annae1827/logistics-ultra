@@ -113,6 +113,15 @@ tr:last-child td{border-bottom:none}
 ::-webkit-scrollbar-track{background:var(--bg)}
 ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
 ::-webkit-scrollbar-thumb:hover{background:var(--accent)}
+/* FUNNEL / EMBUDO */
+.funnel{display:flex;flex-direction:column;align-items:center;gap:2px;padding:22px 12px}
+.fn-stage{width:100%;max-width:720px;display:flex;flex-direction:column;align-items:center;gap:5px}
+.fn-bar{height:62px;border-radius:9px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;min-width:130px;max-width:100%;box-shadow:0 2px 10px rgba(15,30,51,.14);transition:width .55s cubic-bezier(.22,1,.36,1)}
+.fn-bar .fn-n{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:28px;line-height:1;letter-spacing:.5px}
+.fn-bar .fn-l{font-size:10px;letter-spacing:1px;text-transform:uppercase;opacity:.95;margin-top:3px;font-family:'JetBrains Mono',monospace}
+.fn-cap{font-size:11px;color:var(--text2);font-family:'JetBrains Mono',monospace;text-align:center}
+.fn-cap b{color:var(--text);font-weight:600}
+.fn-arrow{color:var(--text3);font-size:13px;line-height:1;margin:1px 0}
 </style>
 </head>
 <body>
@@ -183,6 +192,15 @@ tr:last-child td{border-bottom:none}
     <div class="kc"><div class="kl">Cartera Pendiente</div><div class="kv a" id="kPend">—</div></div>
     <div class="kc"><div class="kl">Cartera Vencida</div><div class="kv r" id="kVenc">—</div></div>
     <div class="kc"><div class="kl">Próximo Pago</div><div class="kv" id="kProx" style="font-size:14px">—</div></div>
+  </div>
+
+  <!-- EMBUDO: Viajes → Facturados → Pagados -->
+  <div class="panel">
+    <div class="ph">
+      <span class="pt">Embudo Operativo · Viajes → Facturados → Pagados</span>
+      <span id="fnNote" class="fl" style="font-size:11px;color:var(--text3)">Cargando viajes…</span>
+    </div>
+    <div class="pb"><div id="funnel" class="funnel"></div></div>
   </div>
 
   <!-- Gráfica cobrado por período -->
@@ -663,6 +681,7 @@ async function init() {
   setBar(5);
 
   // Cargar todos en paralelo (cada fetch es async, no bloquea)
+  const vp = fetchViajes(); // hoja de Viajes en paralelo
   const promises = CLIENTES.map(c => fetchCliente(c.n));
   let done = 0;
   await Promise.all(promises.map(p => p.then(() => {
@@ -670,6 +689,7 @@ async function init() {
     setBar(5 + done/CLIENTES.length*90);
     setSt('spin','Cargando '+done+'/'+CLIENTES.length+'...');
   })));
+  await vp;
 
   setBar(100);
   setTimeout(()=>setBar(0),600);
@@ -850,6 +870,105 @@ function renderResumen() {
     </tr>`;
   });
   if(!tb.innerHTML) tb.innerHTML='<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--text3)">Sin datos</td></tr>';
+
+  renderEmbudo();
+}
+
+// ═══════════════════════════════════════════════════
+//  EMBUDO: Viajes → Facturados → Pagados
+//  Lee la hoja "Viajes" (CSV publicado) y cruza el no. de factura
+//  contra los registros de tesorería (CACHE) para medir pagados.
+// ═══════════════════════════════════════════════════
+const VIAJES_URL='https://docs.google.com/spreadsheets/d/e/2PACX-1vQUAaE4yC5wN6MxTnoCqzBZIkTDwjqpcmnu7Si4duNdjPCbkd6jaAEvZmJrLkaLIJ17mgAzpW5VwJsy/pub?gid=1075720101&single=true&output=csv';
+let VIAJES=null, VIAJES_ERR=null, VIAJES_HASDATE=false, VIAJES_FACOK=true;
+// Mapa nombre-cliente normalizado → clave canónica de tesorería
+const CLIKEY={}; CLIENTES.forEach(c=>CLIKEY[c.n.toUpperCase().replace(/\s+/g,' ').trim()]=c.n);
+const canonCli=v=>CLIKEY[(v||'').toUpperCase().replace(/\s+/g,' ').trim()]||null;
+const normFac=s=>String(s==null?'':s).toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^A-Z0-9]/g,'');
+// Celdas de "no. factura" que NO significan facturado
+const NEG_FAC=new Set(['','NO','NA','-','--','X','PENDIENTE','PORFACTURAR','SINFACTURA','SINFACTURAR','NOFACTURADO','FALTA','FALTAN']);
+
+function parseViajes(text){
+  const lines=text.replace(/\r\n/g,'\n').replace(/\r/g,'\n').split('\n');
+  let hi=-1;
+  for(let i=0;i<Math.min(25,lines.length);i++){ if(lines[i].toLowerCase().includes('cliente')){hi=i;break;} }
+  if(hi<0) hi=0;
+  const H=csvSplit(lines[hi]).map(h=>h.toLowerCase().trim());
+  const fi=(...keys)=>{ for(const k of keys){const i=H.findIndex(h=>h.includes(k));if(i>=0)return i;} return -1; };
+  let iCli=fi('cliente'); if(iCli<0) iCli=10;               // col K como respaldo
+  const iFac=fi('no. factura','no factura','no.factura','num. factura','numero de factura','número de factura','factura','facturacion','facturación','facturado');
+  const iFe=fi('fecha');
+  VIAJES_FACOK = iFac>=0;
+  VIAJES_HASDATE = iFe>=0;
+  const g=(v,i)=>i>=0&&v[i]!==undefined?v[i]:'';
+  const rows=[];
+  for(let i=hi+1;i<lines.length;i++){
+    const v=csvSplit(lines[i]); if(!v.some(x=>x.trim())) continue;
+    const cli=(g(v,iCli)||'').trim(); if(!cli) continue;     // cada viaje real tiene cliente
+    rows.push({ cli, fac:(g(v,iFac)||'').trim(), fecha:iFe>=0?$d(g(v,iFe)):null });
+  }
+  return rows;
+}
+async function fetchViajes(){
+  try{
+    const res=await fetch(VIAJES_URL); if(!res.ok) throw new Error('HTTP '+res.status);
+    const text=await res.text();
+    if(!text||text.trim().startsWith('<!')) throw new Error('No CSV');
+    VIAJES=parseViajes(text); VIAJES_ERR=null;
+    console.log('[VIAJES] '+VIAJES.length+' registros');
+  }catch(e){ VIAJES=[]; VIAJES_ERR=e.message; console.error('[VIAJES]',e.message); }
+}
+function renderEmbudo(){
+  const box=document.getElementById('funnel'), note=document.getElementById('fnNote');
+  if(!box) return;
+  if(VIAJES===null){ note.textContent='Cargando viajes…'; box.innerHTML=''; return; }
+
+  const cli=document.getElementById('fResC').value;
+  // Filtro por cliente y año (año solo si la hoja de viajes tiene fecha)
+  let vr=VIAJES;
+  if(cli) vr=vr.filter(r=>canonCli(r.cli)===cli);
+  if(ANO_RES!=='todos' && VIAJES_HASDATE){ const y=+ANO_RES; vr=vr.filter(r=>r.fecha&&r.fecha.getFullYear()===y); }
+
+  // Índice de facturas de tesorería por cliente (número normalizado → ¿pagada?)
+  const idx={}; const cs=cli?[cli]:Object.keys(CACHE);
+  cs.forEach(c=>{ (CACHE[c]||[]).forEach(r=>{ if(!r.noFact) return; const n=normFac(r.noFact); if(n.length<3) return; (idx[c]=idx[c]||[]).push({n,pag:r.estatus==='PAGADO'}); }); });
+
+  let nViajes=vr.length, nFact=0, nPag=0, nMatch=0;
+  vr.forEach(r=>{
+    const facturado = r.fac!=='' && !NEG_FAC.has(normFac(r.fac));
+    if(!facturado) return; nFact++;
+    const c=canonCli(r.cli); const ents=c?(idx[c]||[]):[]; const vn=normFac(r.fac);
+    let m=null; for(const e of ents){ if(vn.includes(e.n)){ m=e; if(e.pag) break; } }
+    if(m){ nMatch++; if(m.pag) nPag++; }
+  });
+
+  const stages=[
+    {n:nViajes,l:'Viajes',c:'#284628'},
+    {n:nFact,  l:'Facturados',c:'#e8a33d'},
+    {n:nPag,   l:'Pagados',c:'#2f9e6f'}
+  ];
+  const base=nViajes||1;
+  box.innerHTML=stages.map((s,i)=>{
+    const w=Math.max(26,Math.round(s.n/base*100));
+    let cap;
+    const prev=i>0?stages[i-1].n:0, pp=prev?Math.round(s.n/prev*100):0, pt=Math.round(s.n/base*100);
+    if(i===0) cap='<b>100%</b> · base del embudo';
+    else if(i===1) cap=`<b>${pp}%</b> de viajes facturados`;
+    else cap=`<b>${pp}%</b> de facturados cobrados · ${pt}% de viajes`;
+    return `<div class="fn-stage"><div class="fn-bar" style="width:${w}%;background:${s.c}"><span class="fn-n">${s.n.toLocaleString('es-MX')}</span><span class="fn-l">${s.l}</span></div><div class="fn-cap">${cap}</div></div>`
+      + (i<stages.length-1?'<div class="fn-arrow">&#9660;</div>':'');
+  }).join('');
+
+  // Nota de estado / diagnóstico
+  let parts=[];
+  if(VIAJES_ERR){ parts.push('⚠ No se pudo leer la hoja de Viajes'); }
+  else{
+    parts.push(nViajes.toLocaleString('es-MX')+' viajes'+(cli?' · '+cli:''));
+    if(!VIAJES_FACOK) parts.push('⚠ no ubiqué la columna de factura — dime el encabezado');
+    else if(nFact>0) parts.push(nMatch.toLocaleString('es-MX')+'/'+nFact.toLocaleString('es-MX')+' facturados cruzados con tesorería');
+    if(ANO_RES!=='todos' && !VIAJES_HASDATE) parts.push('(viajes sin filtro de año)');
+  }
+  note.textContent=parts.join(' · ');
 }
 
 // ═══════════════════════════════════════════════════
