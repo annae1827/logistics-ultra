@@ -879,7 +879,7 @@ function renderResumen(){
   document.getElementById('resumenAnivs').innerHTML = anivs.length ? anivs.map(x=>`
     <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);font-size:13px;">
       <span>${nombreCompleto(x.e)} <span class="tag tag-navy">${x.e.puesto}</span></span>
-      <span class="mono" style="color:var(--ink-soft);">${fmtFecha(x.pa.iso)} · ${x.pa.diasFaltantes}d</span>
+      <span class="mono" style="color:var(--ink-soft);">${fmtFecha(x.pa.iso)} · ${x.pa.diasFaltantes}d <button class="btn btn-outline" style="padding:2px 8px;font-size:11px;margin-left:6px;" onclick="generarPrimaVacacionalPDF('${x.e.id}')">Prima + vacaciones</button></span>
     </div>`).join('') : `<p class="help">Sin aniversarios en los próximos 30 días.</p>`;
 
   document.getElementById('resumenPuestos').innerHTML = Object.keys(porPuesto).length ?
@@ -1752,38 +1752,135 @@ function tarjeta(id, tipo){
   win.document.close();
 }
 
-/* ---------- PRIMA VACACIONAL (recibo independiente) ---------- */
-function generarPrimaVacacionalPDF(empId){
+/* ---------- PRIMA VACACIONAL + SOLICITUD DE VACACIONES (una sola hoja) ---------- */
+function addDiasISO(iso, n){
+  const d = new Date(iso+'T00:00:00'); d.setDate(d.getDate()+n);
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function diasInclusivos(ini, fin){
+  if(!ini || !fin || fin < ini) return 0;
+  return diffDias(ini, fin) + 1;
+}
+// Aniversario por default: el próximo si falta ≤30 días; si no, el último que ya se cumplió.
+function aniversarioDefault(fechaIngreso){
+  const pa = proximoAniversario(fechaIngreso);
+  if(pa.diasFaltantes <= 30 && pa.iso > fechaIngreso) return pa.iso;
+  const hoy = todayISO();
+  const ing = new Date(fechaIngreso+'T00:00:00');
+  const y = Number(hoy.slice(0,4));
+  let ult = y+'-'+String(ing.getMonth()+1).padStart(2,'0')+'-'+String(ing.getDate()).padStart(2,'0');
+  if(ult > hoy) ult = (y-1)+'-'+ult.slice(5);
+  return ult > fechaIngreso ? ult : pa.iso;
+}
+function calcPrimaAniv(e, anivISO){
+  const per = periodoVigente(e);
+  const svc = anioServicioActual(per.fechaIngreso, anivISO);
+  const diasLey = diasVacacionesPorAnio(svc.anioCumplido);
+  const tomados = diasTomadosEnAnio(e.id, svc.inicioISO);
+  const salario = salarioEfectivo(e);
+  const valorDias = diasLey * salario;
+  return { per, svc, diasLey, tomados, disponibles: Math.max(0, diasLey - tomados), salario, valorDias, prima: 0.25 * valorDias };
+}
+
+function generarPrimaVacacionalPDF(empId){ // punto de entrada del botón "Prima vacacional"
   const e = DB.empleados.find(x=>x.id===empId);
   if(!e){ toast('Empleado no encontrado.', 'err'); return; }
   const per = periodoVigente(e);
-  const ant = calcAntiguedad(per.fechaIngreso);
-  const s = saldoVacaciones(e);
-  const salario = salarioEfectivo(e);
-  const montoVacaciones = s.diasLey * salario;
-  const montoPrima = 0.25 * montoVacaciones;
-  const montoVacacionesTomadas = s.tomados * salario;
-  const montoPrimaTomada = 0.25 * montoVacacionesTomadas;
+  document.getElementById('modalEmpTitulo').textContent = 'Prima vacacional y solicitud de vacaciones — ' + nombreCompleto(e);
+  document.getElementById('modalEmpBody').innerHTML = `
+    <div class="small-note">Genera en una sola hoja el pago de la prima vacacional (25%) y, si el colaborador va a tomar vacaciones, la solicitud de días.</div>
+    <div class="field" style="margin-top:14px;">
+      <label class="req">Aniversario laboral</label>
+      <input type="date" id="pv_aniv" value="${aniversarioDefault(per.fechaIngreso)}" onchange="actualizarResumenPrima('${e.id}')">
+    </div>
+    <div id="pv_resumen" class="small-note" style="margin-bottom:14px;"></div>
+    <div class="field">
+      <label style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:500;color:var(--ink);">
+        <input type="checkbox" id="pv_toma" style="width:auto;" onchange="document.getElementById('pv_bloque').style.display=this.checked?'block':'none'">
+        ¿Tomará vacaciones?
+      </label>
+      <div class="help">Si la marcas, la hoja incluye la solicitud de días con periodo y firmas. Si no, solo el recibo de prima vacacional.</div>
+    </div>
+    <div id="pv_bloque" style="display:none;">
+      <div class="field-row two">
+        <div class="field"><label class="req">Fecha inicio</label><input type="date" id="pv_ini" onchange="actualizarDiasPrima()"></div>
+        <div class="field"><label class="req">Fecha fin</label><input type="date" id="pv_fin" onchange="actualizarDiasPrima()"></div>
+      </div>
+      <div class="field-row two">
+        <div class="field"><label class="req">Días solicitados</label><input type="number" min="1" id="pv_dias"></div>
+        <div class="field"><label>Nota</label><input type="text" id="pv_nota"></div>
+      </div>
+      <label style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:500;color:var(--ink);margin-bottom:10px;">
+        <input type="checkbox" id="pv_registrar" style="width:auto;" checked>
+        Registrar estos días en la hoja de Vacaciones (descuenta del saldo)
+      </label>
+    </div>
+    <button class="btn btn-amber" style="margin-top:10px;" onclick="generarHojaPrimaVacaciones('${e.id}')">Generar hoja</button>
+  `;
+  openModal('modalEmpleado');
+  actualizarResumenPrima(e.id);
+}
+function actualizarResumenPrima(empId){
+  const e = DB.empleados.find(x=>x.id===empId);
+  const aniv = document.getElementById('pv_aniv').value;
+  if(!e || !aniv) return;
+  const c = calcPrimaAniv(e, aniv);
+  document.getElementById('pv_resumen').innerHTML =
+    `${c.svc.anioCumplido} año(s) cumplido(s) · <b>${c.diasLey} días por ley</b> · ${c.tomados} tomados · <b>${c.disponibles} disponibles</b><br>
+     Sueldo diario ${fmtDinero(c.salario)} · <b>Prima vacacional (25%): ${fmtDinero(c.prima)}</b>`;
+}
+function actualizarDiasPrima(){
+  const n = diasInclusivos(document.getElementById('pv_ini').value, document.getElementById('pv_fin').value);
+  if(n) document.getElementById('pv_dias').value = n;
+}
+
+function generarHojaPrimaVacaciones(empId){
+  const e = DB.empleados.find(x=>x.id===empId);
+  if(!e){ toast('Empleado no encontrado.', 'err'); return; }
+  const aniv = document.getElementById('pv_aniv').value;
+  if(!aniv){ toast('Indica la fecha de aniversario.', 'err'); return; }
+  const toma = document.getElementById('pv_toma').checked;
+  const c = calcPrimaAniv(e, aniv);
+  const per = c.per;
+  const ant = calcAntiguedad(per.fechaIngreso, aniv);
+  let ini='', fin='', dias=0, nota='', reg=false;
+  if(toma){
+    ini = document.getElementById('pv_ini').value;
+    fin = document.getElementById('pv_fin').value;
+    dias = Number(document.getElementById('pv_dias').value||0);
+    nota = document.getElementById('pv_nota').value.trim();
+    reg = document.getElementById('pv_registrar').checked;
+    if(!ini || !fin || fin < ini || dias < 1){ toast('Completa el periodo y los días de vacaciones.', 'err'); return; }
+    if(dias > c.disponibles && !confirm(`Este empleado solo tiene ${c.disponibles} día(s) disponibles. ¿Generar la solicitud de todas formas?`)) return;
+    if(reg){
+      DB.vacaciones.push({ id: uid(), empleadoId: e.id, inicio: ini, fin, dias, nota, registrado: todayISO() });
+      saveDB(DB);
+      renderAll();
+    }
+  }
+  const regreso = toma ? addDiasISO(fin, 1) : '';
+  const quedan = Math.max(0, c.disponibles - (toma && !reg ? dias : 0));
+  closeModal('modalEmpleado');
 
   const win = window.open('', '_blank', 'width=850,height=1000');
   win.document.write(`
-  <html><head><title>Prima vacacional — ${nombreCompleto(e)}</title>
+  <html><head><title>${toma?'Solicitud de vacaciones y prima vacacional':'Prima vacacional'} — ${nombreCompleto(e)}</title>
   <style>
-    body{font-family:Georgia,'Times New Roman',serif;color:#1a241a;max-width:760px;margin:36px auto;padding:0 20px;}
-    .hd{display:flex;align-items:center;gap:14px;border-bottom:3px solid #16281a;padding-bottom:16px;margin-bottom:24px;}
+    body{font-family:Georgia,'Times New Roman',serif;color:#1a241a;max-width:760px;margin:30px auto;padding:0 20px;}
+    .hd{display:flex;align-items:center;gap:14px;border-bottom:3px solid #16281a;padding-bottom:14px;margin-bottom:18px;}
     .hd img{width:56px;height:56px;object-fit:contain;}
     .hd h1{font-size:20px;margin:0;color:#16281a;font-family:Arial,sans-serif;}
     .hd p{margin:2px 0 0;font-size:11px;color:#5c6b57;font-family:Arial,sans-serif;letter-spacing:1px;text-transform:uppercase;}
-    h2{font-size:16px;text-align:center;font-family:Arial,sans-serif;letter-spacing:1px;text-transform:uppercase;margin:22px 0;color:#16281a;}
-    table{width:100%;border-collapse:collapse;font-family:Arial,sans-serif;font-size:12.5px;margin-bottom:14px;}
+    h2{font-size:15px;text-align:center;font-family:Arial,sans-serif;letter-spacing:1px;text-transform:uppercase;margin:16px 0;color:#16281a;}
+    table{width:100%;border-collapse:collapse;font-family:Arial,sans-serif;font-size:12.5px;margin-bottom:12px;}
     td,th{padding:7px 9px;border:1px solid #ddd;}
     td.lbl{background:#f5f7f2;font-weight:700;}
     .num{text-align:right;}
     th{text-align:left;letter-spacing:.4px;text-transform:uppercase;font-size:11px;}
     .band-row td,.band-row th{font-weight:700;background:#284628;color:#fff;border-color:#284628;}
-    p.legal{font-family:Arial,sans-serif;font-size:11.5px;color:#5c6b57;line-height:1.6;}
-    .sign{display:flex;justify-content:space-between;margin-top:60px;font-family:Arial,sans-serif;font-size:12px;text-align:center;}
-    .sign div{width:44%;border-top:1px solid #333;padding-top:8px;}
+    p.legal{font-family:Arial,sans-serif;font-size:11.5px;color:#5c6b57;line-height:1.6;margin:8px 0;}
+    .sign{display:flex;justify-content:space-between;gap:16px;margin-top:56px;font-family:Arial,sans-serif;font-size:12px;text-align:center;}
+    .sign div{flex:1;border-top:1px solid #333;padding-top:8px;}
     @media print{.noprint{display:none;}}
   </style></head>
   <body>
@@ -1791,30 +1888,34 @@ function generarPrimaVacacionalPDF(empId){
       <img src="data:image/png;base64,${window.__LOGO_B64__}">
       <div><h1>Logistics Ultra</h1><p>Recursos Humanos</p></div>
     </div>
-    <h2>Recibo de Prima Vacacional</h2>
+    <h2>${toma?'Solicitud de vacaciones y pago de prima vacacional':'Recibo de prima vacacional'}</h2>
     <table>
       <tr><td class="lbl">Colaborador</td><td>${nombreCompleto(e)}</td><td class="lbl">Puesto</td><td>${e.puesto}</td></tr>
-      <tr><td class="lbl">Antigüedad</td><td>${ant.years}a ${ant.months}m ${ant.days}d</td><td class="lbl">Ingreso (periodo vigente)</td><td>${fmtFecha(per.fechaIngreso)}</td></tr>
-      <tr><td class="lbl">Años de servicio cumplidos (días de ley vigentes)</td><td colspan="3">${s.svc.anioCumplido} año(s) cumplido(s) — ${s.diasLey} días por ley</td></tr>
+      <tr><td class="lbl">Fecha de ingreso</td><td>${fmtFecha(per.fechaIngreso)}</td><td class="lbl">Aniversario laboral</td><td>${fmtFecha(aniv)}</td></tr>
+      <tr><td class="lbl">Antigüedad al aniversario</td><td>${ant.years}a ${ant.months}m ${ant.days}d</td><td class="lbl">Días de vacaciones (Art. 76 LFT)</td><td>${c.diasLey} días (${c.svc.anioCumplido} año(s) cumplido(s))</td></tr>
     </table>
     <table>
-      <tr class="band-row"><th colspan="2">Días de vacaciones del año en curso (Art. 76 LFT)</th></tr>
-      <tr><td>Días de vacaciones que corresponden por ley</td><td class="num">${s.diasLey} días</td></tr>
-      <tr><td>Valor de esos días al sueldo diario</td><td class="num">${fmtDinero(montoVacaciones)}</td></tr>
-      <tr><td><b>Prima vacacional total del año (25%)</b></td><td class="num"><b>${fmtDinero(montoPrima)}</b></td></tr>
+      <tr class="band-row"><th colspan="2">Pago de prima vacacional (Art. 80 LFT)</th></tr>
+      <tr><td>Días de vacaciones que corresponden</td><td class="num">${c.diasLey} días</td></tr>
+      <tr><td>Sueldo diario</td><td class="num">${fmtDinero(c.salario)}</td></tr>
+      <tr><td>Valor de los días de vacaciones</td><td class="num">${fmtDinero(c.valorDias)}</td></tr>
+      <tr><td><b>Prima vacacional a pagar (25%)</b></td><td class="num"><b>${fmtDinero(c.prima)}</b></td></tr>
     </table>
+    ${toma ? `
     <table>
-      <tr class="band-row"><th colspan="2">Correspondiente a los días ya tomados</th></tr>
-      <tr><td>Días de vacaciones tomados en el año en curso</td><td class="num">${s.tomados} días</td></tr>
-      <tr><td>Valor de esos días al sueldo diario</td><td class="num">${fmtDinero(montoVacacionesTomadas)}</td></tr>
-      <tr><td><b>Prima vacacional a pagar por días tomados (25%)</b></td><td class="num"><b>${fmtDinero(montoPrimaTomada)}</b></td></tr>
-    </table>
-    <p class="legal">La prima vacacional equivale al 25% del salario correspondiente a los días de vacaciones, conforme al
-    Artículo 80 de la Ley Federal del Trabajo. El monto de "días ya tomados" es el que normalmente se paga junto con el
-    periodo vacacional disfrutado; el total del año se muestra como referencia de lo que corresponde en su totalidad al
-    colaborador conforme avance el año de servicio.</p>
+      <tr class="band-row"><th colspan="4">Solicitud de vacaciones</th></tr>
+      <tr><td class="lbl">Del</td><td>${fmtFecha(ini)}</td><td class="lbl">Al</td><td>${fmtFecha(fin)}</td></tr>
+      <tr><td class="lbl">Días solicitados</td><td>${dias}</td><td class="lbl">Se reincorpora el</td><td>${fmtFecha(regreso)}</td></tr>
+      <tr><td class="lbl">Días disponibles antes de la solicitud</td><td>${c.disponibles}</td><td class="lbl">Días restantes después</td><td>${Math.max(0, c.disponibles - dias)}</td></tr>
+      ${nota ? `<tr><td class="lbl">Nota</td><td colspan="3">${nota}</td></tr>` : ''}
+    </table>` : ''}
+    <p class="legal">${toma
+      ? `El colaborador solicita disfrutar ${dias} día(s) de vacaciones en el periodo indicado, correspondientes a su año de servicio, y recibe en este acto el pago de su prima vacacional equivalente al 25% del salario de los días de vacaciones que le corresponden (Art. 80 LFT).`
+      : `El colaborador recibe el pago de su prima vacacional equivalente al 25% del salario de los días de vacaciones que le corresponden por su aniversario laboral (Art. 80 LFT).`}
+    Recibí de Logistics Ultra la cantidad de <b>${fmtDinero(c.prima)}</b> por concepto de prima vacacional.</p>
     <div class="sign">
       <div>Nombre y firma del colaborador</div>
+      ${toma ? '<div>Autorización del jefe inmediato</div>' : ''}
       <div>Firma de Recursos Humanos</div>
     </div>
     <div class="noprint" style="text-align:center;margin-top:30px;">
@@ -1822,6 +1923,7 @@ function generarPrimaVacacionalPDF(empId){
     </div>
   </body></html>`);
   win.document.close();
+  if(toma && reg) toast('Vacaciones registradas para ' + nombreCompleto(e));
 }
 
 /* ---------- CONTRATOS ---------- */
